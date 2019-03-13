@@ -167,7 +167,8 @@ void CRedis_getRedisConnection(zval *object,char *groupName TSRMLS_DC)
 {
 
 	char	*defaultHost,
-		    *redisGroup;
+		    *redisGroup,
+			*password = NULL;
 	int		defaultPort = 6379,
 			defaultTimeout = 3;
 
@@ -209,6 +210,13 @@ void CRedis_getRedisConnection(zval *object,char *groupName TSRMLS_DC)
 	}
 	zval_ptr_dtor(&configTimeout);
 
+	//passowrd
+	CConfig_load("REDIS_PASSWORD",cconfigInstanceZval,&configPassword TSRMLS_CC);
+	if(IS_STRING == Z_TYPE_P(configPassword)){
+		password = (Z_STRVAL_P(configPassword));
+	}
+	zval_ptr_dtor(&configPassword);
+
 	//使用指定RedisGroup时
 	if(strcmp(redisGroup,"default") != 0){
 
@@ -225,6 +233,7 @@ void CRedis_getRedisConnection(zval *object,char *groupName TSRMLS_DC)
 			zval **groupHost;
 			zval **groupPort;
 			zval **groupTimeout;
+			zval **groupPassword;
 			if(zend_hash_find(Z_ARRVAL_PP(thisGroupZval),"host",strlen("host")+1,(void**)&groupHost) == SUCCESS && IS_STRING == Z_TYPE_PP(groupHost) ){
 				defaultHost = (Z_STRVAL_PP(groupHost));
 			}
@@ -236,6 +245,11 @@ void CRedis_getRedisConnection(zval *object,char *groupName TSRMLS_DC)
 			if(zend_hash_find(Z_ARRVAL_PP(thisGroupZval),"timeout",strlen("timeout")+1,(void**)&groupTimeout) == SUCCESS && IS_LONG == Z_TYPE_PP(groupTimeout) ){
 				defaultTimeout = Z_LVAL_PP(groupTimeout);
 			}
+
+			if(zend_hash_find(Z_ARRVAL_PP(thisGroupZval),"password",strlen("password")+1,(void**)&groupPassword) == SUCCESS && IS_STRING == Z_TYPE_PP(groupPassword) ){
+				password = Z_STRVAL_PP(groupTimeout);
+			}
+
 		}
 		zval_ptr_dtor(&redisServer);
 	}
@@ -303,8 +317,7 @@ void CRedis_getRedisConnection(zval *object,char *groupName TSRMLS_DC)
 
 
 	//判断是否有密码
-	CConfig_load("REDIS_PASSWORD",cconfigInstanceZval,&configPassword TSRMLS_CC);
-	if(IS_STRING == Z_TYPE_P(configPassword)){
+	if(password != NULL){
 
 		//连接Redis进行密码验证
 		MODULE_BEGIN
@@ -315,7 +328,7 @@ void CRedis_getRedisConnection(zval *object,char *groupName TSRMLS_DC)
 			INIT_ZVAL(constructVal);
 			paramsList[0] = &param1;
 			MAKE_STD_ZVAL(paramsList[0]);
-			ZVAL_STRING(paramsList[0],Z_STRVAL_P(configPassword),1);
+			ZVAL_STRING(paramsList[0],password,1);
 			ZVAL_STRING(&constructVal,"auth", 0);
 			call_user_function(NULL, &redisObject, &constructVal, &constructReturn, 1, paramsList TSRMLS_CC);
 			zval_ptr_dtor(&paramsList[0]);
@@ -324,7 +337,6 @@ void CRedis_getRedisConnection(zval *object,char *groupName TSRMLS_DC)
 				char errMessage[1024];
 				sprintf(errMessage,"%s%s%s%d","[CRedisException] auth fail to redis server : ",defaultHost,":",defaultPort);
 				zend_clear_exception(TSRMLS_C);
-				zval_ptr_dtor(&configPassword);
 				zval_ptr_dtor(&configHost);
 				zend_throw_exception(CRedisExceptionCe, errMessage, 1001 TSRMLS_CC);
 				return;
@@ -333,7 +345,6 @@ void CRedis_getRedisConnection(zval *object,char *groupName TSRMLS_DC)
 		MODULE_END
 
 	}
-	zval_ptr_dtor(&configPassword);
 
 	//保存redis连接
 	zend_update_property(CRedisCe,object,ZEND_STRL("_redisConn"),redisObject TSRMLS_CC);

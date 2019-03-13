@@ -137,7 +137,7 @@ PHP_METHOD(CLog,parse)
 	}
 
 	if(filePathLen == 0){
-		zend_throw_exception(CDbExceptionCe, "[CClassNotFoundException] Call [CLog->parse] Parameter error , the first params must be a string meaning log name", 5001 TSRMLS_CC);
+		zend_throw_exception(CClassNotFoundExceptionCe, "[CClassNotFoundException] Call [CLog->parse] Parameter error , the first params must be a string meaning log name", 5001 TSRMLS_CC);
 		return;
 	}
 
@@ -159,7 +159,7 @@ PHP_METHOD(CLog,parse)
 	//判断文件存在
 	if(FAILURE == fileExist(truePath)){
 		char tempMessage[10240];
-		zend_throw_exception(CDbExceptionCe, "[CClassNotFoundException] Call [CLog->parse] the log file not exists", 5001 TSRMLS_CC);
+		zend_throw_exception(CClassNotFoundExceptionCe, "[CClassNotFoundException] Call [CLog->parse] the log file not exists", 5001 TSRMLS_CC);
 		return;
 	}
 
@@ -200,7 +200,7 @@ PHP_METHOD(CLog,parse)
 
 			//值
 			zend_hash_index_find(Z_ARRVAL_PP(result2),i,(zval**)&thisValString);
-			
+
 			//explode分割
 			php_explode("|LogSplit|",Z_STRVAL_PP(thisValString),&thisValArray);
 
@@ -211,6 +211,7 @@ PHP_METHOD(CLog,parse)
 			MAKE_STD_ZVAL(saveParamsTable);
 			array_init(saveParamsTable);
 
+
 			//插入数组
 			x = zend_hash_num_elements(Z_ARRVAL_P(thisValArray));
 			zend_hash_internal_pointer_reset(Z_ARRVAL_P(thisValArray));
@@ -218,7 +219,13 @@ PHP_METHOD(CLog,parse)
 				//取出值进行json_decode
 				zend_hash_get_current_data(Z_ARRVAL_P(thisValArray),(void**)&explodeZval);
 				json_decode(Z_STRVAL_PP(explodeZval),&jsonDecodeVal);
+				if(zend_hash_num_elements(Z_ARRVAL_P(jsonDecodeVal)) == 0){
+					zval_ptr_dtor(&jsonDecodeVal);
+					MAKE_STD_ZVAL(jsonDecodeVal);
+					ZVAL_STRING(jsonDecodeVal,Z_STRVAL_PP(explodeZval),1);
+				}
 				add_index_zval(saveParamsTable,n,jsonDecodeVal);
+				zend_hash_move_forward(Z_ARRVAL_P(thisValArray));
 			}
 
 			php_trim(Z_STRVAL_PP(thisKeyString),"\r\n",&trimKey);
@@ -227,6 +234,7 @@ PHP_METHOD(CLog,parse)
 			add_next_index_zval(returnArray,saveHashTable);
 			efree(trimKey);
 			zval_ptr_dtor(&thisValArray);
+			zend_hash_move_forward(Z_ARRVAL_PP(result1));
 		}
 	}
 
@@ -451,7 +459,7 @@ PHP_METHOD(CLog,write)
 	//获取不定长度参数
 	args = (zval***)safe_emalloc(argc,sizeof(zval**),0);
 	if(ZEND_NUM_ARGS() == 0 || zend_get_parameters_array_ex(argc,args) == FAILURE){
-		zend_throw_exception(CDbExceptionCe, "[CClassNotFoundException] Call [CLog->write] Parameter error , the first params must be a string meaning log name", 5001 TSRMLS_CC);
+		zend_throw_exception(CClassNotFoundExceptionCe, "[CClassNotFoundException] Call [CLog->write] Parameter error , the first params must be a string meaning log name", 5001 TSRMLS_CC);
 		return;
 	}
 
@@ -459,7 +467,7 @@ PHP_METHOD(CLog,write)
 
 		if(i == 0){
 			if( IS_STRING != Z_TYPE_PP(args[i]) ){
-				zend_throw_exception(CDbExceptionCe, "[CClassNotFoundException] Call [CLog->write] Parameter error , the first params must be a string meaning log name", 5001 TSRMLS_CC);
+				zend_throw_exception(CClassNotFoundExceptionCe, "[CClassNotFoundException] Call [CLog->write] Parameter error , the first params must be a string meaning log name", 5001 TSRMLS_CC);
 				efree(args);
 				return;
 			}
@@ -498,6 +506,9 @@ PHP_METHOD(CLog,write)
 	
 	//创建目录
 	if(FAILURE == fileExist(logPath)){
+
+		zval *sapiZval;
+
 		//尝试创建文件夹
 		php_mkdir(logPath);
 
@@ -505,6 +516,16 @@ PHP_METHOD(CLog,write)
 		if(FAILURE == fileExist(logPath)){
 			RETVAL_FALSE;
 			return;
+		}
+
+		//如果是cli 将目录所有设为apache:apche
+		if(zend_hash_find(EG(zend_constants),"PHP_SAPI",strlen("PHP_SAPI")+1,(void**)&sapiZval) == SUCCESS && strcmp(Z_STRVAL_P(sapiZval),"cli") == 0){
+			char    *command,
+					*returnString;
+			spprintf(&command, 0,"chown apache:apache -R %s", logPath);
+			exec_shell_return(command,&returnString);
+			efree(command);
+			efree(returnString);
 		}
 	}
 
