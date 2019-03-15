@@ -60,24 +60,6 @@ zend_module_entry CMyFrameExtension_module_entry = {
 ZEND_GET_MODULE(CMyFrameExtension)
 #endif
 
-//用于缓存php代码文件
-#define PHP_CODE_SOURCE "php_codes"
-static int source_php_code;
-static int source_php_code_persist;
-typedef struct _php_source_code_data
-{
-    char *filename;
-    zend_op_array *op_code;
-}php_source_code_data;
-
-
-static void php_CMyFrameExtension_globals_dtor(zend_rsrc_list_entry *rsrc TSRMLS_DC)
-{
-	php_source_code_data *fdata = (php_source_code_data*)rsrc->ptr;
-    pefree(fdata->op_code,1);
-    pefree(fdata->filename, 1);
-    pefree(fdata, 1);
-}
 
 //模块被加载时
 PHP_MINIT_FUNCTION(CMyFrameExtension)
@@ -145,53 +127,15 @@ PHP_MINIT_FUNCTION(CMyFrameExtension)
 	CMYFRAME_REGISTER_CLASS(CMailException);
 	CMYFRAME_REGISTER_CLASS(CQueueException);
 
-	//覆盖zend_compile_file方法 添加opcode缓存
-    old_compile_file = zend_compile_file;
-    zend_compile_file = my_compile_file;
-	
-	//定义资源
-	source_php_code = zend_register_list_destructors_ex(NULL, NULL, PHP_CODE_SOURCE,module_number);
-	source_php_code_persist =zend_register_list_destructors_ex(NULL, php_CMyFrameExtension_globals_dtor,PHP_CODE_SOURCE, module_number);
-
-
+	//controller
+	CMYFRAME_REGISTER_CLASS(CGuardController);
 
 	return SUCCESS;
 }
 
 
-
-static zend_op_array* my_compile_file(zend_file_handle* h,int type TSRMLS_DC)
-{
-	
-	zend_op_array			*op_array = NULL;
-	const char				*filename = NULL;
-	char					*saveFileName;
-	char					*hash_key;
-    int						hash_key_len;
-
-	
-	if(h->opened_path) {
-        filename = h->opened_path;
-    } else {
-        filename = h->filename;
-    }
-
-
-	op_array = old_compile_file(h,type TSRMLS_CC);
-
-	php_printf("<pre>%s<br>",filename);
-	dump_op_array(op_array);
-	php_printf("<br>======================================================<br>");
-
-	return op_array;
-}
-
-
 PHP_MSHUTDOWN_FUNCTION(CMyFrameExtension)
 {
-#ifndef ZTS
-    php_CMyFrameExtension_globals_dtor(&CMyFrameExtension_globals TSRMLS_CC);
-#endif
 	return SUCCESS;
 }
 

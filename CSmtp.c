@@ -56,7 +56,7 @@ CMYFRAME_REGISTER_CLASS_RUN(CSmtp)
 	zend_declare_property_string(CSmtpCe, ZEND_STRL("user"),"",ZEND_ACC_PRIVATE TSRMLS_CC);
 	zend_declare_property_string(CSmtpCe, ZEND_STRL("pass"),"",ZEND_ACC_PRIVATE TSRMLS_CC);
 	zend_declare_property_null(CSmtpCe, ZEND_STRL("sock"),ZEND_ACC_PRIVATE TSRMLS_CC);
-	zend_declare_property_string(CSmtpCe, ZEND_STRL("displayname"),"",ZEND_ACC_PRIVATE TSRMLS_CC);
+	zend_declare_property_string(CSmtpCe, ZEND_STRL("displayname"),"NoReplayMail",ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_string(CSmtpCe, ZEND_STRL("debug"),"",ZEND_ACC_PRIVATE TSRMLS_CC);
 	zend_declare_property_string(CSmtpCe, ZEND_STRL("sendType"),"mail",ZEND_ACC_PRIVATE TSRMLS_CC);
 
@@ -192,8 +192,7 @@ void CSmtp_close(zval *mailSocket TSRMLS_DC){
 
 PHP_METHOD(CSmtp,send){
 
-	char	*to,
-			*from,
+	char	*from,
 			*subject,
 			*body,
 			*addHeader = "",
@@ -203,49 +202,68 @@ PHP_METHOD(CSmtp,send){
 
 	smart_str sendHeader = {0};
 
-	int		toLen = 0,
-			fromLen = 0,
+	int		fromLen = 0,
 			subjectLen = 0,
 			bodyLen = 0,
 			addHeaderLen = 0,
 			mailTypeLen = 0,
 			ccLen = 0,
-			bccLen = 0;
+			bccLen = 0,
+			i,h;
 
-	zval	*relay_host,
+	zval	*toArray,
+			*relay_host,
 			*smtp_port,
 			*mailSocket,
 			mailSocketReturn,
 			*mailUser,
-			*mailPass;
+			*mailPass,
+			*toList,
+			**thisTo;
 			
 
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"ssss|ssss",&to,&toLen,&from,&fromLen,&subject,&subjectLen,&body,&bodyLen,&addHeader,&addHeaderLen,&mailType,&mailTypeLen,&cc,&ccLen,&bcc,&bccLen) == FAILURE){
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"zsss|ssss",&toArray,&from,&fromLen,&subject,&subjectLen,&body,&bodyLen,&addHeader,&addHeaderLen,&mailType,&mailTypeLen,&cc,&ccLen,&bcc,&bccLen) == FAILURE){
 		zend_throw_exception(CMailExceptionCe, "[CMailException] send execution method parameter error", 12012 TSRMLS_CC);
 		return;
 	}
 
-	if(toLen <= 0 || fromLen <= 0 || subjectLen <= 0 || bodyLen <= 0){
+	if(fromLen <= 0 || subjectLen <= 0 || bodyLen <= 0){
 		zend_throw_exception(CMailExceptionCe, "[CMailException] send execution method parameter error", 12012 TSRMLS_CC);
 		return;
+	}
+
+	MAKE_STD_ZVAL(toList);
+	if(IS_ARRAY == Z_TYPE_P(toArray)){
+		ZVAL_ZVAL(toList,toArray,1,0);
+	}else if(IS_STRING == Z_TYPE_P(toArray)){
+		array_init(toList);
+		add_next_index_string(toList,Z_STRVAL_P(toArray),1);
+	}else{
+		array_init(toList);
 	}
 
 
 	//Í·
 	smart_str_appends(&sendHeader,"MIME-Version:1.0\r\n");
 	if(strcmp(mailType,"HTML") == 0){
-		smart_str_appends(&sendHeader,"Content-Type:text/html\r\n");
+		smart_str_appends(&sendHeader,"Content-Type:text/html;charset=utf-8\r\n");
 	}
 
 	//Ìí¼Óto
-	smart_str_appends(&sendHeader,"To:");
-	smart_str_appends(&sendHeader,to);
-	smart_str_appends(&sendHeader,"\r\n");
+	zend_hash_internal_pointer_reset(Z_ARRVAL_P(toList));
+	h = zend_hash_num_elements(Z_ARRVAL_P(toList));
+	for(i = 0 ; i < h ; i++){
+		zend_hash_get_current_data(Z_ARRVAL_P(toList),(void**)&thisTo);
+		smart_str_appends(&sendHeader,"To: ");
+		smart_str_appends(&sendHeader,Z_STRVAL_PP(thisTo));
+		smart_str_appends(&sendHeader,"\r\n");
+		zend_hash_move_forward(Z_ARRVAL_P(toList));
+	}
 
 	//CC
 	if(ccLen > 0){
-		smart_str_appends(&sendHeader,"Cc:");
+		smart_str_appends(&sendHeader,"Cc: ");
 		smart_str_appends(&sendHeader,cc);
 		smart_str_appends(&sendHeader,"\r\n");
 	}
@@ -260,7 +278,7 @@ PHP_METHOD(CSmtp,send){
 		}else{
 			showDisplayName = estrdup(from);
 		}
-		smart_str_appends(&sendHeader,"From:");
+		smart_str_appends(&sendHeader,"From: ");
 		smart_str_appends(&sendHeader,showDisplayName);
 		smart_str_appends(&sendHeader,"<");
 		smart_str_appends(&sendHeader,from);
@@ -270,7 +288,7 @@ PHP_METHOD(CSmtp,send){
 
 	//subject
 	MODULE_BEGIN
-		smart_str_appends(&sendHeader,"Subject:");
+		smart_str_appends(&sendHeader,"Subject: ");
 		smart_str_appends(&sendHeader,subject);
 		smart_str_appends(&sendHeader,"\r\n");
 	MODULE_END
@@ -287,7 +305,7 @@ PHP_METHOD(CSmtp,send){
 	MODULE_BEGIN
 		char *thisDate;
 		php_date("r",&thisDate);
-		smart_str_appends(&sendHeader,"Date:");
+		smart_str_appends(&sendHeader,"Date: ");
 		smart_str_appends(&sendHeader,thisDate);
 		smart_str_appends(&sendHeader,"\r\n");
 		efree(thisDate);
@@ -295,19 +313,19 @@ PHP_METHOD(CSmtp,send){
 
 	//powered by
 	MODULE_BEGIN
-		smart_str_appends(&sendHeader,"X-Mailer:By Redhat (PHP/CQuickFrameExtension)\r\n");
+		smart_str_appends(&sendHeader,"X-Mailer: By Redhat (PHP/5.4.37)\r\n");
 	MODULE_END
 
 	//message-ID
 	MODULE_BEGIN
-		zval *timeUnix;
+		char *timeUnix;
 		char messageIdArr[1024];
-		microtimeTrue(&timeUnix);
-		sprintf(messageIdArr,"%f.%s",Z_DVAL_P(timeUnix),from);
+		php_date("YmdHis",&timeUnix);
+		sprintf(messageIdArr,"%s.%s",timeUnix,from);
 		smart_str_appends(&sendHeader,"Message-ID:<");
 		smart_str_appends(&sendHeader,messageIdArr);
 		smart_str_appends(&sendHeader,">\r\n");
-		zval_ptr_dtor(&timeUnix);
+		efree(timeUnix);
 	MODULE_END
 
 	smart_str_0(&sendHeader);
@@ -416,18 +434,30 @@ PHP_METHOD(CSmtp,send){
 
 	//TO
 	MODULE_BEGIN
-		char *mailFrom;
-		strcat2(&mailFrom,"TO:<",to,">",NULL);
-		if(!CSmtp_putCMD(mailSocket,"RCPT",mailFrom TSRMLS_CC)){
-			CSmtp_close(mailSocket TSRMLS_CC);
-			efree(mailFrom);
-			smart_str_free(&sendHeader);
-			zval_dtor(&mailSocketReturn);
-			zend_throw_exception(CMailExceptionCe, "[CMailException] run command Fail : To", 12012 TSRMLS_CC);
-			return;
+
+		zend_hash_internal_pointer_reset(Z_ARRVAL_P(toList));
+		h = zend_hash_num_elements(Z_ARRVAL_P(toList));
+		for(i = 0 ; i < h ; i++){
+			zend_hash_get_current_data(Z_ARRVAL_P(toList),(void**)&thisTo);
+
+			MODULE_BEGIN
+				char *mailFrom;
+				strcat2(&mailFrom,"TO:<",Z_STRVAL_PP(thisTo),">",NULL);
+				if(!CSmtp_putCMD(mailSocket,"RCPT",mailFrom TSRMLS_CC)){
+					CSmtp_close(mailSocket TSRMLS_CC);
+					efree(mailFrom);
+					smart_str_free(&sendHeader);
+					zval_dtor(&mailSocketReturn);
+					zend_throw_exception(CMailExceptionCe, "[CMailException] run command Fail : To", 12012 TSRMLS_CC);
+					return;
+				}
+				efree(mailFrom);
+			MODULE_END
+			
+			zend_hash_move_forward(Z_ARRVAL_P(toList));
 		}
-		efree(mailFrom);
 	MODULE_END
+	zval_ptr_dtor(&toList);
 
 
 	//Data

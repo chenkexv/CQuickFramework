@@ -342,19 +342,22 @@ void CRequest_createController(char *path,char *name,zval **returnZval TSRMLS_DC
 	MAKE_STD_ZVAL(*returnZval);
 	ZVAL_NULL(*returnZval);
 
+	tureClassName = estrdup(name);
+	php_strtolower(tureClassName,strlen(tureClassName)+1);
+
 
 	//编译该文件
-	if(CLoader_loadFile(path) != SUCCESS){
-		char *errMessage;
-		strcat2(&errMessage,"[CClassNotFoundException] Cannot load controller files[",name,"]",NULL);
-		zend_throw_exception(CClassNotFoundExceptionCe, errMessage, 100001 TSRMLS_CC);
-		efree(errMessage);
-		return;
+	if(zend_hash_find(EG(class_table),tureClassName,strlen(tureClassName)+1,(void**)&controllerCePP ) == FAILURE){
+		if(CLoader_loadFile(path) != SUCCESS){
+			char *errMessage;
+			strcat2(&errMessage,"[CClassNotFoundException] Cannot load controller files[",name,"]",NULL);
+			zend_throw_exception(CClassNotFoundExceptionCe, errMessage, 100001 TSRMLS_CC);
+			efree(errMessage);
+			return;
+		}
 	}
 
 	//查询该类结构体
-	tureClassName = estrdup(name);
-	php_strtolower(tureClassName,strlen(tureClassName)+1);
 	if(zend_hash_find(EG(class_table),tureClassName,strlen(tureClassName)+1,(void**)&controllerCePP ) == FAILURE){
 		char *errMessage;
 		strcat2(&errMessage,"[RouteException] Can't find the controller files[",name,"],Confirm the identity of the controller file name and the name of the class",NULL);
@@ -603,14 +606,26 @@ void CRequest_routeDoing(zval *routeObject TSRMLS_DC)
 	//主模块
 	if( (IS_BOOL == Z_TYPE_P(useModule) && Z_LVAL_P(useModule) == 0) || strcmp(Z_STRVAL_P(defaultModelZval),requsetModule) == 0 ){
 
-		char *controllerPath;
+		char	*controllerPath,
+				*controllLessName;
 
 		zval *controllerMapConfItem;
+
+		zend_class_entry	**controllerCePP;
+
+		int hasExistController = FAILURE;
 
 		//控制器文件
 		strcat2(&controllerPath,Z_STRVAL_P(codePath),"/controllers/",requestController,".php",NULL);
 
-		if(SUCCESS == fileExist(controllerPath)){
+		//check class exists
+		controllLessName = estrdup(requestController);
+		php_strtolower(controllLessName,strlen(controllLessName)+1);
+		hasExistController = zend_hash_find(EG(class_table),controllLessName,strlen(controllLessName)+1,(void**)&controllerCePP);
+		efree(controllLessName);
+
+
+		if(SUCCESS == fileExist(controllerPath) || SUCCESS == hasExistController){
 			//创建控制器对象
 			zval *getReturn;
 			CRequest_createController(controllerPath,(requestController),&getReturn TSRMLS_CC);
