@@ -2380,6 +2380,37 @@ void set_time_limit(int input)
 	zval_dtor(&returnZval);
 }
 
+int php_rand_call(int prams1,int params2)
+{
+	zval	function,
+			returnZval,
+			*nowReturn,
+			*params[2];
+
+	int status = FAILURE;
+
+	TSRMLS_FETCH();
+	MAKE_STD_ZVAL(params[0]);
+	ZVAL_LONG(params[0],prams1);
+	MAKE_STD_ZVAL(params[1]);
+	ZVAL_LONG(params[1],params2);
+
+	
+	INIT_ZVAL(function);
+	ZVAL_STRING(&function,"rand",0);
+	call_user_function(EG(function_table), NULL, &function, &returnZval,2, params TSRMLS_CC);
+	zval_ptr_dtor(&params[0]);
+	zval_ptr_dtor(&params[1]);
+	if(IS_LONG == Z_TYPE(returnZval)){
+		zval_dtor(&returnZval);
+		return Z_LVAL(returnZval);
+	}else{
+		zval_dtor(&returnZval);
+		return 0;
+	}
+
+}
+
 void http_build_query(zval *input,char **getStr)
 {
 	zval	returnZval,
