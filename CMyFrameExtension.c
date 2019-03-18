@@ -102,6 +102,7 @@ PHP_MINIT_FUNCTION(CMyFrameExtension)
 	CMYFRAME_REGISTER_CLASS(CPagination);
 	CMYFRAME_REGISTER_CLASS(CWatcher);
 	CMYFRAME_REGISTER_CLASS(CRabbit);
+	CMYFRAME_REGISTER_CLASS(CRabbitHelper);
 	CMYFRAME_REGISTER_CLASS(CRabbitMessage);
 	CMYFRAME_REGISTER_CLASS(CEncrypt);
 	CMYFRAME_REGISTER_CLASS(CCookie);
@@ -177,9 +178,5 @@ PHP_FUNCTION(CDump)
 //ªÒ»°CPUID
 PHP_FUNCTION(CGetServiceExpire)
 {
-	/*char *limitTime;
-	getServiceExpire(&limitTime);
-	ZVAL_STRING(return_value,limitTime,1);
-	efree(limitTime);
-	*/
+
 }
