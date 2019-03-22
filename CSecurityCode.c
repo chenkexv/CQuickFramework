@@ -439,6 +439,7 @@ PHP_METHOD(CSecurityCode,entry)
 		appPath = zend_read_static_property(CWebAppCe,ZEND_STRL("app_path"),0 TSRMLS_CC);
 		codeSetString = Z_STRVAL_P(codeSet);
 		h = Z_LVAL_P(length);
+		code[h] = '\0';
 		for(i = 0 ; i < h ; i++){
 			rand = php_rand_call(0,27);
 			thisCodeWord = codeSetString[rand];
