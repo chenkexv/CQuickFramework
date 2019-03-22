@@ -2063,11 +2063,14 @@ void CGuardController_checkWarnMail(zval *logs,zval *object TSRMLS_DC){
 				if(IS_ARRAY == Z_TYPE_P(nowValArray) && zend_hash_num_elements(Z_ARRVAL_P(nowValArray)) == 2){
 					zval **thisCutVal;
 					double	thisCutValInt = 0;
+					char	*valString;
 					if(SUCCESS == zend_hash_index_find(Z_ARRVAL_P(nowValArray),0,(void**)&thisCutVal) && IS_STRING == Z_TYPE_PP(thisCutVal)){
 						thisCutValInt = atof(Z_STRVAL_PP(thisCutVal));
 					}
 					thisCutValInt = thisCutValInt / 1024;
-					add_assoc_double(saveItem,"value",thisCutValInt);
+					spprintf(&valString,0,"%.4f",thisCutValInt);
+					add_assoc_string(saveItem,"value",valString,1);
+					efree(valString);
 					if(thisCutValInt >= (double)Z_LVAL_PP(thisVal) && Z_LVAL_PP(thisVal) > 0){
 						needReport = 1;
 						add_assoc_long(saveItem,"flag",1);
@@ -2086,11 +2089,14 @@ void CGuardController_checkWarnMail(zval *logs,zval *object TSRMLS_DC){
 				if(IS_ARRAY == Z_TYPE_P(nowValArray) && zend_hash_num_elements(Z_ARRVAL_P(nowValArray)) == 2){
 					zval **thisCutVal;
 					double	thisCutValInt = 0;
+					char	*valString;
 					if(SUCCESS == zend_hash_index_find(Z_ARRVAL_P(nowValArray),1,(void**)&thisCutVal) && IS_STRING == Z_TYPE_PP(thisCutVal)){
 						thisCutValInt = atof(Z_STRVAL_PP(thisCutVal));
 					}
 					thisCutValInt = thisCutValInt / 1024;
-					add_assoc_double(saveItem,"value",thisCutValInt);
+					spprintf(&valString,0,"%.4f",thisCutValInt);
+					add_assoc_string(saveItem,"value",valString,1);
+					efree(valString);
 					if(thisCutValInt >= (double)Z_LVAL_PP(thisVal) && Z_LVAL_PP(thisVal) > 0){
 						needReport = 1;
 						add_assoc_long(saveItem,"flag",1);
@@ -2109,11 +2115,14 @@ void CGuardController_checkWarnMail(zval *logs,zval *object TSRMLS_DC){
 				if(IS_ARRAY == Z_TYPE_P(nowValArray) && zend_hash_num_elements(Z_ARRVAL_P(nowValArray)) == 2){
 					zval **thisCutVal;
 					double	thisCutValInt = 0;
+					char	*valString;
 					if(SUCCESS == zend_hash_index_find(Z_ARRVAL_P(nowValArray),0,(void**)&thisCutVal) && IS_STRING == Z_TYPE_PP(thisCutVal)){
 						thisCutValInt = atof(Z_STRVAL_PP(thisCutVal));
 					}
 					thisCutValInt = thisCutValInt / 1024;
-					add_assoc_double(saveItem,"value",thisCutValInt);
+					spprintf(&valString,0,"%.4f",thisCutValInt);
+					add_assoc_string(saveItem,"value",valString,1);
+					efree(valString);
 					if(thisCutValInt >= (double)Z_LVAL_PP(thisVal) && Z_LVAL_PP(thisVal) > 0){
 							needReport = 1;
 							add_assoc_long(saveItem,"flag",1);
@@ -2132,11 +2141,14 @@ void CGuardController_checkWarnMail(zval *logs,zval *object TSRMLS_DC){
 				if(IS_ARRAY == Z_TYPE_P(nowValArray) && zend_hash_num_elements(Z_ARRVAL_P(nowValArray)) == 2){
 					zval **thisCutVal;
 					double	thisCutValInt = 0;
+					char	*valString;
 					if(SUCCESS == zend_hash_index_find(Z_ARRVAL_P(nowValArray),1,(void**)&thisCutVal) && IS_STRING == Z_TYPE_PP(thisCutVal)){
 						thisCutValInt = atof(Z_STRVAL_PP(thisCutVal));
 					}
 					thisCutValInt = thisCutValInt / 1024;
-					add_assoc_double(saveItem,"value",thisCutValInt);
+					spprintf(&valString,0,"%.4f",thisCutValInt);
+					add_assoc_string(saveItem,"value",valString,1);
+					efree(valString);
 					if(thisCutValInt >= (double)Z_LVAL_PP(thisVal) && Z_LVAL_PP(thisVal) > 0){
 							needReport = 1;
 							add_assoc_long(saveItem,"flag",1);
