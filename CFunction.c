@@ -1219,6 +1219,39 @@ void php_date(char *tag,char **getZval)
 	return;
 }
 
+void php_date_ex(char *tag,int timestamp,char **getZval)
+{
+	zval	returnZval,
+			*params[2],
+			param1,
+			param2,
+			function,
+			*returnData,
+			*returnBack;
+
+	int status = FAILURE;
+
+	TSRMLS_FETCH();
+	MAKE_STD_ZVAL(params[0]);
+	ZVAL_STRING(params[0],tag,1);
+	MAKE_STD_ZVAL(params[1]);
+	ZVAL_LONG(params[1],timestamp);
+
+	INIT_ZVAL(function);
+	ZVAL_STRING(&function,"date",0);
+
+	if(SUCCESS == call_user_function(EG(function_table), NULL, &function, &returnZval, 2, params TSRMLS_CC)){
+		*getZval = estrdup(Z_STRVAL(returnZval));
+	}else{
+		*getZval = estrdup("0000-00-00");
+	}
+
+	zval_ptr_dtor(&params[0]);
+	zval_ptr_dtor(&params[1]);
+	zval_dtor(&returnZval);
+	return;
+}
+
 int exec_shell(char *cmdCommand){
 
 #ifdef PHP_WIN32
@@ -1288,6 +1321,19 @@ void set_exception_handler(char *param1Str)
 
 	zval_dtor(&returnZval);
 	zval_ptr_dtor(&params[0]);
+}
+
+void dumpMemory(){
+	zval	returnZval,
+			function,
+			*returnData;
+	TSRMLS_FETCH();
+	INIT_ZVAL(function);
+	ZVAL_STRING(&function,"memory_get_usage",0);
+	call_user_function(EG(function_table), NULL, &function, &returnZval,0, NULL TSRMLS_CC);
+	returnData = &returnZval;
+	php_printf("=========================memroyUsed:%d\n",Z_LVAL_P(returnData));
+	zval_dtor(&returnZval);
 }
 
 int php_flock(zval *fp,int status)
@@ -1557,6 +1603,13 @@ int file_put_contents(char *param1Str,char *param2Str){
 	status = Z_LVAL(returnZval);
 	zval_dtor(&returnZval);
 	return status;
+}
+
+void getHostName(char **hostname){
+	char	*tempHost;
+	exec_shell_return("hostname",&tempHost);
+	php_trim(tempHost,"\n",hostname);
+	efree(tempHost);
 }
 
 void file_get_contents(char *param1Str,char **getStr){

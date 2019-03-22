@@ -106,10 +106,11 @@ int CSmtp_putCMD(zval *object,char *command,char *args TSRMLS_DC){
 
 	char *runCommand;
 	if(strlen(args) > 0){
-		strcat2(&runCommand,command," ",args,"\r\n",NULL);
+		spprintf(&runCommand,0,"%s%s%s%s",command," ",args,"\r\n");
 	}else{
-		strcat2(&runCommand,command,"\r\n",NULL);
+		spprintf(&runCommand,0,"%s%s",command,"\r\n");
 	}
+
 
 	//执行fwrite函数
 	MODULE_BEGIN
@@ -142,8 +143,9 @@ int CSmtp_putCMD(zval *object,char *command,char *args TSRMLS_DC){
 				params1,
 				params2,
 				*returnObject,
-				*match,
-				*replaceString;
+				*match;
+	
+		char	*replaceString;
 		paramsList[0] = &params1;
 		paramsList[1] = &params2;
 		MAKE_STD_ZVAL(paramsList[0]);
@@ -313,7 +315,7 @@ PHP_METHOD(CSmtp,send){
 
 	//powered by
 	MODULE_BEGIN
-		smart_str_appends(&sendHeader,"X-Mailer: By Redhat (PHP/5.4.37)\r\n");
+		smart_str_appends(&sendHeader,"X-Mailer: By CQuickFramework v.3.0.1\r\n");
 	MODULE_END
 
 	//message-ID
@@ -472,7 +474,7 @@ PHP_METHOD(CSmtp,send){
 	//发送消息
 	MODULE_BEGIN
 		char *message;
-		strcat2(&message,sendHeader.c,"\r\n",body,NULL);
+		spprintf(&message,0,"%s%s%s",sendHeader.c,"\r\n",body);
 		if(!CSmtp_putCMD(mailSocket,message,"" TSRMLS_CC)){
 			CSmtp_close(mailSocket TSRMLS_CC);
 			efree(message);

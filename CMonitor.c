@@ -70,6 +70,45 @@ PHP_METHOD(CMonitor,getLoadAverage)
 {}
 PHP_METHOD(CMonitor,getNetConnection)
 {}
+
+void CMonitor_getCPU(zval **returnData,int num TSRMLS_DC){
+	MAKE_STD_ZVAL(*returnData);
+	array_init(*returnData);
+}
+void CMonitor_getMemory(zval **returnData,int num TSRMLS_DC){
+	MAKE_STD_ZVAL(*returnData);
+	array_init(*returnData);
+}
+
+void CMonitor_getSwap(zval **returnData TSRMLS_DC){
+	MAKE_STD_ZVAL(*returnData);
+	array_init(*returnData);
+}
+
+void CMonitor_getNetworkStat(zval **returnData TSRMLS_DC){
+	MAKE_STD_ZVAL(*returnData);
+	array_init(*returnData);
+}
+
+void CMonitor_getDisk(zval **returnData TSRMLS_DC){
+	MAKE_STD_ZVAL(*returnData);
+	array_init(*returnData);
+}
+
+void CMonitor_getProcess(zval **returnData TSRMLS_DC){
+	MAKE_STD_ZVAL(*returnData);
+	array_init(*returnData);
+}
+
+void CMonitor_getNetConnection(zval **returnData TSRMLS_DC){
+	MAKE_STD_ZVAL(*returnData);
+	array_init(*returnData);
+}
+void CMonitor_getLoadAverage(zval **returnData TSRMLS_DC){
+	MAKE_STD_ZVAL(*returnData);
+	array_init(*returnData);
+}
+
 #else
 void CMonitor_getCPU(zval **returnData,int num TSRMLS_DC){
 

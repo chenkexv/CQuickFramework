@@ -70,6 +70,164 @@ CMYFRAME_REGISTER_CLASS_RUN(CActiveRecord)
 	return SUCCESS;
 }
 
+int CActiveRecord_insert(char *config,char *table,zval *value,zval **exception TSRMLS_DC)
+{
+	zval	*CDatabase,
+			callQueryReturn,
+			callinsertReturn,
+			callValueReturn,
+			callExecuteReturn;
+
+	int		callStatus = 0;
+
+	//getInstance
+	CDatabase_getInstance(0,config,&CDatabase TSRMLS_CC);
+	
+	//call from
+	MODULE_BEGIN
+		zval	callQuery,
+				*callQueryParamsList[1];
+		MAKE_STD_ZVAL(callQueryParamsList[0]);
+		ZVAL_STRING(callQueryParamsList[0],table,1);
+		INIT_ZVAL(callQuery);
+		ZVAL_STRING(&callQuery,"from",0);
+		call_user_function(NULL, &CDatabase, &callQuery, &callQueryReturn, 1, callQueryParamsList TSRMLS_CC);
+		zval_ptr_dtor(&callQueryParamsList[0]);
+	MODULE_END
+
+	//call insert
+	MODULE_BEGIN
+		zval	callQuery;
+		INIT_ZVAL(callQuery);
+		ZVAL_STRING(&callQuery,"insert",0);
+		call_user_function(NULL, &CDatabase, &callQuery, &callinsertReturn, 0, NULL TSRMLS_CC);
+	MODULE_END
+
+	//call value
+	MODULE_BEGIN
+		zval	callQuery,
+				*callQueryParamsList[1];
+		MAKE_STD_ZVAL(callQueryParamsList[0]);
+		ZVAL_ZVAL(callQueryParamsList[0],value,1,0);
+		INIT_ZVAL(callQuery);
+		ZVAL_STRING(&callQuery,"value",0);
+		call_user_function(NULL, &CDatabase, &callQuery, &callValueReturn, 1, callQueryParamsList TSRMLS_CC);
+		zval_ptr_dtor(&callQueryParamsList[0]);
+	MODULE_END
+
+	//call execute
+	MODULE_BEGIN
+		zval	callQuery;
+		INIT_ZVAL(callQuery);
+		ZVAL_STRING(&callQuery,"execute",0);
+		call_user_function(NULL, &CDatabase, &callQuery, &callExecuteReturn, 0, NULL TSRMLS_CC);
+	MODULE_END
+
+	MAKE_STD_ZVAL(*exception);
+	if(EG(exception)){
+		zend_class_entry	*exceptionCe;
+		zval				*exceptionMessage,
+							**message;
+		exceptionCe = Z_OBJCE_P(EG(exception));
+		exceptionMessage = zend_read_property(exceptionCe,EG(exception), "message",strlen("message"),0 TSRMLS_CC);
+		ZVAL_STRING(*exception,Z_STRVAL_P(exceptionMessage),1);
+		callStatus = 0;
+		//php 5.4 after clear cache will check this val is equeue handle,and throw Attempt to destruct pending exception
+		Z_OBJ_HANDLE_P(EG(exception)) = 0;		
+		zend_clear_exception(TSRMLS_C);
+	}else{
+		ZVAL_STRING(*exception,"",1);
+		callStatus = 1;
+	}
+
+	zval_ptr_dtor(&CDatabase);
+	zval_dtor(&callQueryReturn);
+	zval_dtor(&callinsertReturn);
+	zval_dtor(&callValueReturn);
+	zval_dtor(&callExecuteReturn);
+	return callStatus;
+}
+
+void CActiveRecord_getDBSQL(char *config,char *sql,zval **returnZval TSRMLS_DC)
+{
+	zval	*CDatabase,
+			*processRetrun,
+			*asArrayData,
+			processAsArray,
+			callQueryReturn;
+
+	CDatabase_getInstance(0,config,&CDatabase TSRMLS_CC);
+
+	//call query
+	MODULE_BEGIN
+		zval	callQuery,
+				*callQueryParamsList[1];
+		MAKE_STD_ZVAL(callQueryParamsList[0]);
+		ZVAL_STRING(callQueryParamsList[0],sql,1);
+		INIT_ZVAL(callQuery);
+		ZVAL_STRING(&callQuery,"query",0);
+		call_user_function(NULL, &CDatabase, &callQuery, &callQueryReturn, 1, callQueryParamsList TSRMLS_CC);
+		processRetrun = &callQueryReturn;
+		zval_ptr_dtor(&callQueryParamsList[0]);
+	MODULE_END
+
+	//call asArray
+	MODULE_BEGIN
+		zval	callQuery;
+		INIT_ZVAL(callQuery);
+		ZVAL_STRING(&callQuery,"asArray",0);
+		call_user_function(NULL, &processRetrun, &callQuery, &processAsArray, 0, NULL TSRMLS_CC);
+		asArrayData = &processAsArray;
+	MODULE_END
+
+	MAKE_STD_ZVAL(*returnZval);
+	ZVAL_ZVAL(*returnZval,asArrayData,1,0);
+
+	zval_ptr_dtor(&CDatabase);
+	zval_dtor(&callQueryReturn);
+	zval_dtor(&processAsArray);
+}
+
+void CActiveRecord_getSQL(char *sql,zval **returnZval TSRMLS_DC)
+{
+	zval	*CDatabase,
+			*processRetrun,
+			*asArrayData,
+			processAsArray,
+			callQueryReturn;
+
+	CDatabase_getInstance(0,"main",&CDatabase TSRMLS_CC);
+
+	//call query
+	MODULE_BEGIN
+		zval	callQuery,
+				*callQueryParamsList[1];
+		MAKE_STD_ZVAL(callQueryParamsList[0]);
+		ZVAL_STRING(callQueryParamsList[0],sql,1);
+		INIT_ZVAL(callQuery);
+		ZVAL_STRING(&callQuery,"query",0);
+		call_user_function(NULL, &CDatabase, &callQuery, &callQueryReturn, 1, callQueryParamsList TSRMLS_CC);
+		processRetrun = &callQueryReturn;
+		zval_ptr_dtor(&callQueryParamsList[0]);
+	MODULE_END
+
+	//call asArray
+	MODULE_BEGIN
+		zval	callQuery;
+		INIT_ZVAL(callQuery);
+		ZVAL_STRING(&callQuery,"asArray",0);
+		call_user_function(NULL, &processRetrun, &callQuery, &processAsArray, 0, NULL TSRMLS_CC);
+		asArrayData = &processAsArray;
+	MODULE_END
+
+	MAKE_STD_ZVAL(*returnZval);
+	ZVAL_ZVAL(*returnZval,asArrayData,1,0);
+
+	zval_ptr_dtor(&CDatabase);
+	zval_dtor(&callQueryReturn);
+	zval_dtor(&processAsArray);
+}
+
 //获取所有公共参数
 void CActiveRecord_getAllSetAttribute(zval *object,zval **returnZval TSRMLS_DC)
 {

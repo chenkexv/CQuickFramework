@@ -62,6 +62,27 @@ CMYFRAME_REGISTER_CLASS_RUN(CHooks)
 	return SUCCESS;
 }
 
+zend_function_entry CDataObject_functions[] = {
+	PHP_ME(CDataObject,asArray,NULL,ZEND_ACC_PUBLIC)
+	PHP_ME(CDataObject,set,NULL,ZEND_ACC_PUBLIC)
+	PHP_ME(CDataObject,get,NULL,ZEND_ACC_PUBLIC)
+	{NULL, NULL, NULL}
+};
+
+//CDataObject
+CMYFRAME_REGISTER_CLASS_RUN(CDataObject)
+{
+	zend_class_entry funCe;
+	INIT_CLASS_ENTRY(funCe,"CDataObject",CDataObject_functions);
+	CDataObjectCe = zend_register_internal_class(&funCe TSRMLS_CC);
+
+	//定义变量_pluginList _hooks _failLoadPluginList
+	zend_declare_property_null(CDataObjectCe, ZEND_STRL("data"),ZEND_ACC_PRIVATE TSRMLS_CC);
+
+	return SUCCESS;
+}
+
+
 //获取目录下的文件
 int CHooks_getPathFile(char *path,zval **returnZval TSRMLS_DC)
 {
@@ -754,4 +775,42 @@ PHP_METHOD(CHooks,registerHook)
 	efree(callClassName);
 
 	RETVAL_TRUE;
+}
+
+PHP_METHOD(CDataObject,asArray)
+{
+	zval	*thisVal;
+	thisVal = zend_read_property(CDataObjectCe,getThis(),ZEND_STRL("data"),0 TSRMLS_CC);
+	RETVAL_ZVAL(thisVal,1,0);
+}
+
+CHooks_setDataObject(zval *object,zval *data TSRMLS_DC){
+	zend_update_property(CDataObjectCe,object,ZEND_STRL("data"),data TSRMLS_CC);
+}
+
+CHooks_getDataObject(zval *object,zval **returnData TSRMLS_DC){
+	zval	*thisVal;
+	thisVal = zend_read_property(CDataObjectCe,object,ZEND_STRL("data"),0 TSRMLS_CC);
+	MAKE_STD_ZVAL(*returnData);
+	ZVAL_ZVAL(*returnData,thisVal,1,0);
+}
+
+PHP_METHOD(CDataObject,set)
+{
+	zval	*data;
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"z",&data) == FAILURE){
+		RETVAL_FALSE;
+		return;
+	}
+
+	//setter
+	CHooks_setDataObject(getThis(),data TSRMLS_CC);
+	RETVAL_TRUE;
+}
+
+PHP_METHOD(CDataObject,get)
+{
+	zval	*thisVal;
+	thisVal = zend_read_property(CDataObjectCe,getThis(),ZEND_STRL("data"),0 TSRMLS_CC);
+	RETVAL_ZVAL(thisVal,1,0);
 }

@@ -17,7 +17,8 @@
 */
 
 //zend类对象
-zend_class_entry	*CHooksCe;
+zend_class_entry	*CHooksCe,
+					*CDataObjectCe;
 
 //类方法:创建应用
 PHP_METHOD(CHooks,loadPlugin);
@@ -32,3 +33,6 @@ PHP_METHOD(CHooks,_setHooksFunctionLevel);
 PHP_METHOD(CHooks,registerHook);
 PHP_METHOD(CHooks,__destruct);
 
+PHP_METHOD(CDataObject,get);
+PHP_METHOD(CDataObject,set);
+PHP_METHOD(CDataObject,asArray);

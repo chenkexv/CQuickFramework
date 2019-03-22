@@ -27,6 +27,7 @@ PHP_METHOD(CRabbitHelper,getOverview);
 PHP_METHOD(CRabbitHelper,getQueues);
 PHP_METHOD(CRabbitHelper,getAckRate);
 PHP_METHOD(CRabbitHelper,getGetRate);
+PHP_METHOD(CRabbitHelper,getReadyLen);
 PHP_METHOD(CRabbitHelper,getPublishRate);
 PHP_METHOD(CRabbitHelper,getDeliverGetRate);
 PHP_METHOD(CRabbitHelper,getUnAckRate);

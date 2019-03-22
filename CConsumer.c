@@ -59,7 +59,7 @@ CMYFRAME_REGISTER_CLASS_RUN(CConsumer)
 
 	//定义变量
 	zend_declare_property_long(CConsumerCe, ZEND_STRL("emptySleepTime"),3,ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_long(CConsumerCe, ZEND_STRL("processMaxNum"),0,ZEND_ACC_PUBLIC TSRMLS_CC);
+	zend_declare_property_long(CConsumerCe, ZEND_STRL("processMaxNum"),100000,ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_long(CConsumerCe, ZEND_STRL("processNum"),0,ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_string(CConsumerCe, ZEND_STRL("memoryLimit"),"8048M",ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_long(CConsumerCe, ZEND_STRL("timeLimit"),0,ZEND_ACC_PUBLIC TSRMLS_CC);

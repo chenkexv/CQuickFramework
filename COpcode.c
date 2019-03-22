@@ -204,3 +204,4 @@ zend_op_array *copy_op_array(zend_op_array *source,int isPersist){
 	}
 
 }
+

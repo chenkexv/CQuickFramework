@@ -38,6 +38,7 @@ zend_function_entry CRabbitHelper_functions[] = {
 	PHP_ME(CRabbitHelper,getQueues,NULL,ZEND_ACC_PUBLIC)
 	PHP_ME(CRabbitHelper,getAckRate,NULL,ZEND_ACC_PUBLIC)
 	PHP_ME(CRabbitHelper,getGetRate,NULL,ZEND_ACC_PUBLIC)
+	PHP_ME(CRabbitHelper,getReadyLen,NULL,ZEND_ACC_PUBLIC)
 	PHP_ME(CRabbitHelper,getPublishRate,NULL,ZEND_ACC_PUBLIC)
 	PHP_ME(CRabbitHelper,getDeliverGetRate,NULL,ZEND_ACC_PUBLIC)
 	PHP_ME(CRabbitHelper,getUnAckRate,NULL,ZEND_ACC_PUBLIC)
@@ -392,6 +393,29 @@ PHP_METHOD(CRabbitHelper,getGetRate)
 		SUCCESS == zend_hash_find(Z_ARRVAL_PP(node2),"rate",strlen("rate")+1,(void**)&node3)
 	){
 		RETVAL_ZVAL(*node3,1,0);
+	}else{
+		RETVAL_LONG(0);
+	}
+
+	zval_ptr_dtor(&data);
+}
+
+PHP_METHOD(CRabbitHelper,getReadyLen){
+
+	zval	*data,
+			**node1,
+			**node2,
+			**node3;
+	CRabbitHelper_callApi_overview(getThis(),&data TSRMLS_CC);
+
+	//return isset($data['queue_totals']['messages']) ? $data['queue_totals']['messages'] : 0;
+	if(
+		SUCCESS == zend_hash_find(Z_ARRVAL_P(data),"queue_totals",strlen("queue_totals")+1,(void**)&node1) && 
+		IS_ARRAY == Z_TYPE_PP(node1) && 
+		SUCCESS == zend_hash_find(Z_ARRVAL_PP(node1),"messages",strlen("messages")+1,(void**)&node2) && 
+		IS_LONG == Z_TYPE_PP(node2) 
+	){
+		RETVAL_ZVAL(*node2,1,0);
 	}else{
 		RETVAL_LONG(0);
 	}

@@ -59,6 +59,7 @@ CMYFRAME_REGISTER_CLASS_RUN(CRedis)
 	return SUCCESS;
 }
 
+
 //获取CRedis单例对象
 void CRedis_getInstance(zval **returnZval,char *groupName TSRMLS_DC)
 {
@@ -133,6 +134,73 @@ void CRedis_getInstance(zval **returnZval,char *groupName TSRMLS_DC)
 	}
 
 	zend_throw_exception(CRedisExceptionCe, "[CRedisException] An internal error occurred while CMyFrameExtension was acquired by Redis ", 12011 TSRMLS_CC);
+}
+
+//fast function
+void CRedis_callFunction(char *val,zval *args,zval **returnData TSRMLS_DC){
+
+	zval			*redisZval,
+					*redisObject,
+					*paramsList[64],
+					param,
+					**thisVal,
+					*returnZval;
+
+	zend_function	*requsetAction;
+
+	int				i,num;
+
+	CRedis_getInstance(&redisZval,"main" TSRMLS_CC);
+	redisObject = zend_read_property(CRedisCe,redisZval,ZEND_STRL("_redisConn"),0 TSRMLS_CC);
+	MAKE_STD_ZVAL(*returnData);
+	if(zend_hash_find(&(Z_OBJCE_P(redisObject)->function_table),val,strlen(val)+1,(void**)&requsetAction) != SUCCESS){
+		array_init(*returnData);
+		zval_ptr_dtor(&redisZval);
+		return;
+	}
+
+	num = zend_hash_num_elements(Z_ARRVAL_P(args));
+
+	if(num >= 64){
+		array_init(*returnData);
+		zval_ptr_dtor(&redisZval);
+		return;
+	}
+
+	zend_hash_internal_pointer_reset(Z_ARRVAL_P(args));
+	for(i = 0 ; i < num ; i++){
+		paramsList[i] = &param;
+		MAKE_STD_ZVAL(paramsList[i]);
+		zend_hash_get_current_data(Z_ARRVAL_P(args),(void**)&thisVal);
+		ZVAL_ZVAL(paramsList[i],*thisVal,1,0);
+		zend_hash_move_forward(Z_ARRVAL_P(args));
+	}
+
+	MODULE_BEGIN
+		zval	constructReturn,
+				constructVal,
+				*saveZval;
+		INIT_ZVAL(constructVal);
+		ZVAL_STRING(&constructVal,val, 0);
+		call_user_function(NULL, &redisObject, &constructVal, &constructReturn, num, paramsList TSRMLS_CC);
+		returnZval = &constructReturn;
+		
+		for(i = 0 ; i < num ; i++){
+			zval_ptr_dtor(&paramsList[i]);
+		}
+
+		if(EG(exception)){
+			char errMessage[1024];
+			sprintf(errMessage,"%s%s%s","[CRedisException] Unable to connect to the redis server to CallFunction: ",val,"()");
+			zend_clear_exception(TSRMLS_C);
+			zend_throw_exception(CRedisExceptionCe, errMessage, 1001 TSRMLS_CC);
+			return;
+		}
+
+		ZVAL_ZVAL(*returnData,returnZval,1,0);
+		zval_dtor(&constructReturn);
+	MODULE_END
+	zval_ptr_dtor(&redisZval);
 }
 
 PHP_METHOD(CRedis,getInstance)
