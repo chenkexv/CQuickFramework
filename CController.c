@@ -387,14 +387,14 @@ PHP_METHOD(CController,assign)
 		RETVAL_FALSE;
 	}
 
-	templateUsed = "smarty";
-
 	//∂¡»°USE_QUICKTEMPLATE≈‰÷√
 	CConfig_getInstance("main",&cconfigInstanceZval TSRMLS_CC);
 	CConfig_load("USE_QUICKTEMPLATE",cconfigInstanceZval,&useQuickTemplate TSRMLS_CC);
 
 	if(IS_LONG == Z_TYPE_P(useQuickTemplate) && 1 == Z_LVAL_P(useQuickTemplate)){
-		templateUsed = "CQuickTemplate";
+		templateUsed = estrdup("CQuickTemplate");
+	}else{
+		templateUsed = estrdup("smarty");
 	}
 
 	zval_ptr_dtor(&cconfigInstanceZval);
@@ -408,6 +408,7 @@ PHP_METHOD(CController,assign)
 	smarty_assign_ex(viewObjectZval,key,val TSRMLS_CC);
 
 	zval_ptr_dtor(&viewObjectZval);
+	efree(templateUsed);
 }
 
 PHP_METHOD(CController,setTitle)
