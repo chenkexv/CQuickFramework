@@ -202,6 +202,10 @@ void CInitApplication_initHooks(TSRMLS_D)
 		}
 	MODULE_END
 
+
+	//load systemPlugin
+	CHooks_loadSystemPlugin(TSRMLS_C);
+
 	//╪сть╡Е╪Ч
 	if(IS_BOOL == Z_TYPE_P(loadPluginZval) && 1 == Z_LVAL_P(loadPluginZval)){
 	

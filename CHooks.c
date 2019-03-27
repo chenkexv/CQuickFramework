@@ -29,6 +29,7 @@
 #include "php_CHooks.h"
 #include "php_CException.h"
 #include "php_CWebApp.h"
+#include "php_CDebug.h"
 
 
 //zend类方法
@@ -143,6 +144,39 @@ int CHooks_getPathFile(char *path,zval **returnZval TSRMLS_DC)
 	return FAILURE;
 }
 
+void CHooks_loadSystemPlugin(TSRMLS_D){
+
+	zval	*pluginObject;
+
+	MAKE_STD_ZVAL(pluginObject);
+	object_init_ex(pluginObject,CDebugCe);
+
+	//调用其构造函数
+	if (CDebugCe->constructor) {
+		zval constructReturn;
+		zval constructVal;
+		INIT_ZVAL(constructVal);
+		ZVAL_STRING(&constructVal, CDebugCe->constructor->common.function_name, 0);
+		call_user_function(NULL, &pluginObject, &constructVal, &constructReturn, 0, NULL TSRMLS_CC);
+		zval_dtor(&constructReturn);
+	}
+
+	//调用setHooks注册函数
+	MODULE_BEGIN
+		zval constructReturn;
+		zval constructVal;
+		INIT_ZVAL(constructVal);
+		ZVAL_STRING(&constructVal, "setHooks", 0);
+		call_user_function(NULL, &pluginObject, &constructVal, &constructReturn, 0, NULL TSRMLS_CC);
+		zval_dtor(&constructReturn);
+	MODULE_END
+
+	//save to instance static
+	zend_update_static_property(CDebugCe,ZEND_STRL("instance"),pluginObject TSRMLS_CC);
+
+	zval_ptr_dtor(&pluginObject);
+}
+
 //载入插件
 void CHooks_loadPlugin(TSRMLS_D){
 	
@@ -158,8 +192,8 @@ void CHooks_loadPlugin(TSRMLS_D){
 	char	*pluginPath;
 
 	zend_class_entry **cwebClassEntry;
-	zend_hash_find(EG(class_table),"cwebapp",strlen("cwebapp")+1,(void**)&cwebClassEntry);
 
+	zend_hash_find(EG(class_table),"cwebapp",strlen("cwebapp")+1,(void**)&cwebClassEntry);
 	codePath = zend_read_static_property(*cwebClassEntry,ZEND_STRL("code_path"),0 TSRMLS_CC);
 	appPath = zend_read_static_property(*cwebClassEntry,ZEND_STRL("app_path"),0 TSRMLS_CC);
 
@@ -653,7 +687,6 @@ PHP_METHOD(CHooks,_setHooksFunctionLevel)
 	
 }
 
-;
 
 //销毁变量
 void CHooks_destruct(TSRMLS_D){
@@ -661,6 +694,100 @@ void CHooks_destruct(TSRMLS_D){
 	
 
 }
+
+
+void CHooks_registerHooks(char *hooksName,char *runFunctionName,zval *runObject,int callLevel TSRMLS_DC){
+
+
+	char				*callClassName;
+	zval				*hooksList,
+						**hooksKeyList,
+						**classNameKeyList,
+						**runFunctionKeyList;
+
+	zend_class_entry	*callObjectCe;
+
+	//获取类名
+	callObjectCe = Z_OBJCE_P(runObject);
+	callClassName = estrdup(callObjectCe->name);
+
+	//设置钩子
+	hooksList = zend_read_static_property(CHooksCe,ZEND_STRL("_hooks"), 0 TSRMLS_CC);
+	if(IS_NULL == Z_TYPE_P(hooksList)){
+		array_init(hooksList);
+		zend_update_static_property(CHooksCe,ZEND_STRL("_hooks"),hooksList TSRMLS_CC);
+	}
+
+	//判断有无Hooks_name的hooksName-className-runFunction的key
+	if(!zend_hash_exists(Z_ARRVAL_P(hooksList),hooksName,strlen(hooksName)+1)){
+		//添加一个HashTable
+		zval *hooksNameList;
+		MAKE_STD_ZVAL(hooksNameList);
+		array_init(hooksNameList);
+		add_assoc_zval_ex(hooksList,hooksName,strlen(hooksName)+1,hooksNameList);
+	}
+	zend_hash_find(Z_ARRVAL_P(hooksList),hooksName,strlen(hooksName)+1,(void**)&hooksKeyList);
+	
+
+	//判断有无className的key
+	if(!zend_hash_exists(Z_ARRVAL_PP(hooksKeyList),callClassName,strlen(callClassName)+1)){
+		//添加一个HashTable
+		zval *hooksNameList;
+		MAKE_STD_ZVAL(hooksNameList);
+		array_init(hooksNameList);
+		add_assoc_zval_ex(*hooksKeyList,callClassName,strlen(callClassName)+1,hooksNameList);
+	}
+	zend_hash_find(Z_ARRVAL_PP(hooksKeyList),callClassName,strlen(callClassName)+1,(void**)&classNameKeyList);
+
+	//判断有无runFunction的key
+	if(!zend_hash_exists(Z_ARRVAL_PP(classNameKeyList),runFunctionName,strlen(runFunctionName)+1)){
+		//添加一个HashTable
+		zval *hooksNameList;
+		MAKE_STD_ZVAL(hooksNameList);
+		array_init(hooksNameList);
+		add_assoc_zval_ex(*classNameKeyList,runFunctionName,strlen(runFunctionName)+1,hooksNameList);
+	}
+	zend_hash_find(Z_ARRVAL_PP(classNameKeyList),runFunctionName,strlen(runFunctionName)+1,(void**)&runFunctionKeyList);
+
+
+
+	//尝试对runFunctionKeyList更新hooks记录
+	MODULE_BEGIN
+		zval	*thisAddVal,
+				*callFunctionKeyData,
+				**callStatus;
+		
+
+		if(SUCCESS == zend_hash_find(Z_ARRVAL_PP(classNameKeyList),runFunctionName,strlen(runFunctionName)+1,(void**)&callStatus)){
+			
+			//调用次数
+			add_assoc_long(*callStatus,"callNum",0);
+
+			//调用对象
+			MAKE_STD_ZVAL(thisAddVal);
+			ZVAL_ZVAL(thisAddVal,runObject,1,0);
+			add_assoc_zval_ex(*callStatus,"callObject",strlen("callObject")+1,thisAddVal);
+
+			//调用等级
+			add_assoc_long(*callStatus,"callLevel",callLevel);
+	
+		}
+
+	MODULE_END
+
+	//将该数据保存在_hooks中
+	MODULE_BEGIN
+		zval *saveHooks;
+		MAKE_STD_ZVAL(saveHooks);
+		ZVAL_ZVAL(saveHooks,hooksList,1,0);
+		zend_update_static_property(CHooksCe,ZEND_STRL("_hooks"),saveHooks TSRMLS_CC);
+		zval_ptr_dtor(&saveHooks);
+	MODULE_END
+
+	efree(callClassName);
+
+}
+
 
 //注册Hooks
 PHP_METHOD(CHooks,registerHook)
@@ -689,9 +816,11 @@ PHP_METHOD(CHooks,registerHook)
 		return;
 	}
 
+
 	//检测runObject是否是一个对象 不是则抛出异常
 	if(IS_OBJECT != Z_TYPE_P(runObject)){
 		zend_throw_exception(CPluginExceptionCe, "[HooksException] Registered hook function transfer the call object error [param 3]", "" TSRMLS_CC);
+		RETVAL_FALSE;
 		return;
 	}
 

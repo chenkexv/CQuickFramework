@@ -31,6 +31,7 @@
 #include "php_CException.h"
 #include "php_CDatabase.h"
 #include "php_CModel.h"
+#include "php_CValidate.h"
 
 
 

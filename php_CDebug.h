@@ -17,26 +17,18 @@
 */
 
 //zend类对象
-zend_class_entry	*CValidateCe;
+zend_class_entry	*CDebugCe;
 
 
-//类方法:创建应用
-PHP_METHOD(CValidate,isPhone);
-PHP_METHOD(CValidate,isEmail);
-PHP_METHOD(CValidate,isBetween);
-PHP_METHOD(CValidate,isIDCard);
-PHP_METHOD(CValidate,isNumber);
-PHP_METHOD(CValidate,isUrl);
-PHP_METHOD(CValidate,isSimpleString);
-PHP_METHOD(CValidate,isComplexString);
-PHP_METHOD(CValidate,checkMustField);
-PHP_METHOD(CValidate,getInstance);
-PHP_METHOD(CValidate,check);
-PHP_METHOD(CValidate,set);
-PHP_METHOD(CValidate,__construct);
-PHP_METHOD(CValidate,getLastError);
-PHP_METHOD(CValidate,isIp);
-PHP_METHOD(CValidate,isDate);
-PHP_METHOD(CValidate,isJson);
-PHP_METHOD(CValidate,getLastErrorCode);
-
+PHP_METHOD(CDebug,debug);
+PHP_METHOD(CDebug,dumpDBExecute);
+PHP_METHOD(CDebug,dumpErrors);
+PHP_METHOD(CDebug,dumpIncludeFiles);
+PHP_METHOD(CDebug,dumpMemoryUsed);
+PHP_METHOD(CDebug,dumpTimeCast);
+PHP_METHOD(CDebug,dumpPluginLoaded);
+PHP_METHOD(CDebug,dumpRequestData);
+PHP_METHOD(CDebug,setHooks);
+PHP_METHOD(CDebug,getDatabaseExecuteEnd);
+PHP_METHOD(CDebug,getErrorsData);
+PHP_METHOD(CDebug,getRequestShutdown);
