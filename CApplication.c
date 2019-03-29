@@ -27,6 +27,8 @@
 
 #include "php_CMyFrameExtension.h"
 #include "php_CApplication.h"
+#include "php_CWebApp.h"
+#include "php_CHooks.h"
 #include "php_CInitApplication.h"
 
 
@@ -124,8 +126,10 @@ PHP_METHOD(CApplication,runBash)
 {
 
 	char	*command,
-			*returnString;
+			*returnString,
+			*runCommand;
 	int		commandLen = 0;
+
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"s",&command,&commandLen) == FAILURE){
 		RETURN_FALSE;
@@ -135,8 +139,82 @@ PHP_METHOD(CApplication,runBash)
 		RETURN_FALSE;
 	}
 
-	exec_shell_return(command,&returnString);
+	//call beginHooks
+	MODULE_BEGIN
+		zval	*paramsList[1],
+				*dataObject,
+				*cmdZval,
+				*hooksEnd;
+		MAKE_STD_ZVAL(dataObject);
+		object_init_ex(dataObject,CDataObjectCe);
+		MAKE_STD_ZVAL(cmdZval);
+		ZVAL_STRING(cmdZval,command,1);
+		CHooks_setDataObject(dataObject,cmdZval TSRMLS_CC);
+		MAKE_STD_ZVAL(paramsList[0]);
+		ZVAL_ZVAL(paramsList[0],dataObject,1,0);
+		CHooks_callHooks("HOOKS_BASH_BEFORE",paramsList,1 TSRMLS_CC);
+		zval_ptr_dtor(&paramsList[0]);
+		//check return data
+		CHooks_getDataObject(dataObject,&hooksEnd TSRMLS_CC);
+		convert_to_string(hooksEnd);
+		runCommand = estrdup(Z_STRVAL_P(hooksEnd));
+		zval_ptr_dtor(&hooksEnd);
+		zval_ptr_dtor(&dataObject);
+		zval_ptr_dtor(&cmdZval);
+	MODULE_END
+
+
+	exec_shell_return(runCommand,&returnString);
+
+	//all shell run will write a log
+	MODULE_BEGIN
+		char	errorPath[1024],
+				errorFile[1024],
+				*errorTips,
+				*thisMothTime;
+
+		zval	*appPath;
+
+		php_date("Y-m-d H:i:s",&thisMothTime);
+
+		appPath = zend_read_static_property(CWebAppCe, ZEND_STRL("app_path"), 0 TSRMLS_CC);
+		sprintf(errorPath,"%s%s",Z_STRVAL_P(appPath),"/logs/safe/");
+		if(FAILURE == fileExist(errorPath)){
+			//尝试创建文件夹
+			php_mkdir(errorPath);
+		}
+		spprintf(&errorTips,0,"%s%s%s%s%s%s%s","#LogTime:",thisMothTime,"\nrunBash:",runCommand,"\nrunResult:\n============================================\n",returnString,"\n============================================\n\n");
+		sprintf(errorFile,"%s%s",errorPath,"runBash.log");
+		CLog_writeFile(errorFile,errorTips TSRMLS_CC);
+
+		//call hooks
+		MODULE_BEGIN
+			zval	*paramsList[1],
+					*dataObject,
+					*saveObject;
+
+			MAKE_STD_ZVAL(saveObject);
+			array_init(saveObject);
+			add_assoc_string(saveObject,"command",runCommand,1);
+			add_assoc_string(saveObject,"result",returnString,1);
+
+			MAKE_STD_ZVAL(dataObject);
+			object_init_ex(dataObject,CDataObjectCe);
+			CHooks_setDataObject(dataObject,saveObject TSRMLS_CC);
+			MAKE_STD_ZVAL(paramsList[0]);
+			ZVAL_ZVAL(paramsList[0],dataObject,1,0);
+			CHooks_callHooks("HOOKS_BASH_END",paramsList,1 TSRMLS_CC);
+			zval_ptr_dtor(&paramsList[0]);
+			zval_ptr_dtor(&saveObject);
+			zval_ptr_dtor(&dataObject);
+		MODULE_END
+
+		efree(errorTips);
+		efree(thisMothTime);
+
+	MODULE_END
 
 	RETVAL_STRING(returnString,1);
 	efree(returnString);
+	efree(runCommand);
 }

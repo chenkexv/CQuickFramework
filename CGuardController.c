@@ -359,6 +359,162 @@ int CGuardController_Action_watchHTTP(zval *config,zval *object TSRMLS_DC){
 	return 200;
 }
 
+void CGuardController_safeStopWarn(char *message TSRMLS_DC){
+
+	//mail content
+	zval	*mailContent,
+			*warnItem,
+			*warnItemList,
+			*htmlContent,
+			*saveToList,
+			*toList;
+
+	char	*httpInterCheck,
+			*nohttp200,
+			*nowWarnVal,
+			*hostIdString,
+			*thisMothTime,
+			*templatePath;
+
+	zval	*cconfigInstanceZval,
+			*notifyConfig,
+			**node1,
+			**toZval,
+			*object;
+
+	//get notify
+	CConfig_getInstance("watch",&cconfigInstanceZval TSRMLS_CC);
+	CConfig_load("notify",cconfigInstanceZval,&notifyConfig TSRMLS_CC);
+
+	//tempPath
+	if(IS_ARRAY == Z_TYPE_P(notifyConfig) && SUCCESS == zend_hash_find(Z_ARRVAL_P(notifyConfig),"template",strlen("template")+1,(void**)&node1) && IS_STRING == Z_TYPE_PP(node1)){
+		templatePath = estrdup(Z_STRVAL_PP(node1));
+	}else{
+		templatePath = estrdup("");
+	}
+	MAKE_STD_ZVAL(toList);
+	if(IS_ARRAY == Z_TYPE_P(notifyConfig) && SUCCESS == zend_hash_find(Z_ARRVAL_P(notifyConfig),"to",strlen("to")+1,(void**)&toZval)){
+		if(IS_ARRAY == Z_TYPE_PP(toZval)){
+			ZVAL_ZVAL(toList,*toZval,1,0);
+		}else if(IS_STRING == Z_TYPE_PP(toZval)){
+			array_init(toList);
+			add_next_index_string(toList,Z_STRVAL_PP(toZval),1);
+		}else{
+			array_init(toList);
+		}
+	}else{
+		array_init(toList);
+	}
+
+	MAKE_STD_ZVAL(object);
+	object_init_ex(object,CGuardControllerCe);
+
+
+	php_date("Y-m-d h:i:s",&thisMothTime);
+	MAKE_STD_ZVAL(warnItemList);
+	array_init(warnItemList);
+	getHostName(&hostIdString);
+	MAKE_STD_ZVAL(mailContent);
+	array_init(mailContent);
+	MAKE_STD_ZVAL(warnItem);
+	array_init(warnItem);
+	base64Decode("V2ViU2hlbGzpo47pmak=",&httpInterCheck);
+	base64Decode("6auY5Y2x5Ye95pWw",&nohttp200);
+	add_assoc_string(warnItem,"item",httpInterCheck,1);
+	efree(httpInterCheck);
+	add_assoc_string(warnItem,"condition",nohttp200,1);
+	efree(nohttp200);
+	add_assoc_string(warnItem,"note","",1);
+	add_assoc_string(warnItem,"value",message,1);
+	add_assoc_long(warnItem,"flag",1);
+	add_assoc_string(warnItem,"unit","",1);
+	add_assoc_string(mailContent,"mailTye","safeWarn",1);
+	add_assoc_string(mailContent,"mailDate",thisMothTime,1);
+	add_assoc_string(mailContent,"mailSender","CGuardController/safeCheck",1);
+	add_assoc_string(mailContent,"hostId",hostIdString,1);
+	add_next_index_zval(warnItemList,warnItem);
+	add_assoc_zval(mailContent,"item",warnItemList);
+	MAKE_STD_ZVAL(saveToList);
+	ZVAL_ZVAL(saveToList,toList,1,0);
+	add_assoc_zval(mailContent,"to",saveToList);
+
+	//call assign
+	MODULE_BEGIN
+		zval	callFunction,
+				returnFunction,
+				*paramsList[2];
+		MAKE_STD_ZVAL(paramsList[0]);
+		ZVAL_STRING(paramsList[0],"data",1);
+		MAKE_STD_ZVAL(paramsList[1]);
+		ZVAL_ZVAL(paramsList[1],mailContent,1,0);
+		INIT_ZVAL(callFunction);
+		ZVAL_STRING(&callFunction, "assign", 0);
+		call_user_function(NULL, &object, &callFunction, &returnFunction, 2, paramsList TSRMLS_CC);
+		zval_ptr_dtor(&paramsList[0]);
+		zval_ptr_dtor(&paramsList[1]);
+		zval_dtor(&returnFunction);
+	MODULE_END
+
+	//get a view object
+	MODULE_BEGIN
+		zval	callFunction,
+				returnFunction,
+				*paramsList[1],
+				*saveHtml;
+		MAKE_STD_ZVAL(paramsList[0]);
+		ZVAL_STRING(paramsList[0],templatePath,1);
+		INIT_ZVAL(callFunction);
+		ZVAL_STRING(&callFunction, "fetch", 0);
+		call_user_function(NULL, &object, &callFunction, &returnFunction, 1, paramsList TSRMLS_CC);
+		zval_ptr_dtor(&paramsList[0]);
+		if(IS_STRING == Z_TYPE(returnFunction)){
+			add_assoc_string(mailContent,"html",Z_STRVAL(returnFunction),1);
+		}
+		zval_dtor(&returnFunction);
+	MODULE_END
+
+	//callHooks
+	MODULE_BEGIN
+		zval	*paramsList[1],
+				*dataObject,
+				*hooksUseData,
+				**endSendHtml;
+		MAKE_STD_ZVAL(dataObject);
+		object_init_ex(dataObject,CDataObjectCe);
+		CHooks_setDataObject(dataObject,mailContent TSRMLS_CC);
+		MAKE_STD_ZVAL(paramsList[0]);
+		ZVAL_ZVAL(paramsList[0],dataObject,1,0);
+		CHooks_callHooks("HOOKS_MAIL_BEFORE",paramsList,1 TSRMLS_CC);
+		zval_ptr_dtor(&paramsList[0]);
+
+		//check return data's type has right
+		CHooks_getDataObject(dataObject,&hooksUseData TSRMLS_CC);
+		
+
+		if(IS_ARRAY == Z_TYPE_P(hooksUseData) && SUCCESS == zend_hash_find(Z_ARRVAL_P(hooksUseData),"html",strlen("html")+1,(void**)&endSendHtml) && IS_STRING == Z_TYPE_PP(endSendHtml)){
+			//send mail
+			zval	**newToList,
+					*endToList;
+			MAKE_STD_ZVAL(endToList);
+			if(IS_ARRAY == Z_TYPE_P(hooksUseData) && SUCCESS == zend_hash_find(Z_ARRVAL_P(hooksUseData),"to",strlen("to")+1,(void**)&newToList) && IS_ARRAY == Z_TYPE_PP(newToList)){
+				ZVAL_ZVAL(endToList,*newToList,1,0);
+			}else{
+				ZVAL_ZVAL(endToList,toList,1,0);
+			}
+			CGuardController_sendMail(endToList,Z_STRVAL_PP(endSendHtml) TSRMLS_CC);
+			zval_ptr_dtor(&endToList);
+		}
+
+		zval_ptr_dtor(&dataObject);
+		zval_ptr_dtor(&hooksUseData);
+	MODULE_END
+
+	zval_ptr_dtor(&cconfigInstanceZval);
+	zval_ptr_dtor(&notifyConfig);
+	efree(templatePath);
+	zval_ptr_dtor(&object);
+}
+
 PHP_METHOD(CGuardController,Action_watchHttp)
 {
 	zval	*cconfigInstanceZval,

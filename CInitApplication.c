@@ -465,7 +465,9 @@ PHP_METHOD(CInitApplication,webShutdown)
 
 	//cliÄ£Ê½Êä³öÖÂÃü´íÎó
 	if(zend_hash_find(EG(zend_constants),"PHP_SAPI",strlen("PHP_SAPI")+1,(void**)&sapiZval) == SUCCESS && strcmp(Z_STRVAL_P(sapiZval),"cli") == 0){
+		php_printf("==============CQuickFramework cli dump begin=======\n");
 		php_var_dump(&lastError,1 TSRMLS_CC);
+		php_printf("==============CQuickFramework cli dump end=========\n");
 	}
 
 	if(IS_ARRAY == Z_TYPE_P(lastError)){

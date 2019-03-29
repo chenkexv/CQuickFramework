@@ -172,6 +172,9 @@ void register_cmyframe_macro(int module_number TSRMLS_DC)
 	REGISTER_STRING_CONSTANT("HOOKS_AUTO_LOAD",HOOKS_AUTO_LOAD,CONST_CS|CONST_PERSISTENT);
 	REGISTER_STRING_CONSTANT("HOOKS_MAIL_BEFORE",HOOKS_MAIL_BEFORE,CONST_CS|CONST_PERSISTENT);
 	REGISTER_STRING_CONSTANT("HOOKS_MONITOR_END",HOOKS_MONITOR_END,CONST_CS|CONST_PERSISTENT);
+	REGISTER_STRING_CONSTANT("HOOKS_SAFE_STOP",HOOKS_SAFE_STOP,CONST_CS|CONST_PERSISTENT);
+	REGISTER_STRING_CONSTANT("HOOKS_BASH_BEFORE",HOOKS_BASH_BEFORE,CONST_CS|CONST_PERSISTENT);
+	REGISTER_STRING_CONSTANT("HOOKS_BASH_END",HOOKS_BASH_END,CONST_CS|CONST_PERSISTENT);
 }
 
 
@@ -585,6 +588,26 @@ int isdigitstr(char *str)
 		return 0;
 	}
 	return (strspn(str, "0123456789")==strlen(str));
+}
+
+#if ( PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION <= 3 )
+void setClassNote(zend_class_entry *ce,char *note){
+	ce->doc_comment = pestrdup(note,1);
+	ce->doc_comment_len = strlen(ce->doc_comment)+1;
+}
+#else
+void setClassNote(zend_class_entry *ce,char *note){
+	ce->info.user.doc_comment = pestrdup(note,1);
+	ce->info.user.doc_comment_len = strlen(ce->info.user.doc_comment)+1;
+}
+#endif
+
+void setMethodNote(zend_class_entry *ce,char *function,char *note){
+	zend_function	*funce;
+	if(SUCCESS == zend_hash_find(&ce->function_table,function,strlen(function)+1,(void**)&funce)){
+		funce->op_array.doc_comment = pestrdup(note,1);
+		funce->op_array.doc_comment_len = strlen(note)+1;
+	}
 }
 
 //获取基础异常类

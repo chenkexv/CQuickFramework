@@ -228,7 +228,7 @@ PHP_METHOD(Cache,__construct)
 			zval constructReturn;
 			zval constructVal;
 			INIT_ZVAL(constructVal);
-			ZVAL_STRING(&constructVal, memcacheEntry->constructor->common.function_name, 1);
+			ZVAL_STRING(&constructVal, memcacheEntry->constructor->common.function_name, 0);
 			call_user_function(NULL, &memcacheObj, &constructVal, &constructReturn, 0, NULL TSRMLS_CC);
 		}
 

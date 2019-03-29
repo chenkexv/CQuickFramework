@@ -32,3 +32,8 @@ PHP_METHOD(CDebug,setHooks);
 PHP_METHOD(CDebug,getDatabaseExecuteEnd);
 PHP_METHOD(CDebug,getErrorsData);
 PHP_METHOD(CDebug,getRequestShutdown);
+PHP_METHOD(CDebug,dump);
+PHP_METHOD(CDebug,dumpClass);
+PHP_METHOD(CDebug,dumpZval);
+PHP_METHOD(CDebug,dumpInternalClass);
+PHP_METHOD(CDebug,dumpTrace);
