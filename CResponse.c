@@ -127,7 +127,7 @@ PHP_METHOD(CResponse,getInstance)
 PHP_METHOD(CResponse,__construct)
 {
 	//发送支持信息
-	sendHttpHeader("Powered:CQuickFramework,Version3.0(ByExtension)" TSRMLS_CC);
+	//sendHttpHeader("Powered:CQuickFramework,Version3.0(ByExtension)" TSRMLS_CC);
 }
 
 

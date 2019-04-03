@@ -450,7 +450,8 @@ PHP_METHOD(CInitApplication,webShutdown)
 	zval	*errorList = NULL,
 			*lastError = NULL,
 			*errorInstance = NULL,
-			*sapiZval;
+			*sapiZval,
+			*appPath;
 
 	zend_class_entry **cexception;
 
@@ -469,6 +470,8 @@ PHP_METHOD(CInitApplication,webShutdown)
 		php_var_dump(&lastError,1 TSRMLS_CC);
 		php_printf("==============CQuickFramework cli dump end=========\n");
 	}
+
+	appPath = zend_read_static_property(CWebAppCe, ZEND_STRL("app_path"), 0 TSRMLS_CC);
 
 	if(IS_ARRAY == Z_TYPE_P(lastError)){
 		zval **errorType;
@@ -504,6 +507,11 @@ PHP_METHOD(CInitApplication,webShutdown)
 
 				CException_getTopErrors(code,content,file,line TSRMLS_CC);
 
+
+				zval_ptr_dtor(&file);
+				zval_ptr_dtor(&code);
+				zval_ptr_dtor(&content);
+				zval_ptr_dtor(&line);
 			}
 		}
 	}
@@ -573,7 +581,8 @@ PHP_METHOD(CInitApplication,webShutdown)
 			char *errorType,
 				 *errorAll,
 				 *lineNumStr,
-				 *thisMothTime;
+				 *thisMothTime,
+				 *fileMohuPath;
 
 			errorNum = zend_hash_num_elements(Z_ARRVAL_P(errorList));
 			zend_hash_internal_pointer_reset(Z_ARRVAL_P(errorList));
@@ -632,9 +641,13 @@ PHP_METHOD(CInitApplication,webShutdown)
 				//ÈÕÆÚ
 				php_date("Y-m-d h:i:s",&thisMothTime);
 
+				//file name mohu
+				str_replace(Z_STRVAL_P(appPath),"APP_PATH",Z_STRVAL_PP(errFile),&fileMohuPath);
+
 				//ÄÚÈÝ
-				strcat2(&errorAll,"#LogTime:",thisMothTime,PHP_EOL,"[",errorType,"] ",Z_STRVAL_PP(errContent)," ",PHP_EOL,"-File:",Z_STRVAL_PP(errFile)," -Line:",lineNumStr,PHP_EOL,PHP_EOL,NULL);
+				strcat2(&errorAll,"#LogTime:",thisMothTime,PHP_EOL,"[",errorType,"] ",Z_STRVAL_PP(errContent)," ",PHP_EOL,"-File:",fileMohuPath," -Line:",lineNumStr,PHP_EOL,PHP_EOL,NULL);
 				efree(thisMothTime);
+				efree(fileMohuPath);
 
 				if(IS_BOOL == Z_TYPE_P(closeLogZval) && Z_LVAL_P(closeLogZval) == 1){
 				}else{

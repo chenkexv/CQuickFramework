@@ -382,6 +382,8 @@ void CGuardController_safeStopWarn(char *message TSRMLS_DC){
 			**toZval,
 			*object;
 
+	char	*noticeMessage;
+
 	//get notify
 	CConfig_getInstance("watch",&cconfigInstanceZval TSRMLS_CC);
 	CConfig_load("notify",cconfigInstanceZval,&notifyConfig TSRMLS_CC);
@@ -437,41 +439,50 @@ void CGuardController_safeStopWarn(char *message TSRMLS_DC){
 	MAKE_STD_ZVAL(saveToList);
 	ZVAL_ZVAL(saveToList,toList,1,0);
 	add_assoc_zval(mailContent,"to",saveToList);
+	spprintf(&noticeMessage,0,"%s%s%s%s%s%s%s","System Discovery Abnormal Information : webshell maybe try to run , the function is [",message,"] , the host is [",hostIdString,"] , the date is [",thisMothTime,"]");
+	efree(hostIdString);
+	efree(thisMothTime);
+	
 
 	//call assign
-	MODULE_BEGIN
-		zval	callFunction,
-				returnFunction,
-				*paramsList[2];
-		MAKE_STD_ZVAL(paramsList[0]);
-		ZVAL_STRING(paramsList[0],"data",1);
-		MAKE_STD_ZVAL(paramsList[1]);
-		ZVAL_ZVAL(paramsList[1],mailContent,1,0);
-		INIT_ZVAL(callFunction);
-		ZVAL_STRING(&callFunction, "assign", 0);
-		call_user_function(NULL, &object, &callFunction, &returnFunction, 2, paramsList TSRMLS_CC);
-		zval_ptr_dtor(&paramsList[0]);
-		zval_ptr_dtor(&paramsList[1]);
-		zval_dtor(&returnFunction);
-	MODULE_END
+	if(strlen(templatePath) > 0){
+		MODULE_BEGIN
+			zval	callFunction,
+					returnFunction,
+					*paramsList[2];
+			MAKE_STD_ZVAL(paramsList[0]);
+			ZVAL_STRING(paramsList[0],"data",1);
+			MAKE_STD_ZVAL(paramsList[1]);
+			ZVAL_ZVAL(paramsList[1],mailContent,1,0);
+			INIT_ZVAL(callFunction);
+			ZVAL_STRING(&callFunction, "assign", 0);
+			call_user_function(NULL, &object, &callFunction, &returnFunction, 2, paramsList TSRMLS_CC);
+			zval_ptr_dtor(&paramsList[0]);
+			zval_ptr_dtor(&paramsList[1]);
+			zval_dtor(&returnFunction);
+		MODULE_END
 
-	//get a view object
-	MODULE_BEGIN
-		zval	callFunction,
-				returnFunction,
-				*paramsList[1],
-				*saveHtml;
-		MAKE_STD_ZVAL(paramsList[0]);
-		ZVAL_STRING(paramsList[0],templatePath,1);
-		INIT_ZVAL(callFunction);
-		ZVAL_STRING(&callFunction, "fetch", 0);
-		call_user_function(NULL, &object, &callFunction, &returnFunction, 1, paramsList TSRMLS_CC);
-		zval_ptr_dtor(&paramsList[0]);
-		if(IS_STRING == Z_TYPE(returnFunction)){
-			add_assoc_string(mailContent,"html",Z_STRVAL(returnFunction),1);
-		}
-		zval_dtor(&returnFunction);
-	MODULE_END
+		//get a view object
+		MODULE_BEGIN
+			zval	callFunction,
+					returnFunction,
+					*paramsList[1],
+					*saveHtml;
+			MAKE_STD_ZVAL(paramsList[0]);
+			ZVAL_STRING(paramsList[0],templatePath,1);
+			INIT_ZVAL(callFunction);
+			ZVAL_STRING(&callFunction, "fetch", 0);
+			call_user_function(NULL, &object, &callFunction, &returnFunction, 1, paramsList TSRMLS_CC);
+			zval_ptr_dtor(&paramsList[0]);
+			if(IS_STRING == Z_TYPE(returnFunction)){
+				add_assoc_string(mailContent,"html",Z_STRVAL(returnFunction),1);
+			}
+			zval_dtor(&returnFunction);
+		MODULE_END
+	}else{
+		add_assoc_string(mailContent,"html",noticeMessage,1);
+		efree(noticeMessage);
+	}
 
 	//callHooks
 	MODULE_BEGIN
@@ -608,6 +619,8 @@ PHP_METHOD(CGuardController,Action_watchHttp)
 						*hostIdString,
 						itemTrueName[1024];
 
+				char	*noticeMessage;
+
 				MAKE_STD_ZVAL(warnItemList);
 				array_init(warnItemList);
 				getHostName(&hostIdString);
@@ -635,41 +648,48 @@ PHP_METHOD(CGuardController,Action_watchHttp)
 				MAKE_STD_ZVAL(saveToList);
 				ZVAL_ZVAL(saveToList,toList,1,0);
 				add_assoc_zval(mailContent,"to",saveToList);
+
+				spprintf(&noticeMessage,0,"%s%s%s%s%s%s%s","System Discovery Abnormal Information : http check is fail , the site is [",httpKey,"] , the host is [",hostIdString,"] , the date is [",thisMothTime,"]");
 				
 				//call assign
-				MODULE_BEGIN
-					zval	callFunction,
-							returnFunction,
-							*paramsList[2];
-					MAKE_STD_ZVAL(paramsList[0]);
-					ZVAL_STRING(paramsList[0],"data",1);
-					MAKE_STD_ZVAL(paramsList[1]);
-					ZVAL_ZVAL(paramsList[1],mailContent,1,0);
-					INIT_ZVAL(callFunction);
-					ZVAL_STRING(&callFunction, "assign", 0);
-					call_user_function(NULL, &getThis(), &callFunction, &returnFunction, 2, paramsList TSRMLS_CC);
-					zval_ptr_dtor(&paramsList[0]);
-					zval_ptr_dtor(&paramsList[1]);
-					zval_dtor(&returnFunction);
-				MODULE_END
+				if(strlen(templatePath) > 0){
+					MODULE_BEGIN
+						zval	callFunction,
+								returnFunction,
+								*paramsList[2];
+						MAKE_STD_ZVAL(paramsList[0]);
+						ZVAL_STRING(paramsList[0],"data",1);
+						MAKE_STD_ZVAL(paramsList[1]);
+						ZVAL_ZVAL(paramsList[1],mailContent,1,0);
+						INIT_ZVAL(callFunction);
+						ZVAL_STRING(&callFunction, "assign", 0);
+						call_user_function(NULL, &getThis(), &callFunction, &returnFunction, 2, paramsList TSRMLS_CC);
+						zval_ptr_dtor(&paramsList[0]);
+						zval_ptr_dtor(&paramsList[1]);
+						zval_dtor(&returnFunction);
+					MODULE_END
 
-				//get a view object
-				MODULE_BEGIN
-					zval	callFunction,
-							returnFunction,
-							*paramsList[1],
-							*saveHtml;
-					MAKE_STD_ZVAL(paramsList[0]);
-					ZVAL_STRING(paramsList[0],templatePath,1);
-					INIT_ZVAL(callFunction);
-					ZVAL_STRING(&callFunction, "fetch", 0);
-					call_user_function(NULL, &getThis(), &callFunction, &returnFunction, 1, paramsList TSRMLS_CC);
-					zval_ptr_dtor(&paramsList[0]);
-					if(IS_STRING == Z_TYPE(returnFunction)){
-						add_assoc_string(mailContent,"html",Z_STRVAL(returnFunction),1);
-					}
-					zval_dtor(&returnFunction);
-				MODULE_END
+					//get a view object
+					MODULE_BEGIN
+						zval	callFunction,
+								returnFunction,
+								*paramsList[1],
+								*saveHtml;
+						MAKE_STD_ZVAL(paramsList[0]);
+						ZVAL_STRING(paramsList[0],templatePath,1);
+						INIT_ZVAL(callFunction);
+						ZVAL_STRING(&callFunction, "fetch", 0);
+						call_user_function(NULL, &getThis(), &callFunction, &returnFunction, 1, paramsList TSRMLS_CC);
+						zval_ptr_dtor(&paramsList[0]);
+						if(IS_STRING == Z_TYPE(returnFunction)){
+							add_assoc_string(mailContent,"html",Z_STRVAL(returnFunction),1);
+						}
+						zval_dtor(&returnFunction);
+					MODULE_END
+				}else{
+					add_assoc_string(mailContent,"html",noticeMessage,1);
+					efree(noticeMessage);
+				}
 
 				//callHooks
 				MODULE_BEGIN
@@ -1175,7 +1195,8 @@ PHP_METHOD(CGuardController,Action_watchTelnet)
 				char	*httpInterCheck,
 						*nohttp200,
 						*nowWarnVal,
-						*hostIdString;
+						*hostIdString,
+						*noticeMessage;
 
 				//send in
 				lastMail = zend_read_static_property(CGuardControllerCe,ZEND_STRL("lastMail"),1 TSRMLS_CC);
@@ -1212,39 +1233,48 @@ PHP_METHOD(CGuardController,Action_watchTelnet)
 					add_assoc_zval(mailContent,"item",warnItemList);
 					MAKE_STD_ZVAL(saveToList);
 					add_assoc_zval(mailContent,"to",saveToList);
-									
-					//call assign
-					MODULE_BEGIN
-						zval	callFunction,
-								returnFunction,
-								*paramsList[2];
-						MAKE_STD_ZVAL(paramsList[0]);
-						ZVAL_STRING(paramsList[0],"data",1);
-						MAKE_STD_ZVAL(paramsList[1]);
-						ZVAL_ZVAL(paramsList[1],mailContent,1,0);
-						INIT_ZVAL(callFunction);
-						ZVAL_STRING(&callFunction, "assign", 0);
-						call_user_function(NULL, &getThis(), &callFunction, &returnFunction, 2, paramsList TSRMLS_CC);
-						zval_ptr_dtor(&paramsList[0]);
-						zval_ptr_dtor(&paramsList[1]);
-						zval_dtor(&returnFunction);
-					MODULE_END
 
-					//get a view object
-					MODULE_BEGIN
-						zval	callFunction,
-								returnFunction,
-								*paramsList[1],
-								*saveHtml;
-						MAKE_STD_ZVAL(paramsList[0]);
-						ZVAL_STRING(paramsList[0],templatePath,1);
-						INIT_ZVAL(callFunction);
-						ZVAL_STRING(&callFunction, "fetch", 0);
-						call_user_function(NULL, &getThis(), &callFunction, &returnFunction, 1, paramsList TSRMLS_CC);
-						zval_ptr_dtor(&paramsList[0]);
-						add_assoc_string(mailContent,"html",Z_STRVAL(returnFunction),1);
-						zval_dtor(&returnFunction);
-					MODULE_END
+					spprintf(&noticeMessage,0,"%s%s%s%s%s%s%s","System Discovery Abnormal Information : telnet check is fail , the site is [",taskName,"] , the host is [",hostIdString,"] , the date is [",thisMothTime,"]");
+				
+					if(strlen(templatePath) > 0 ){	
+						//call assign
+						MODULE_BEGIN
+							zval	callFunction,
+									returnFunction,
+									*paramsList[2];
+							MAKE_STD_ZVAL(paramsList[0]);
+							ZVAL_STRING(paramsList[0],"data",1);
+							MAKE_STD_ZVAL(paramsList[1]);
+							ZVAL_ZVAL(paramsList[1],mailContent,1,0);
+							INIT_ZVAL(callFunction);
+							ZVAL_STRING(&callFunction, "assign", 0);
+							call_user_function(NULL, &getThis(), &callFunction, &returnFunction, 2, paramsList TSRMLS_CC);
+							zval_ptr_dtor(&paramsList[0]);
+							zval_ptr_dtor(&paramsList[1]);
+							zval_dtor(&returnFunction);
+						MODULE_END
+
+						//get a view object
+						MODULE_BEGIN
+							zval	callFunction,
+									returnFunction,
+									*paramsList[1],
+									*saveHtml;
+							MAKE_STD_ZVAL(paramsList[0]);
+							ZVAL_STRING(paramsList[0],templatePath,1);
+							INIT_ZVAL(callFunction);
+							ZVAL_STRING(&callFunction, "fetch", 0);
+							call_user_function(NULL, &getThis(), &callFunction, &returnFunction, 1, paramsList TSRMLS_CC);
+							zval_ptr_dtor(&paramsList[0]);
+							if(IS_STRING == Z_TYPE(returnFunction)){
+								add_assoc_string(mailContent,"html",Z_STRVAL(returnFunction),1);
+							}
+							zval_dtor(&returnFunction);
+						MODULE_END
+					}else{
+						add_assoc_string(mailContent,"html",noticeMessage,1);
+						efree(noticeMessage);
+					}
 
 					//callHooks
 					MODULE_BEGIN

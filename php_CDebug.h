@@ -37,3 +37,4 @@ PHP_METHOD(CDebug,dumpClass);
 PHP_METHOD(CDebug,dumpZval);
 PHP_METHOD(CDebug,dumpInternalClass);
 PHP_METHOD(CDebug,dumpTrace);
+

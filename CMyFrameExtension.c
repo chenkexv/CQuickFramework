@@ -59,8 +59,15 @@ zend_module_entry CMyFrameExtension_module_entry = {
 };
 
 #ifdef COMPILE_DL_CMYFRAMEEXTENSION
-ZEND_GET_MODULE(CMyFrameExtension)
+	ZEND_GET_MODULE(CMyFrameExtension)
 #endif
+
+//set php.ini items
+PHP_INI_BEGIN()
+	PHP_INI_ENTRY("CMyFrameExtension.open_trace","0",PHP_INI_ALL,NULL)
+	PHP_INI_ENTRY("CMyFrameExtension.open_shell_check","1",PHP_INI_ALL,NULL)
+PHP_INI_END()
+
 
 //hooks to get function call strace
 static int frameworkDoCall(zend_execute_data *execute_data TSRMLS_DC)
@@ -75,6 +82,15 @@ static int frameworkDoCall(zend_execute_data *execute_data TSRMLS_DC)
 			*thisSave;
 
 	zval	*traceSave;
+
+	char	*openTrace;
+
+	ini_get("CMyFrameExtension.open_trace",&openTrace);
+	if(strcmp(openTrace,"1") != 0){
+		efree(openTrace);
+		return ZEND_USER_OPCODE_DISPATCH; 
+	}
+	efree(openTrace);
 	
 	//get save
 	traceSave = zend_read_static_property(CDebugCe,ZEND_STRL("functionTrace"),0 TSRMLS_CC);
@@ -115,23 +131,14 @@ void frameworkDoInternalCall(zend_execute_data *execute_data_ptr, int return_val
 	char	*filename,
 			*class_name,
 			*space,
-			*disableFunction;
+			*disableFunction,
+			*shell_check;
+
 
 	zval	*traceSave,
 			*thisSave,
 			*timenow,
 			*disableArray;
-
-	//get save
-	traceSave = zend_read_static_property(CDebugCe,ZEND_STRL("functionTrace"),0 TSRMLS_CC);
-	if(IS_NULL == Z_TYPE_P(traceSave)){
-		zval	*save;
-		MAKE_STD_ZVAL(save);
-		array_init(save);
-		zend_update_static_property(CDebugCe,ZEND_STRL("functionTrace"),save TSRMLS_CC);
-		zval_ptr_dtor(&save);
-		traceSave = zend_read_static_property(CDebugCe,ZEND_STRL("functionTrace"),0 TSRMLS_CC);
-	}
 
 
 	if (EG(current_execute_data) && EG(current_execute_data)->op_array) {
@@ -143,56 +150,91 @@ void frameworkDoInternalCall(zend_execute_data *execute_data_ptr, int return_val
 	class_name = get_active_class_name(&space TSRMLS_CC);
 	funcname = get_active_function_name(TSRMLS_C);
 
+	ini_get("CMyFrameExtension.open_shell_check",&shell_check);
+	if(strcmp(shell_check,"1") == 0){
 
-	//check funcname
-	disableFunction = "exec,passthru,phpinfo,popen,proc_open,shell_exec,system,parse_ini_file,show_source,assert,pcntl_exec,proc_get_status,dl,putenv";
-	php_explode(",",disableFunction,&disableArray);
-	if(IS_ARRAY == Z_TYPE_P(disableArray) && in_array(funcname,disableArray)){
-		char	errorTips[1024],
-				errorPath[1024],
-				errorFile[1024];
-		zval	*appPath;
-		appPath = zend_read_static_property(CWebAppCe, ZEND_STRL("app_path"), 0 TSRMLS_CC);
-		sprintf(errorTips,"%s%s","Detection of possible attacks,exception function calls :",funcname);
-		sprintf(errorPath,"%s%s",Z_STRVAL_P(appPath),"/logs/safe/");
-		if(FAILURE == fileExist(errorPath)){
-			//尝试创建文件夹
-			php_mkdir(errorPath);
+		//"exec,passthru,phpinfo,popen,proc_open,shell_exec,system,parse_ini_file,show_source,assert,pcntl_exec,proc_get_status,dl,putenv";
+		if(
+			strcmp(funcname,"system") == 0 || 
+			strcmp(funcname,"exec") == 0 || 
+			strcmp(funcname,"passthru") == 0 || 
+			strcmp(funcname,"phpinfo") == 0 || 
+			strcmp(funcname,"popen") == 0 || 
+			strcmp(funcname,"proc_open") == 0 || 
+			strcmp(funcname,"shell_exec") == 0 || 
+			strcmp(funcname,"parse_ini_file") == 0 || 
+			strcmp(funcname,"show_source") == 0 || 
+			strcmp(funcname,"assert") == 0 || 
+			strcmp(funcname,"pcntl_exec") == 0 || 
+			strcmp(funcname,"proc_get_status") == 0 || 
+			strcmp(funcname,"putenv") == 0 || 
+			strcmp(funcname,"dl") == 0
+		){
+			char	errorTips[10240],
+					errorPath[1024],
+					errorFile[1024];
+			zval	*appPath;
+
+			appPath = zend_read_static_property(CWebAppCe, ZEND_STRL("app_path"), 0 TSRMLS_CC);
+			sprintf(errorTips,"%s%s%s%s","Detection of possible attacks,exception function calls :",funcname," in files:",filename);
+			sprintf(errorPath,"%s%s",Z_STRVAL_P(appPath),"/logs/safe/");
+			if(FAILURE == fileExist(errorPath)){
+				//尝试创建文件夹
+				php_mkdir(errorPath);
+			}
+			sprintf(errorFile,"%s%s%s",errorPath,funcname,".log");
+			CLog_writeFile(errorFile,errorTips TSRMLS_CC);
+
+			//call hooks
+			MODULE_BEGIN
+				zval	*paramsList[1],
+						param1;
+				MAKE_STD_ZVAL(paramsList[0]);
+				ZVAL_STRING(paramsList[0],funcname,1);
+				CHooks_callHooks("HOOKS_SAFE_STOP",paramsList,1 TSRMLS_CC);
+				zval_ptr_dtor(&paramsList[0]);
+			MODULE_END
+			
+			//call CGuardController to check send warn Mail
+			CGuardController_safeStopWarn(funcname TSRMLS_CC);
+
+			//stop the webapp
+			php_error_docref(NULL TSRMLS_CC, E_ERROR ,"[CMyFrameSafeException] The system has blocked these behaviors");
+			efree(shell_check);
+			return;
 		}
-		sprintf(errorFile,"%s%s%s",errorPath,funcname,".log");
-		CLog_writeFile(errorFile,errorTips TSRMLS_CC);
-		zval_ptr_dtor(&disableArray);
-
-		//call hooks
-		MODULE_BEGIN
-			zval	*paramsList[1],
-					param1;
-			MAKE_STD_ZVAL(paramsList[0]);
-			ZVAL_STRING(paramsList[0],funcname,1);
-			CHooks_callHooks("HOOKS_SAFE_STOP",paramsList,1 TSRMLS_CC);
-			zval_ptr_dtor(&paramsList[0]);
-		MODULE_END
-		
-		//call CGuardController to check send warn Mail
-		CGuardController_safeStopWarn(funcname TSRMLS_CC);
-
-		//stop the webapp
-		php_error_docref(NULL TSRMLS_CC, E_ERROR ,"[CMyFrameSafeException] The system has blocked these behaviors");
-		return;
+		efree(shell_check);
 	}
-	zval_ptr_dtor(&disableArray);
 
+	//read php.ini's CMyFrameExtension.open_trace
+	MODULE_BEGIN
+		char	*openTrace;
+		ini_get("CMyFrameExtension.open_trace",&openTrace);
+		if(strcmp(openTrace,"1") == 0){
+			//get save
+			traceSave = zend_read_static_property(CDebugCe,ZEND_STRL("functionTrace"),0 TSRMLS_CC);
+			if(IS_NULL == Z_TYPE_P(traceSave)){
+				zval	*save;
+				MAKE_STD_ZVAL(save);
+				array_init(save);
+				zend_update_static_property(CDebugCe,ZEND_STRL("functionTrace"),save TSRMLS_CC);
+				zval_ptr_dtor(&save);
+				traceSave = zend_read_static_property(CDebugCe,ZEND_STRL("functionTrace"),0 TSRMLS_CC);
+			}
+			microtime(&timenow);
+			MAKE_STD_ZVAL(thisSave);
+			array_init(thisSave);
+			add_assoc_double(thisSave,"time",Z_DVAL_P(timenow));
+			add_assoc_string(thisSave,"class_name",class_name,1);
+			add_assoc_string(thisSave,"function_name",funcname,1);
+			add_assoc_string(thisSave,"file_name",filename,1);
+			add_assoc_long(thisSave,"function_type",execute_data_ptr->function_state.function->type);
+			add_next_index_zval(traceSave,thisSave);
+			zval_ptr_dtor(&timenow);
+		}
+		efree(openTrace);
+	MODULE_END
 
-	microtime(&timenow);
-	MAKE_STD_ZVAL(thisSave);
-	array_init(thisSave);
-	add_assoc_double(thisSave,"time",Z_DVAL_P(timenow));
-	add_assoc_string(thisSave,"class_name",class_name,1);
-	add_assoc_string(thisSave,"function_name",funcname,1);
-	add_assoc_string(thisSave,"file_name",filename,1);
-	add_assoc_long(thisSave,"function_type",execute_data_ptr->function_state.function->type);
-	add_next_index_zval(traceSave,thisSave);
-	zval_ptr_dtor(&timenow);
 	efree(filename);
 
 	execute_internal(execute_data_ptr, return_value_used TSRMLS_CC);
@@ -273,12 +315,19 @@ PHP_MINIT_FUNCTION(CMyFrameExtension)
 	//controller
 	CMYFRAME_REGISTER_CLASS(CGuardController);
 
+	//regsiter ini config
+	REGISTER_INI_ENTRIES();
+
 	return SUCCESS;
 }
 
 
 PHP_MSHUTDOWN_FUNCTION(CMyFrameExtension)
 {
+
+	//unregister ini config
+	UNREGISTER_INI_ENTRIES();
+
 	return SUCCESS;
 }
 
@@ -293,7 +342,7 @@ PHP_RINIT_FUNCTION(CMyFrameExtension)
 	//cli not save calltrace
 	if(zend_hash_find(EG(zend_constants),"PHP_SAPI",strlen("PHP_SAPI")+1,(void**)&sapiZval) == SUCCESS && strcmp(Z_STRVAL_P(sapiZval),"cli") == 0){
 	}else{
-		
+
 		//Hooks zend_do_call ZEND_INIT_METHOD_CALL
 		zend_set_user_opcode_handler(ZEND_DO_FCALL, frameworkDoCall);
 

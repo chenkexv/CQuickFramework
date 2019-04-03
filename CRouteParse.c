@@ -1371,5 +1371,5 @@ PHP_METHOD(CRouteParse,getRoute)
 	zval *returnZval;
 
 	CRouteParse_getRoute(&returnZval TSRMLS_CC);
-	ZVAL_ZVAL(return_value,returnZval,1,0); 
+	ZVAL_ZVAL(return_value,returnZval,1,1); 
 }

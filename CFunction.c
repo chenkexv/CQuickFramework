@@ -966,6 +966,13 @@ int ini_set(char *param1Str,char *param2Str)
 	return status;
 }
 
+void ini_get(char *param1Str,char **param2Str)
+{
+	char	*str;
+	str = zend_ini_string(param1Str, strlen(param1Str)+1, 0);
+	*param2Str = estrdup(str);
+}
+
 int ini_seti(char *param1Str,int param2Str)
 {
 	zval	returnZval,

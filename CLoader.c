@@ -440,11 +440,14 @@ void CLoader_load(char *className,zval **returnZval TSRMLS_DC)
 			if(SUCCESS == fileExist(checkClassPath)){
 				CLoader_loadFile(checkClassPath);
 				ZVAL_BOOL(*returnZval,1);
+				zval_ptr_dtor(&needTayList);
 				zval_ptr_dtor(&importConfigItem);
 				return;
 			}
 			zend_hash_move_forward(Z_ARRVAL_P(needTayList));
 		}
+
+		zval_ptr_dtor(&needTayList);
 
 	}
 

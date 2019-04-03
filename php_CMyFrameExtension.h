@@ -94,8 +94,7 @@ PHP_FUNCTION(CGetServiceExpire);
 
 //全局变量定义
 ZEND_BEGIN_MODULE_GLOBALS(CMyFrameExtension)
-	HashTable *filesCodeHash;
-	long counter;
+	long open_trace;
 ZEND_END_MODULE_GLOBALS(CMyFrameExtension)
 #ifdef ZTS
 #include "TSRM.h"

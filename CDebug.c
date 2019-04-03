@@ -28,6 +28,7 @@
 #include "php_CMyFrameExtension.h"
 #include "php_CDebug.h"
 #include "php_CHooks.h"
+#include "php_CWebApp.h"
 #include "php_CException.h"
 #include "ext/standard/php_smart_str_public.h"
 #include "ext/standard/php_smart_str.h"
@@ -478,7 +479,122 @@ PHP_METHOD(CDebug,getErrorsData)
 
 PHP_METHOD(CDebug,getRequestShutdown)
 {
-	//php_printf("====================000000000000000========================");
+	zval		*errorList,
+				**thisVal,
+				**message,
+				**type,
+				**file,
+				**line,
+				**trace,
+				*appPath,
+				**traceDetail,
+				*errorInstance;
+
+	char		*filePath,
+				*tempString;
+
+	smart_str	html = {0};
+
+	int			i,h,hasFatal = 0;
+
+	errorList = zend_read_property(CDebugCe,getThis(),ZEND_STRL("_errorList"),1 TSRMLS_CC);
+
+	if(IS_ARRAY != Z_TYPE_P(errorList)){
+		return;
+	}
+
+	hasFatal = CException_hasFatalErrors(TSRMLS_C);
+	if(hasFatal != 1){
+		return;
+	}
+
+
+	CException_getInstance(&errorInstance TSRMLS_CC);
+	zend_update_property_long(CExceptionCe,errorInstance, ZEND_STRL("errorOutput"), 0 TSRMLS_CC);
+	zval_ptr_dtor(&errorInstance);
+
+	appPath = zend_read_static_property(CWebAppCe,ZEND_STRL("app_path"),0 TSRMLS_CC);
+
+	//header
+	smart_str_appends(&html,"</pre><style>#classTable .maininfo{cursor: pointer;}#classTable .switch{display:inline-block;width:20px; cursor: pointer;}#classTable .none{display:none}#classTable .desc{padding-left:10px}#classTable .desc2{padding-left:60px}#classTable .desc3{padding-left:40px}#classTable{border:solid 1px #ccc; width:100%; border-collapse:collapse; margin-bottom:20px; font-size:14px;}td,th{height:30px; text-align:left; padding-left:8px;border:solid 1px #ccc;}#classTableHead th{background:#F7F7FB}#classTable .name{background:#F7F7FB; width:30%}</style><table id='classTable'><thead id='classTableHead'><tr><th colspan='3'>CQuickFramework Exception Report Page</th></tr></thead>");
+	smart_str_appends(&html,"<script>function showTrace(id){var nowstatus=document.getElementById('switch'+id).innerHTML;if(nowstatus=='+'){document.getElementById('switch'+id).innerHTML='-';var needShow=document.getElementsByClassName('stack'+id);for(var i=0;i<needShow.length;i++){needShow[i].classList.remove('none')}}else{document.getElementById('switch'+id).innerHTML='+';var needShow=document.getElementsByClassName('stack'+id);for(var i=0;i<needShow.length;i++){needShow[i].classList.add('none')}}};</script>");
+	
+
+	//create HTML
+	zend_hash_internal_pointer_end(Z_ARRVAL_P(errorList));
+	h = zend_hash_num_elements(Z_ARRVAL_P(errorList));
+	for(i = 0 ; i < h ; i++){
+		zend_hash_get_current_data(Z_ARRVAL_P(errorList),(void**)&thisVal);
+		if(IS_ARRAY != Z_TYPE_PP(thisVal)){
+			zend_hash_move_forward(Z_ARRVAL_P(errorList));
+			continue;
+		}
+
+		zend_hash_find(Z_ARRVAL_PP(thisVal),"message",strlen("message")+1,(void**)&message);
+		zend_hash_find(Z_ARRVAL_PP(thisVal),"type",strlen("type")+1,(void**)&type);
+		zend_hash_find(Z_ARRVAL_PP(thisVal),"line",strlen("line")+1,(void**)&line);
+		zend_hash_find(Z_ARRVAL_PP(thisVal),"file",strlen("file")+1,(void**)&file);
+		zend_hash_find(Z_ARRVAL_PP(thisVal),"trace",strlen("trace")+1,(void**)&trace);
+
+		str_replace(Z_STRVAL_P(appPath),"APP_PATH",Z_STRVAL_PP(file),&filePath);
+
+
+		spprintf(&tempString,0,"%s%d%s%d%s%s%s%s%s%s%s%d%s%d%s%d%s","<tr><td class='desc maininfo' onclick=\"showTrace('",i,"')\" style='padding-top:10px;padding-bottom:10px;line-height:24px'> <span id='switch",i,"' class=\"switch\">+</span> [",Z_STRVAL_PP(type),"] : ",Z_STRVAL_PP(message),"&nbsp;&nbsp;&nbsp;&nbsp;  - in script ",filePath," - Line : ",Z_LVAL_PP(line),"</td></tr><tr><td id='func",i,"' class='desc3 none stack",i,"'>FunctionStack : </td></tr>");
+		smart_str_appends(&html,tempString);
+		efree(tempString);
+		efree(filePath);
+
+		if(IS_ARRAY == Z_TYPE_PP(trace)){
+			int		k,j;
+			zval	**detailClass,
+					**detailFunction,
+					**detailType,
+					**detailFile,
+					**defaultLine;
+			char	*fileTrue;
+			long	fileLine = 0;
+			zend_hash_internal_pointer_end(Z_ARRVAL_PP(trace));
+			j = zend_hash_num_elements(Z_ARRVAL_PP(trace));
+			for(k = 0 ; k < j ; k++){
+				zend_hash_get_current_data(Z_ARRVAL_PP(trace),(void**)&traceDetail);
+
+				zend_hash_find(Z_ARRVAL_PP(traceDetail),"function",strlen("function")+1,(void**)&detailFunction);
+				zend_hash_find(Z_ARRVAL_PP(traceDetail),"class",strlen("class")+1,(void**)&detailClass);
+				zend_hash_find(Z_ARRVAL_PP(traceDetail),"type",strlen("type")+1,(void**)&detailType);
+
+				if(SUCCESS == zend_hash_find(Z_ARRVAL_PP(traceDetail),"file",strlen("file")+1,(void**)&detailFile) && IS_STRING == Z_TYPE_PP(detailFile)){
+					str_replace(Z_STRVAL_P(appPath),"APP_PATH",Z_STRVAL_PP(detailFile),&fileTrue);
+				}else{
+					fileTrue = estrdup("Unknown script");
+				}
+
+				if(SUCCESS == zend_hash_find(Z_ARRVAL_PP(traceDetail),"line",strlen("line")+1,(void**)&defaultLine) && IS_LONG == Z_TYPE_PP(defaultLine)){
+					fileLine = Z_LVAL_PP(defaultLine);
+				}else{
+					fileLine = 0;
+				}
+
+
+				spprintf(&tempString,0,"%s%d%s%d%s%s%s%s%s%s%s%d%s","<tr class='stack",i," none'><td class='desc2'>",k+1,".",Z_STRVAL_PP(detailClass),Z_STRVAL_PP(detailType),Z_STRVAL_PP(detailFunction),"()&nbsp;&nbsp;&nbsp;&nbsp; in script : ",fileTrue," - Line : ",fileLine,"</td></tr>");
+				smart_str_appends(&html,tempString);
+				efree(fileTrue);
+				efree(tempString);
+
+				zend_hash_move_backwards(Z_ARRVAL_PP(trace));
+			}
+		}
+
+		smart_str_appends(&html,"<tr><td class=\"none\">&nbsp;</td></tr>");
+
+		zend_hash_move_backwards(Z_ARRVAL_P(errorList));
+	}
+
+
+
+
+	smart_str_0(&html);
+	php_printf("%s",html.c);
+	smart_str_free(&html);
 }
 
 
@@ -569,7 +685,7 @@ void CDebug_dumpTraceHtml(zval *classObject TSRMLS_DC){
 			castTimeRate = 0;
 
 	if(IS_ARRAY != Z_TYPE_P(classObject)){
-		php_printf("No Function trace to print");
+		php_printf("No SQL trace to print,please check the php.ini->[CMyFrameExtension.open_trace] is \"1\"");
 		return;
 	}
 

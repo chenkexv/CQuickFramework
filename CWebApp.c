@@ -52,6 +52,7 @@ CMYFRAME_REGISTER_CLASS_RUN(CWebApp)
 	zend_declare_property_string(CWebAppCe, ZEND_STRL("app_path"),"",ZEND_ACC_PUBLIC | ZEND_ACC_STATIC TSRMLS_CC);
 	zend_declare_property_string(CWebAppCe, ZEND_STRL("code_path"),"",ZEND_ACC_PUBLIC | ZEND_ACC_STATIC TSRMLS_CC);
 	zend_declare_property_string(CWebAppCe, ZEND_STRL("cplugin_path"),"",ZEND_ACC_PUBLIC | ZEND_ACC_STATIC TSRMLS_CC);
+	zend_declare_property_string(CWebAppCe, ZEND_STRL("disable_function"),"",ZEND_ACC_PRIVATE | ZEND_ACC_STATIC TSRMLS_CC);
 	
 	return SUCCESS;
 }

@@ -528,8 +528,7 @@ PHP_METHOD(CException,getErrorShow)
 	RETVAL_FALSE;
 }
 
-PHP_METHOD(CException,hasFatalErrors)
-{
+int CException_hasFatalErrors(TSRMLS_D){
 	zval *lastError;
 
 	//检测是否发生致命性错误
@@ -539,14 +538,25 @@ PHP_METHOD(CException,hasFatalErrors)
 		if(SUCCESS == zend_hash_find(Z_ARRVAL_P(lastError),"type",strlen("type")+1,(void**)&errorType)){
 			if(IS_LONG == Z_TYPE_PP(errorType) && (Z_LVAL_PP(errorType) == E_USER_ERROR || Z_LVAL_PP(errorType) == E_PARSE || Z_LVAL_PP(errorType) == E_CORE_ERROR || Z_LVAL_PP(errorType) == E_COMPILE_ERROR || Z_LVAL_PP(errorType) == E_ERROR ) ){
 				zval_ptr_dtor(&lastError);
-				RETVAL_TRUE;
-				return;
+				return 1;
 			}
 		}
 	}
 
 	zval_ptr_dtor(&lastError);
-	RETVAL_FALSE;
+	return 0;
+}
+
+PHP_METHOD(CException,hasFatalErrors)
+{
+	int status; 
+	status = CException_hasFatalErrors(TSRMLS_C);
+
+	if(status){
+		RETURN_TRUE;
+	}else{
+		RETURN_FALSE;
+	}
 }
 
 void CException_filterFileTruePath(zval *filePath,char **endPath)
