@@ -493,7 +493,7 @@ void CHooks_setHooksFunctionLevel(zval *functionList,zval **levelList TSRMLS_DC)
 	MAKE_STD_ZVAL(saveSortZval);
 	Z_TYPE_P(saveSortZval) = IS_ARRAY;
 	Z_ARRVAL_P(saveSortZval) = sortArr;
-	CArraySort_sortArrayDesc(saveSortZval,"callLevel",&*levelList TSRMLS_CC);
+	CArrayHelper_sortArrByOneField(saveSortZval,"callLevel",3,levelList TSRMLS_CC);
 	zval_ptr_dtor(&saveSortZval);
 }
 
