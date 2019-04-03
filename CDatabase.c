@@ -214,7 +214,7 @@ void CDatabase_getInstance(int useMaster,char *dbConf,zval **returnZval TSRMLS_D
 //类方法:创建应用对象
 PHP_METHOD(CDatabase,getInstance)
 {
-	char	*dbConf = "main";
+	char	*dbConf;
 	int		useMaster = 0,
 			dbConfLen = 0;
 	zval	*returnZval;

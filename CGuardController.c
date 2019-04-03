@@ -410,6 +410,14 @@ void CGuardController_safeStopWarn(char *message TSRMLS_DC){
 
 	MAKE_STD_ZVAL(object);
 	object_init_ex(object,CGuardControllerCe);
+	if (CGuardControllerCe->constructor) {
+		zval	constructVal,
+				constructReturn;
+		INIT_ZVAL(constructVal);
+		ZVAL_STRING(&constructVal, CWatcherCe->constructor->common.function_name, 0);
+		call_user_function(NULL, &object, &constructVal, &constructReturn, 0, NULL TSRMLS_CC);
+		zval_dtor(&constructReturn);
+	}
 
 
 	php_date("Y-m-d h:i:s",&thisMothTime);
@@ -446,6 +454,7 @@ void CGuardController_safeStopWarn(char *message TSRMLS_DC){
 
 	//call assign
 	if(strlen(templatePath) > 0){
+
 		MODULE_BEGIN
 			zval	callFunction,
 					returnFunction,

@@ -359,7 +359,8 @@ PHP_METHOD(CArrayHelper,sortArrByOneField)
 			*returnZval;
 
 	char	*field,
-			*sort = "asc";
+			*sort = NULL,
+			*useSort;
 
 	int		fieldLen = 0,
 			sortLen = 0,
@@ -382,8 +383,14 @@ PHP_METHOD(CArrayHelper,sortArrByOneField)
 		return;
 	}
 
-	php_strtolower(sort,strlen(sort)+1);
-	if(strcmp(sort,"asc") == 0){
+	if(sortLen == 0){
+		useSort = estrdup("desc");
+	}else{
+		useSort = estrdup(sort);
+	}
+
+	php_strtolower(useSort,strlen(useSort)+1);
+	if(strcmp(useSort,"asc") == 0){
 		sortType = 4;
 	}else{
 		sortType = 3;
@@ -391,4 +398,5 @@ PHP_METHOD(CArrayHelper,sortArrByOneField)
 
 	CArrayHelper_sortArrByOneField(array,field,sortType,&returnZval TSRMLS_CC);
 	RETVAL_ZVAL(returnZval,1,1);
+	efree(useSort);
 }

@@ -182,7 +182,7 @@ void frameworkDoInternalCall(zend_execute_data *execute_data_ptr, int return_val
 				//尝试创建文件夹
 				php_mkdir(errorPath);
 			}
-			sprintf(errorFile,"%s%s%s",errorPath,funcname,".log");
+			sprintf(errorFile,"%s%s%s",errorPath,funcname,".log\n\n");
 			CLog_writeFile(errorFile,errorTips TSRMLS_CC);
 
 			//call hooks

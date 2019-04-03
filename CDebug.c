@@ -488,7 +488,9 @@ PHP_METHOD(CDebug,getRequestShutdown)
 				**trace,
 				*appPath,
 				**traceDetail,
-				*errorInstance;
+				*errorInstance,
+				*cconfigInstanceZval,
+				*debugStatus;
 
 	char		*filePath,
 				*tempString;
@@ -507,6 +509,18 @@ PHP_METHOD(CDebug,getRequestShutdown)
 	if(hasFatal != 1){
 		return;
 	}
+
+	//read debug config
+	CConfig_getInstance("main",&cconfigInstanceZval TSRMLS_CC);
+	CConfig_load("DEBUG",cconfigInstanceZval,&debugStatus TSRMLS_CC);
+	if(IS_BOOL == Z_TYPE_P(debugStatus) && 1 == Z_LVAL_P(debugStatus)){
+	}else{
+		zval_ptr_dtor(&cconfigInstanceZval);
+		zval_ptr_dtor(&debugStatus);
+		return;
+	}
+	zval_ptr_dtor(&cconfigInstanceZval);
+	zval_ptr_dtor(&debugStatus);
 
 
 	CException_getInstance(&errorInstance TSRMLS_CC);

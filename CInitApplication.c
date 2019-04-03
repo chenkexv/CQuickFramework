@@ -262,7 +262,8 @@ void CInitApplication_initCookie(TSRMLS_D)
 {
 	zval	*cconfigInstanceZval,
 			*cookieZval,
-			*returnZval;
+			*returnZval,
+			*httpOnly;
 
 	//º”‘ÿcookie
 	CConfig_getInstance("main",&cconfigInstanceZval TSRMLS_CC);
@@ -272,8 +273,18 @@ void CInitApplication_initCookie(TSRMLS_D)
 		ini_set("session.cookie_domain", Z_STRVAL_P(cookieZval));
 	}
 
+	//default use http only
+	CConfig_load("COOKIE_HTTPONLY",cconfigInstanceZval,&httpOnly TSRMLS_CC);
+	if(IS_BOOL == Z_TYPE_P(httpOnly) && 0 == Z_LVAL_P(httpOnly)){
+		ini_set("session.cookie_httponly", "0");
+	}else{
+		ini_set("session.cookie_httponly", "1");
+	}
+
+
 	zval_ptr_dtor(&cconfigInstanceZval);
 	zval_ptr_dtor(&cookieZval);
+	zval_ptr_dtor(&httpOnly);
 }
 
 //…Ë÷√cookie

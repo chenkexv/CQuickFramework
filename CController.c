@@ -36,17 +36,17 @@ ZEND_END_ARG_INFO()
 
 //zend¿‡∑Ω∑®
 zend_function_entry CController_functions[] = {
-	PHP_ME(CController,Args,NULL,ZEND_ACC_PROTECTED)
-	PHP_ME(CController,File,NULL,ZEND_ACC_PROTECTED)
-	PHP_ME(CController,createUrl,NULL,ZEND_ACC_PROTECTED)
-	PHP_ME(CController,getView,NULL,ZEND_ACC_PROTECTED)
-	PHP_ME(CController,display,NULL,ZEND_ACC_PROTECTED)
-	PHP_ME(CController,fetch,NULL,ZEND_ACC_PROTECTED)
-	PHP_ME(CController,assign,NULL,ZEND_ACC_PROTECTED)
-	PHP_ME(CController,setTitle,NULL,ZEND_ACC_PROTECTED)
-	PHP_ME(CController,setKeyword,NULL,ZEND_ACC_PROTECTED)
-	PHP_ME(CController,setDescription,NULL,ZEND_ACC_PROTECTED)
-	PHP_ME(CController,setPageData,NULL,ZEND_ACC_PROTECTED)
+	PHP_ME(CController,Args,NULL,ZEND_ACC_PUBLIC)
+	PHP_ME(CController,File,NULL,ZEND_ACC_PUBLIC)
+	PHP_ME(CController,createUrl,NULL,ZEND_ACC_PUBLIC)
+	PHP_ME(CController,getView,NULL,ZEND_ACC_PUBLIC)
+	PHP_ME(CController,display,NULL,ZEND_ACC_PUBLIC)
+	PHP_ME(CController,fetch,NULL,ZEND_ACC_PUBLIC)
+	PHP_ME(CController,assign,NULL,ZEND_ACC_PUBLIC)
+	PHP_ME(CController,setTitle,NULL,ZEND_ACC_PUBLIC)
+	PHP_ME(CController,setKeyword,NULL,ZEND_ACC_PUBLIC)
+	PHP_ME(CController,setDescription,NULL,ZEND_ACC_PUBLIC)
+	PHP_ME(CController,setPageData,NULL,ZEND_ACC_PUBLIC)
 	PHP_ME(CController,__set,session_set_arginfo,ZEND_ACC_PUBLIC)
 	{NULL, NULL, NULL}
 };
