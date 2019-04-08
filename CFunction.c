@@ -2127,6 +2127,34 @@ void php_urldecode(char *str,char **decode)
 	zval_dtor(&returnZval);
 }
 
+void array_unique(zval *array,zval **returnArray){
+	zval	returnZval,
+			*params[1],
+			param1,
+			function,
+			*returnData;
+
+	int status = FAILURE;
+	TSRMLS_FETCH();
+
+	MAKE_STD_ZVAL(params[0]);
+	ZVAL_ZVAL(params[0],array,1,0);
+
+	INIT_ZVAL(function);
+	ZVAL_STRING(&function,"array_unique",0);
+
+	MAKE_STD_ZVAL(*returnArray);
+	if(SUCCESS == call_user_function(EG(function_table), NULL, &function, &returnZval,1, params TSRMLS_CC)){
+		zval_ptr_dtor(&params[0]);
+		returnData = &returnZval;
+		ZVAL_ZVAL(*returnArray,returnData,1,0);
+		zval_dtor(&returnZval);
+		return;
+	}
+	ZVAL_ZVAL(*returnArray,array,1,0);
+	zval_dtor(&returnZval);
+}
+
 void array_slice(HashTable *inputTable,int offsetBegin,int offsetEnd,zval **getStr)
 {
 	zval	returnZval,

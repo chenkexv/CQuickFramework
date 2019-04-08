@@ -69,6 +69,7 @@ zend_function_entry CRequset_functions[] = {
 	PHP_ME(CRequest,disableGET,NULL,ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
 	PHP_ME(CRequest,isWap,NULL,ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
 	PHP_ME(CRequest,end,NULL,ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
+	PHP_ME(CRequest,removeXSS,NULL,ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
 
 	PHP_ME(CRequest,getAllMemory,NULL,ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
 	PHP_ME(CRequest,getFreeMemory,NULL,ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
@@ -882,6 +883,211 @@ PHP_METHOD(CRequest,getUseRouterStatus)
 	RETVAL_BOOL(Z_LVAL_P(useRouter));
 }
 
+void CRequest_filterHTML(zval *array,zval **newArray TSRMLS_DC)
+{
+	int		i,h;
+	zval	**thisVal;
+	char	*filterString,
+			*otherKey;
+	ulong	thisIntKey;
+
+	if(IS_ARRAY != Z_TYPE_P(array)){
+		return;
+	}
+
+	MAKE_STD_ZVAL(*newArray);
+	array_init(*newArray);
+
+	zend_hash_internal_pointer_reset(Z_ARRVAL_P(array));
+	h = zend_hash_num_elements(Z_ARRVAL_P(array));
+	for(i = 0 ; i < h;i++){
+		zend_hash_get_current_data(Z_ARRVAL_P(array),(void**)&thisVal);
+		convert_to_string(*thisVal);
+		strip_tags(Z_STRVAL_PP(thisVal),&filterString);
+
+		if(HASH_KEY_IS_LONG == zend_hash_get_current_key_type(Z_ARRVAL_P(array))){
+			zend_hash_get_current_key(Z_ARRVAL_P(array), &otherKey, &thisIntKey, 0);
+			add_index_string(*newArray,thisIntKey,filterString,1);
+		}else if(HASH_KEY_IS_STRING == zend_hash_get_current_key_type(Z_ARRVAL_P(array))){
+			zend_hash_get_current_key(Z_ARRVAL_P(array), &otherKey, &thisIntKey, 0);
+			add_assoc_string(*newArray,otherKey,filterString,1);
+		}
+		efree(filterString);
+		zend_hash_move_forward(Z_ARRVAL_P(array));
+	}
+}
+
+void CRequest_string_htmlspecialchars(char *replaceTempString1,char **replaceTempString2 TSRMLS_DC)
+{
+	char	*tempString1,
+			*tempString2;
+
+	zval	*find,
+			*replace;
+
+	MAKE_STD_ZVAL(find);
+	MAKE_STD_ZVAL(replace);
+	array_init(find);
+	array_init(replace);
+	
+	add_next_index_string(find,"&",1);
+	add_next_index_string(find,"\"",1);
+	add_next_index_string(find,"<",1);
+	add_next_index_string(find,">",1);
+
+	add_next_index_string(replace,"&amp;",1);
+	add_next_index_string(replace,"&quot;",1);
+	add_next_index_string(replace,"&lt;",1);
+	add_next_index_string(replace,"&gt;",1);
+
+	str_replaceArray(find,replace,replaceTempString1,&tempString1);
+
+	if(strstr(tempString1,"&amp;#") != NULL){
+		preg_replace("/&amp;((#(\\d{3,5}|x[a-fA-F0-9]{4}));)/", "&\\1", tempString1,&tempString2);
+		*replaceTempString2 = estrdup(tempString2);
+		efree(tempString2);
+	}else{
+		*replaceTempString2 = estrdup(replaceTempString1);
+	}
+
+	zval_ptr_dtor(&replace);
+	zval_ptr_dtor(&find);
+	efree(tempString1);
+
+}
+
+void CRequest_xssRemove(char *string,char **result TSRMLS_DC){
+
+	zval	*match,
+			**match1,
+			*findTags,
+			**thisVal,
+			*tempZval1,
+			*searchs,
+			*replaces;
+
+	char	*allowtags = "img|a|font|div|table|tbody|caption|tr|td|th|br|p|b|strong|i|u|em|span|ol|ul|li|blockquote",
+			*skipkeysString = "/(onabort|onactivate|onafterprint|onafterupdate|onbeforeactivate|onbeforecopy|onbeforecut|onbeforedeactivate|onbeforeeditfocus|onbeforepaste|onbeforeprint|onbeforeunload|onbeforeupdate|onblur|onbounce|oncellchange|onchange|onclick|oncontextmenu|oncontrolselect|oncopy|oncut|ondataavailable|ondatasetchanged|ondatasetcomplete|ondblclick|ondeactivate|ondrag|ondragend|ondragenter|ondragleave|ondragover|ondragstart|ondrop|onerror|onerrorupdate|onfilterchange|onfinish|onfocus|onfocusin|onfocusout|onhelp|onkeydown|onkeypress|onkeyup|onlayoutcomplete|onload|onlosecapture|onmousedown|onmouseenter|onmouseleave|onmousemove|onmouseout|onmouseover|onmouseup|onmousewheel|onmove|onmoveend|onmovestart|onpaste|onpropertychange|onreadystatechange|onreset|onresize|onresizeend|onresizestart|onrowenter|onrowexit|onrowsdelete|onrowsinserted|onscroll|onselect|onselectionchange|onselectstart|onstart|onstop|onsubmit|onunload|javascript|script|eval|behaviour|expression|style|class)/i",
+			*replaceTempString1,
+			*replaceTempString2,
+			*replaceTempString3,
+			*replaceTempString4,
+			*replaceTempString5,
+			*replaceTempString6,
+			*replaceTempString9,
+			*replaceTempString10,
+			*allowTags = "/^[\\/|\\s]?(img|a|font|div|table|tbody|caption|tr|td|th|br|p|b|strong|i|u|em|span|ol|ul|li|blockquote)(\\s+|$)/is",
+			*searchTagsTemp;
+
+	int		i,h;
+
+	if(!preg_match_all("/\\<([^\\<]+)\\>/is", string, &match)){
+		*result = estrdup(string);
+		zval_ptr_dtor(&match);
+		return;
+	}
+
+	if(IS_ARRAY != Z_TYPE_P(match)){
+		*result = estrdup(string);
+		zval_ptr_dtor(&match);
+		return;
+	}
+
+	//read1
+	if(SUCCESS == zend_hash_index_find(Z_ARRVAL_P(match),1,(void**)&match1) && IS_ARRAY == Z_TYPE_PP(match1)){
+	}else{
+		*result = estrdup(string);
+		zval_ptr_dtor(&match);
+		return;
+	}
+
+	MAKE_STD_ZVAL(searchs);
+	MAKE_STD_ZVAL(replaces);
+	array_init(searchs);
+	array_init(replaces);
+
+	add_next_index_string(searchs,"<",1);
+	add_next_index_string(searchs,">",1);
+	add_next_index_string(replaces,"&lt;",1);
+	add_next_index_string(replaces,"&gt;",1);
+		
+	//qu chong
+	array_unique(*match1,&findTags);
+
+	//foreach
+	zend_hash_internal_pointer_reset(Z_ARRVAL_P(findTags));
+	h = zend_hash_num_elements(Z_ARRVAL_P(findTags));
+	for(i = 0 ; i < h ; i++){
+		zend_hash_get_current_data(Z_ARRVAL_P(findTags),(void**)&thisVal);
+
+		spprintf(&searchTagsTemp,0,"%s%s%s","&lt;",Z_STRVAL_PP(thisVal),"&gt;");
+		add_next_index_string(searchs,searchTagsTemp,1);
+		efree(searchTagsTemp);
+
+		str_replace("'&amp;","_uch_tmp_str_",Z_STRVAL_PP(thisVal),&replaceTempString1);
+		CRequest_string_htmlspecialchars(replaceTempString1,&replaceTempString2 TSRMLS_CC);
+		str_replace("_uch_tmp_str_","'&amp;",replaceTempString2,&replaceTempString3);
+		str_replace("\\",".",replaceTempString3,&replaceTempString4);
+		str_replace("/*","/.",replaceTempString4,&replaceTempString5);
+		preg_replace(skipkeysString,".",replaceTempString5,&replaceTempString6);
+		
+		if(!preg_match(allowTags,replaceTempString6,&tempZval1)){
+			efree(replaceTempString6);
+			replaceTempString6 = estrdup("");
+		}
+
+		//relace and append
+		if(strlen(replaceTempString6) <= 0){
+			replaceTempString9 = estrdup("");
+		}else{
+			char	*replaceTempString7;
+			str_replace("&quot;","\"",replaceTempString6,&replaceTempString7);
+			spprintf(&replaceTempString9,0,"%s%s%s","<",replaceTempString7,">");
+			efree(replaceTempString7);
+		}
+
+		add_next_index_string(replaces,replaceTempString9,1);
+
+		efree(replaceTempString1);
+		efree(replaceTempString2);
+		efree(replaceTempString3);
+		efree(replaceTempString4);
+		efree(replaceTempString5);
+		efree(replaceTempString6);
+		efree(replaceTempString9);
+		zval_ptr_dtor(&tempZval1);
+
+		zend_hash_move_forward(Z_ARRVAL_P(findTags));
+	}
+
+	str_replaceArray(searchs,replaces,string,&replaceTempString10);
+
+	*result = estrdup(replaceTempString10);
+
+	//destoy
+	zval_ptr_dtor(&findTags);
+	zval_ptr_dtor(&match);
+	efree(replaceTempString10);
+	zval_ptr_dtor(&replaces);
+	zval_ptr_dtor(&searchs);
+}
+
+PHP_METHOD(CRequest,removeXSS)
+{
+	char	*string,
+			*returnString;
+	int		stringLen = 0;
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"s",&string,&stringLen) == FAILURE){
+		RETVAL_FALSE;
+		return;
+	}
+
+	CRequest_xssRemove(string,&returnString TSRMLS_CC);
+	RETVAL_STRING(returnString,1);
+	efree(returnString);
+}
+
+
 void CRequest_Args(char *key,char *type,char *from,int noFilter,zval **returnString TSRMLS_DC){
 
 	char *getReturn,
@@ -902,7 +1108,11 @@ void CRequest_Args(char *key,char *type,char *from,int noFilter,zval **returnStr
 		zval *postArray = NULL;
 		getPostParamsZval(key,&postArray);
 		if(IS_NULL != Z_TYPE_P(postArray)){
-			ZVAL_ZVAL(*returnString,postArray,1,1);
+			zval	*filterArray;
+			//fiter html
+			CRequest_filterHTML(postArray,&filterArray TSRMLS_CC);
+			ZVAL_ZVAL(*returnString,filterArray,1,1);
+			zval_ptr_dtor(&postArray);
 			efree(lowType);
 			return;
 		}else{
@@ -959,8 +1169,21 @@ void CRequest_Args(char *key,char *type,char *from,int noFilter,zval **returnStr
 			ZVAL_STRING(*returnString,thisVal,1);
 			efree(thisVal);
 		}
+	}else if(strcmp(lowType,"html") == 0){
+		//filter xss
+		char	*xssFilterString;
+		CRequest_xssRemove(getReturn,&xssFilterString TSRMLS_CC);
+		ZVAL_STRING(*returnString,xssFilterString,1);
+		efree(xssFilterString);
 	}else{
-		ZVAL_STRING(*returnString,getReturn,1);
+		if(noFilter == 1){
+			ZVAL_STRING(*returnString,getReturn,1);
+		}else{
+			char *thisVal;
+			CRequest_xssRemove(getReturn,&thisVal TSRMLS_CC);
+			ZVAL_STRING(*returnString,thisVal,1);
+			efree(thisVal);
+		}
 	}
 
 	efree(lowType);

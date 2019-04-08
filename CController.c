@@ -384,7 +384,7 @@ PHP_METHOD(CController,assign)
 			*templateUsed;
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"sz",&key,&keyLen,&val) == FAILURE){
-		RETVAL_FALSE;
+		RETURN_FALSE;
 	}
 
 	//∂¡»°USE_QUICKTEMPLATE≈‰÷√

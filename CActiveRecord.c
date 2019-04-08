@@ -1635,6 +1635,8 @@ PHP_METHOD(CActiveRecord,delete)
 
 		//记录最后发生的错误
 		zend_update_property_string(CActiveRecordCe,getThis(), ZEND_STRL("_lastError"),Z_STRVAL_P(exceptionMessage) TSRMLS_CC);
+		//php 5.4 after clear cache will check this val is equeue handle,and throw Attempt to destruct pending exception
+		Z_OBJ_HANDLE_P(EG(exception)) = 0;
 		zend_clear_exception(TSRMLS_C);
 		RETURN_FALSE;
 	}

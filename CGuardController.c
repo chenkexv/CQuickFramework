@@ -2135,13 +2135,13 @@ void CGuardController_checkWarnMail(zval *logs,zval *object TSRMLS_DC){
 	if(IS_ARRAY == Z_TYPE_P(moniterZval) && SUCCESS == zend_hash_find(Z_ARRVAL_P(moniterZval),"warn",strlen("warn")+1,(void**)&node1) && IS_STRING == Z_TYPE_PP(node1)){
 		warnString = estrdup(Z_STRVAL_PP(node1));
 	}else{
-		warnString = estrdup("{\"cpuUsed\":90,\"memoryUsed\":99,\"swapUsed\":60,\"wlanNetInUsed\":1,\"wlanNetOutUsed\":1,\"netInUsed\":20,\"netOutUsed\":20,\"diskDataUsed\":90,\"diskSystemUsed\":90,\"processNum\":0,\"blockProcessNum\":0,\"runProcessNum\":0,\"tcpTimeWaitNum\":0,\"loadAverage1\":4,\"loadAverage5\":0,\"loadAverage15\":0,\"dbConnection\":600,\"dbQps\":0,\"dbTps\":0,\"dbSlowQuery\":100,\"dbSlaveDelay\":0,\"dbLock\":0,\"cacheHit\":0,\"cacheMemUsed\":0,\"cacheConnection\":2000,\"cacheQps\":0,\"cacheForverKeyNum\":0,\"fpmNum\":200,\"cliNum\":45,\"queueLen\":2000,\"queueUnAck\":200,\"queuePushRate\":1000,\"queueGetRate\":1000}");
+		warnString = estrdup("{\"cpuUsed\":90,\"memoryUsed\":99,\"swapUsed\":60,\"wlanNetInUsed\":1,\"wlanNetOutUsed\":1,\"netInUsed\":20,\"netOutUsed\":20,\"diskDataUsed\":90,\"diskSystemUsed\":90,\"processNum\":0,\"blockProcessNum\":0,\"runProcessNum\":0,\"tcpTimeWaitNum\":0,\"loadAverage1\":4,\"loadAverage5\":0,\"loadAverage15\":0,\"dbConnection\":600,\"dbQps\":0,\"dbTps\":0,\"dbSlowQuery\":100,\"dbSlaveDelay\":0,\"dbLock\":0,\"cacheHit\":0,\"cacheMemUsed\":0,\"cacheConnection\":2000,\"cacheQps\":0,\"cacheForverKeyNum\":0,\"fpmNum\":200,\"cliNum\":45,\"queueLen\":2000,\"queueUnAck\":200,\"queuePushRate\":1000,\"queueGetRate\":1000,\"httponly\":0,\"disableFunc\":0}");
 	}
 	json_decode(warnString,&warnArray);
 	efree(warnString);
 
-	keyNameBase = "eyJjcHVVc2VkIjp7Im5hbWUiOiJDUFXkvb/nlKjnjociLCJ1bml0IjoiJSJ9LCJtZW1vcnlVc2VkIjp7Im5hbWUiOiLlhoXlrZjkvb/nlKjnjociLCJ1bml0IjoiJSJ9LCJzd2FwVXNlZCI6eyJuYW1lIjoic3dhcOS9v+eUqOeOhyIsInVuaXQiOiIlIn0sIndsYW5OZXRJblVzZWQiOnsibmFtZSI6IuWGhee9keW4puWuvSjlhaXnvZEpIiwidW5pdCI6Ik1iIn0sIndsYW5OZXRPdXRVc2VkIjp7Im5hbWUiOiLlhoXnvZHluKblrr0o5Ye6572RKSIsInVuaXQiOiJNYiJ9LCJuZXRJblVzZWQiOnsibmFtZSI6IuWklue9keW4puWuvSjlhaXnvZEpIiwidW5pdCI6Ik1iIn0sIm5ldE91dFVzZWQiOnsibmFtZSI6IuWklue9keW4puWuvSjlh7rnvZEpIiwidW5pdCI6Ik1iIn0sImxvYWRBdmVyYWdlMSI6eyJuYW1lIjoiMW1pbiBsb2FkQXZlcmFnZSIsInVuaXQiOiIifSwibG9hZEF2ZXJhZ2U1Ijp7Im5hbWUiOiI1bWluIGxvYWRBdmVyYWdlIiwidW5pdCI6IiJ9LCJsb2FkQXZlcmFnZTE1Ijp7Im5hbWUiOiIxNW1pbiBsb2FkQXZlcmFnZSIsInVuaXQiOiIifSwiZGlza0RhdGFVc2VkIjp7Im5hbWUiOiLmlbDmja7nm5jkvb/nlKjnjociLCJ1bml0IjoiJSJ9LCJkaXNrU3lzdGVtVXNlZCI6eyJuYW1lIjoi57O757uf55uY5L2/55So546HIiwidW5pdCI6IiUifSwidGNwVGltZVdhaXROdW0iOnsibmFtZSI6IlRDUOi/nuaOpeaVsCIsInVuaXQiOiIifSwicHJvY2Vzc051bSI6eyJuYW1lIjoi5oC76L+b56iL5pWwIiwidW5pdCI6IiJ9LCJydW5Qcm9jZXNzTnVtIjp7Im5hbWUiOiLov5DooYzov5vnqIvmlbAiLCJ1bml0IjoiIn0sImJsb2NrUHJvY2Vzc051bSI6eyJuYW1lIjoi6Zi75aGe6L+b56iL5pWwIiwidW5pdCI6IiJ9LCJkYkNvbm5lY3Rpb24iOnsibmFtZSI6IuaVsOaNruW6k+i/nuaOpeaVsCIsInVuaXQiOiIifSwiZGJRcHMiOnsibmFtZSI6IuaVsOaNruW6k1FQUyIsInVuaXQiOiIifSwiZGJUcHMiOnsibmFtZSI6IuaVsOaN"\
-		"ruW6k1RQUyIsInVuaXQiOiIifSwiZGJTbG93UXVlcnkiOnsibmFtZSI6IuaVsOaNruW6k+aFouafpeivouaVsCIsInVuaXQiOiIifSwiZGJTbGF2ZURlbGF5Ijp7Im5hbWUiOiLku47lupPlu7bov58iLCJ1bml0IjoicyJ9LCJkYkxvY2siOnsibmFtZSI6IuaVsOaNruW6k+mUgeihqOetieW+hSIsInVuaXQiOiIlIn0sImNhY2hlQ29ubmVjdGlvbiI6eyJuYW1lIjoi57yT5a2Y57O757uf6L+e5o6l5pWwIiwidW5pdCI6IiJ9LCJjYWNoZUhpdCI6eyJuYW1lIjoi57yT5a2Y57O757ufTWlzcyIsInVuaXQiOiIlIn0sImNhY2hlTWVtVXNlZCI6eyJuYW1lIjoi57yT5a2Y57O757uf5YaF5a2Y5L2/55SoIiwidW5pdCI6Ik1iIn0sImNhY2hlUXBzIjp7Im5hbWUiOiLnvJPlrZjns7vnu59RUFMiLCJ1bml0IjoiIn0sImNhY2hlRm9ydmVyS2V5TnVtIjp7Im5hbWUiOiLnvJPlrZjns7vnu5/msLjkuYVLZXkiLCJ1bml0IjoiIn0sImZwbU51bSI6eyJuYW1lIjoid2Vi6L+b56iL5pWw55uuIiwidW5pdCI6IuS4qiJ9LCJjbGlOdW0iOnsibmFtZSI6IuWQjuWPsOS7u+WKoeaVsOebriIsInVuaXQiOiLkuKoifSwicXVldWVMZW4iOnsibmFtZSI6Iua2iOaBr+mYn+WIl+mVv+W6piIsInVuaXQiOiIifSwicXVldWVVbkFjayI6eyJuYW1lIjoi5aSE55CG5aSx6LSl5raI5oGvIiwidW5pdCI6IiJ9LCJxdWV1ZVB1c2hSYXRlIjp7Im5hbWUiOiLpmJ/liJfnlJ/kuqfpgJ/luqYiLCJ1bml0IjoiIn0sInF1ZXVlR2V0UmF0ZSI6eyJuYW1lIjoi6Zif5YiX5raI6LS56YCf5bqmIiwidW5pdCI6IiJ9fQ==";
+	keyNameBase = "eyJjcHVVc2VkIjp7Im5hbWUiOiJDUFXkvb/nlKjnjociLCJ1bml0IjoiJSJ9LCJtZW1vcnlVc2VkIjp7Im5hbWUiOiLlhoXlrZjkvb/nlKjnjociLCJ1bml0IjoiJSJ9LCJzd2FwVXNlZCI6eyJuYW1lIjoic3dhcOS9v+eUqOeOhyIsInVuaXQiOiIlIn0sIndsYW5OZXRJblVzZWQiOnsibmFtZSI6IuWGhee9keW4puWuvSjlhaXnvZEpIiwidW5pdCI6Ik1iIn0sIndsYW5OZXRPdXRVc2VkIjp7Im5hbWUiOiLlhoXnvZHluKblrr0o5Ye6572RKSIsInVuaXQiOiJNYiJ9LCJuZXRJblVzZWQiOnsibmFtZSI6IuWklue9keW4puWuvSjlhaXnvZEpIiwidW5pdCI6Ik1iIn0sIm5ldE91dFVzZWQiOnsibmFtZSI6IuWklue9keW4puWuvSjlh7rnvZEpIiwidW5pdCI6Ik1iIn0sImxvYWRBdmVyYWdlMSI6eyJuYW1lIjoiMW1pbiBsb2FkQXZlcmFnZSIsInVuaXQiOiIifSwibG9hZEF2ZXJhZ2U1Ijp7Im5hbWUiOiI1bWluIGxvYWRBdmVyYWdlIiwidW5pdCI6IiJ9LCJsb2FkQXZlcmFnZTE1Ijp7Im5hbWUiOiIxNW1pbiBsb2FkQXZlcmFnZSIsInVuaXQiOiIifSwiZGlza0RhdGFVc2VkIjp7Im5hbWUiOiLmlbDmja7nm5jkvb/nlKjnjociLCJ1bml0IjoiJSJ9LCJkaXNrU3lzdGVtVXNlZCI6eyJuYW1lIjoi57O757uf55uY5L2/55So546HIiwidW5pdCI6IiUifSwidGNwVGltZVdhaXROdW0iOnsibmFtZSI6IlRDUOi/nuaOpeaVsCIsInVuaXQiOiIifSwicHJvY2Vzc051bSI6eyJuYW1lIjoi5oC76L+b56iL5pWwIiwidW5pdCI6IiJ9LCJydW5Qcm9jZXNzTnVtIjp7Im5hbWUiOiLov5DooYzov5vnqIvmlbAiLCJ1bml0IjoiIn0sImJsb2NrUHJvY2Vzc051bSI6eyJuYW1lIjoi6Zi75aGe6L+b56iL5pWwIiwidW5pdCI6IiJ9LCJkYkNvbm5lY3Rpb24iOnsibmFtZSI6IuaVsOaNruW6k+i/nuaOpeaVsCIsInVuaXQiOiIifSwiZGJRcHMiOnsibmFtZSI6IuaVsOaNruW6k1FQUyIsInVuaXQiOiIifSwiZGJUcHMiOnsibmFtZSI6IuaVs"\
+		"OaNruW6k1RQUyIsInVuaXQiOiIifSwiZGJTbG93UXVlcnkiOnsibmFtZSI6IuaVsOaNruW6k+aFouafpeivouaVsCIsInVuaXQiOiIifSwiZGJTbGF2ZURlbGF5Ijp7Im5hbWUiOiLku47lupPlu7bov58iLCJ1bml0IjoicyJ9LCJkYkxvY2siOnsibmFtZSI6IuaVsOaNruW6k+mUgeihqOetieW+hSIsInVuaXQiOiIlIn0sImNhY2hlQ29ubmVjdGlvbiI6eyJuYW1lIjoi57yT5a2Y57O757uf6L+e5o6l5pWwIiwidW5pdCI6IiJ9LCJjYWNoZUhpdCI6eyJuYW1lIjoi57yT5a2Y57O757ufTWlzcyIsInVuaXQiOiIlIn0sImNhY2hlTWVtVXNlZCI6eyJuYW1lIjoi57yT5a2Y57O757uf5YaF5a2Y5L2/55SoIiwidW5pdCI6Ik1iIn0sImNhY2hlUXBzIjp7Im5hbWUiOiLnvJPlrZjns7vnu59RUFMiLCJ1bml0IjoiIn0sImNhY2hlRm9ydmVyS2V5TnVtIjp7Im5hbWUiOiLnvJPlrZjns7vnu5/msLjkuYVLZXkiLCJ1bml0IjoiIn0sImZwbU51bSI6eyJuYW1lIjoid2Vi6L+b56iL5pWw55uuIiwidW5pdCI6IuS4qiJ9LCJjbGlOdW0iOnsibmFtZSI6IuWQjuWPsOS7u+WKoeaVsOebriIsInVuaXQiOiLkuKoifSwicXVldWVMZW4iOnsibmFtZSI6Iua2iOaBr+mYn+WIl+mVv+W6piIsInVuaXQiOiIifSwicXVldWVVbkFjayI6eyJuYW1lIjoi5aSE55CG5aSx6LSl5raI5oGvIiwidW5pdCI6IiJ9LCJxdWV1ZVB1c2hSYXRlIjp7Im5hbWUiOiLpmJ/liJfnlJ/kuqfpgJ/luqYiLCJ1bml0IjoiIn0sInF1ZXVlR2V0UmF0ZSI6eyJuYW1lIjoi6Zif5YiX5raI6LS56YCf5bqmIiwidW5pdCI6IiJ9LCJodHRwb25seSI6eyJuYW1lIjoi5ZCv55SoSHR0cE9ubHkiLCJ1bml0IjoiIn0sImRpc2FibGVGdW5jIjp7Im5hbWUiOiLnpoHmraLlkb3ku6TmiafooYwiLCJ1bml0IjoiIn19";
 	base64Decode(keyNameBase,&keyNameJson);
 	json_decode(keyNameJson,&keyNameArray);
 	efree(keyNameJson);
@@ -2463,6 +2463,14 @@ void CGuardController_checkWarnMail(zval *logs,zval *object TSRMLS_DC){
 			}
 		}
 
+		//httponly
+		if(strcmp(key,"httponly") == 0){
+			if(IS_ARRAY == Z_TYPE_P(logs) && SUCCESS == zend_hash_find(Z_ARRVAL_P(logs),"httpOnly",strlen("httpOnly")+1,(void**)&nowVal) && IS_STRING == Z_TYPE_PP(nowVal)){
+				add_assoc_string(saveItem,"value",Z_STRVAL_PP(nowVal),1);
+			}
+		}
+
+
 		//insert report
 		add_next_index_zval(reportData,saveItem);
 		
@@ -2655,6 +2663,33 @@ void CGuardController_checkWarnMail(zval *logs,zval *object TSRMLS_DC){
 	zval_ptr_dtor(&moniterZval);
 	zval_ptr_dtor(&keyNameArray);
 	zval_ptr_dtor(&warnArray);
+}
+
+void CGuardController_getConfInfo(zval *saveLogs TSRMLS_DC){
+
+	char	*httponly,
+			*basedir,
+			*disablefun;
+
+	//session.cookie_httponly
+	ini_get("session.cookie_httponly",&httponly);
+	add_assoc_string(saveLogs,"httpOnly",httponly,1);
+	efree(httponly);
+
+	//open_basedir
+	ini_get("open_basedir",&basedir);
+	add_assoc_string(saveLogs,"openBasedir",basedir,1);
+	efree(basedir);
+
+	//disable_function
+	ini_get("disable_functions",&disablefun);
+	add_assoc_string(saveLogs,"disable_functions",disablefun,1);
+	efree(disablefun);
+
+	//disable_classes
+	ini_get("disable_classes",&disablefun);
+	add_assoc_string(saveLogs,"disable_classes",disablefun,1);
+	efree(disablefun);
 }
 
 PHP_METHOD(CGuardController,Action_monitor)
@@ -2921,6 +2956,8 @@ PHP_METHOD(CGuardController,Action_monitor)
 		zval_ptr_dtor(&monitorConfig);
 	MODULE_END
 
+	//find php.ini info
+	CGuardController_getConfInfo(saveLogs TSRMLS_CC);
 
 	//check to send warn
 	CGuardController_checkWarnMail(saveLogs,getThis() TSRMLS_CC);
