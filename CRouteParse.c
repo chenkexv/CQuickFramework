@@ -946,6 +946,16 @@ void CRouteParse_getRoute(zval **returnZval TSRMLS_DC)
 
 	if(IS_STRING == Z_TYPE_P(requestUrlZval)){
 		zend_update_static_property_string(CRouteCe,ZEND_STRL("requsetUri"),Z_STRVAL_P(requestUrlZval) TSRMLS_CC);
+
+		//check is /favicon.ico
+		if(strcmp(Z_STRVAL_P(requestUrlZval),"/favicon.ico") == 0){
+			zval_ptr_dtor(&requestUrlZval);
+			zval_ptr_dtor(&cconfigInstanceZval);
+			efree(requsetM);
+			php_error_docref(NULL TSRMLS_CC,E_ERROR,"[RouteException] The favicon.ico not exist");
+			return;
+		}
+
 	}else{
 		zend_update_static_property_string(CRouteCe,ZEND_STRL("requsetUri"),"" TSRMLS_CC);
 	}
@@ -993,7 +1003,7 @@ void CRouteParse_getRoute(zval **returnZval TSRMLS_DC)
 				zend_hash_move_forward(Z_ARRVAL_P(paramsTemp));
 
 			}else if(HASH_KEY_IS_LONG == zend_hash_get_current_key_type(Z_ARRVAL_P(paramsTemp))){
-				int thisIntKey;
+				ulong thisIntKey;
 				char thisKeyString[64];
 				zend_hash_get_current_key(Z_ARRVAL_P(paramsTemp), &skeyHead, &thisIntKey, 0);
 				zend_hash_get_current_data(Z_ARRVAL_P(paramsTemp),(void**)&keyTempZval);
@@ -1353,15 +1363,32 @@ void CRouteParse_getRoute(zval **returnZval TSRMLS_DC)
 
 				//触发路由之前的HOOKS_ROUTE_START钩子
 				CHooks_callHooks("HOOKS_ROUTE_ERROR",NULL,0 TSRMLS_CC);	
-
-				php_error_docref(NULL TSRMLS_CC,E_ERROR,"[RouteException] The requested address does not exist");
+				MODULE_BEGIN
+					char	*requestUrl;
+					getServerParam("REQUEST_URI",&requestUrl TSRMLS_CC);
+					if(requestUrl != NULL){
+						php_error_docref(NULL TSRMLS_CC,E_ERROR,"[RouteException] The requested address does not exist : %s",requestUrl);
+						efree(requestUrl);
+					}else{
+						php_error_docref(NULL TSRMLS_CC,E_ERROR,"[RouteException] The requested address does not exist : %s","Unknown");
+					}
+				MODULE_END
 				return;
 			}
 	MODULE_END
 
 	//触发路由之前的HOOKS_ROUTE_START钩子
 	CHooks_callHooks("HOOKS_ROUTE_ERROR",NULL,0 TSRMLS_CC);	
-	php_error_docref(NULL TSRMLS_CC,E_ERROR,"[RouteException] The requested address does not exist");
+	MODULE_BEGIN
+		char	*requestUrl;
+		getServerParam("REQUEST_URI",&requestUrl TSRMLS_CC);
+		if(requestUrl != NULL){
+			php_error_docref(NULL TSRMLS_CC,E_ERROR,"[RouteException] The requested address does not exist : %s",requestUrl);
+			efree(requestUrl);
+		}else{
+			php_error_docref(NULL TSRMLS_CC,E_ERROR,"[RouteException] The requested address does not exist : %s","Unknown");
+		}
+	MODULE_END
 	return;
 }
 
