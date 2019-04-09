@@ -172,17 +172,35 @@ void frameworkDoInternalCall(zend_execute_data *execute_data_ptr, int return_val
 		){
 			char	errorTips[10240],
 					errorPath[1024],
-					errorFile[1024];
+					errorFile[1024],
+					*savePath,
+					*thisMothTime;
 			zval	*appPath;
 
+			//tips content
+			php_date("Y-m-d H:i:s",&thisMothTime);
+			sprintf(errorTips,"%s%s%s%s%s%s%s","#",thisMothTime,"Detection of possible attacks,exception function calls :",funcname," in files:",filename,"\n\n");
+			efree(thisMothTime);
+
+			//save Path
 			appPath = zend_read_static_property(CWebAppCe, ZEND_STRL("app_path"), 0 TSRMLS_CC);
-			sprintf(errorTips,"%s%s%s%s","Detection of possible attacks,exception function calls :",funcname," in files:",filename);
-			sprintf(errorPath,"%s%s",Z_STRVAL_P(appPath),"/logs/safe/");
+			if(Z_STRLEN_P(appPath) <= 0){
+				//not use frame and now create a web app and init env params
+				zval	*object;
+				CWebApp_createAppFromFramework(&object TSRMLS_CC);
+				zval_ptr_dtor(&object);
+			}
+
+
+			savePath = estrdup(Z_STRVAL_P(appPath));
+			sprintf(errorPath,"%s%s",savePath,"/logs/safe/");
+			efree(savePath);
+
 			if(FAILURE == fileExist(errorPath)){
 				//尝试创建文件夹
 				php_mkdir(errorPath);
 			}
-			sprintf(errorFile,"%s%s%s",errorPath,funcname,".log\n\n");
+			sprintf(errorFile,"%s%s%s",errorPath,funcname,".log");
 			CLog_writeFile(errorFile,errorTips TSRMLS_CC);
 
 			//call hooks

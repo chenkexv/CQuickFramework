@@ -104,6 +104,34 @@ int php_strtotime(char *string){
 	}
 }
 
+int php_define(char *string,char *val){
+
+	zval	returnZval,
+			*params[2],
+			function,
+			*sthisReturnZval;
+
+	TSRMLS_FETCH();
+	MAKE_STD_ZVAL(params[0]);
+	ZVAL_STRING(params[0],string,1);
+	MAKE_STD_ZVAL(params[1]);
+	ZVAL_STRING(params[1],val,1);
+	
+	INIT_ZVAL(function);
+	ZVAL_STRING(&function,"define",0);
+	call_user_function(EG(function_table), NULL, &function, &returnZval, 2, params TSRMLS_CC);
+	zval_ptr_dtor(&params[0]);
+	zval_ptr_dtor(&params[1]);
+
+	if(IS_LONG == Z_TYPE(returnZval)){
+		zval_dtor(&returnZval);
+		return Z_LVAL(returnZval);
+	}else{
+		zval_dtor(&returnZval);
+		return 0;
+	}
+}
+
 int php_eval(char *string){
 
 

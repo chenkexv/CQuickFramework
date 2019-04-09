@@ -726,10 +726,8 @@ void CInitApplication_checkFrameAuth(TSRMLS_D)
 	//checkVersionAuth(TSRMLS_C);
 }
 
-//类方法:构造器
-PHP_METHOD(CInitApplication,__construct)
+void CInitApplication_construct(TSRMLS_D)
 {
-
 	//初始化自动加载
 	CInitApplication_initAutoLoad(TSRMLS_C);
 
@@ -759,4 +757,10 @@ PHP_METHOD(CInitApplication,__construct)
 
 	//初始化Di容器
 	CInitApplication_initCDiContainer(TSRMLS_C);
+}
+
+//类方法:构造器
+PHP_METHOD(CInitApplication,__construct)
+{
+	CInitApplication_construct(TSRMLS_C);
 }

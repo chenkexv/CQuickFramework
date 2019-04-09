@@ -207,10 +207,12 @@ PHP_METHOD(CConfig,__construct)
 	}
 
 
-	if(SUCCESS == zend_hash_find(EG(zend_constants),"CODE_PATH",strlen("CODE_PATH")+1,(void**)&codePathConstants) && IS_STRING == Z_TYPE_P(codePathConstants) ){
-		codePath = estrdup(Z_STRVAL_P(codePathConstants));
+	codePathConstants = zend_read_static_property(CWebAppCe,ZEND_STRL("app_path"),1 TSRMLS_CC);
+
+	if(IS_STRING == Z_TYPE_P(codePathConstants) && Z_STRLEN_P(codePathConstants) > 0){
+		spprintf(&codePath,0,"%s%s",Z_STRVAL_P(codePathConstants),"/application");
 	}else{
-		codePath = estrdup("/application/");
+		codePath = estrdup("/application");
 	}
 
 
