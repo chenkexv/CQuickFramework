@@ -627,7 +627,7 @@ static int dumpClassConstants(zval **zv, int num_args, va_list args, zend_hash_k
 static int dumpClassProperties(zval **zv, int num_args, va_list args, zend_hash_key *hash_key)
 {
 	zval	*tables = va_arg(args, zval*);
-	char *prop_name, *class_name;
+	const	char	*prop_name,*class_name;
 	TSRMLS_FETCH();
 
 	if (hash_key->nKeyLength ==0 ) {
@@ -1021,7 +1021,7 @@ void CDebug_dumpClass(char *sclassName,zval **returnData TSRMLS_DC){
 		zval	*tables;
 		MAKE_STD_ZVAL(tables);
 		array_init(tables);
-		zend_hash_apply_with_arguments(&classCe->constants_table, (apply_func_arg_t) dumpClassConstants, 1, tables);
+		zend_hash_apply_with_arguments(&classCe->constants_table TSRMLS_CC, (apply_func_arg_t) dumpClassConstants, 1, tables);
 		
 		add_assoc_zval(saveData,"constants_table",tables);
 	MODULE_END
@@ -1036,7 +1036,7 @@ void CDebug_dumpClass(char *sclassName,zval **returnData TSRMLS_DC){
 		ulong		ukey;
 		MAKE_STD_ZVAL(tables);
 		array_init(tables);
-		zend_hash_apply_with_arguments(&classCe->properties_info, (apply_func_args_t) dumpClassProperties, 1,tables);
+		zend_hash_apply_with_arguments(&classCe->properties_info TSRMLS_CC, (apply_func_args_t) dumpClassProperties, 1,tables);
 		add_assoc_zval(saveData,"properties",tables);	
 	MODULE_END
 

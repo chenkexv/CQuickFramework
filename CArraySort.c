@@ -150,7 +150,7 @@ void CArraySort_sortArrayAsc(zval *list,char *sortKey,zval **returnZval TSRMLS_D
 					zval_add_ref(this3Val);
 					zend_hash_move_forward(Z_ARRVAL_P(sortData2));
 				}
-				zend_hash_copy(Z_ARRVAL_P(sortData),Z_ARRVAL_P(sortData1),zval_add_ref, &tmp, sizeof(zend_module_entry));
+				zend_hash_copy(Z_ARRVAL_P(sortData),Z_ARRVAL_P(sortData1),(copy_ctor_func_t)zval_add_ref, &tmp, sizeof(zend_module_entry));
 			}
 		}
 		zend_hash_move_forward(Z_ARRVAL_P(list));

@@ -105,7 +105,8 @@ PHP_METHOD(CConsumer,setProcessMaxNum)
 
 PHP_METHOD(CConsumer,setMemoryLimit)
 {
-	char	memLimit = "8048M";
+	char	*memLimit = NULL,
+			*trueMemLimit;
 	int		memLimitLen = 0;
 	zval	*memZval;
 
@@ -114,9 +115,13 @@ PHP_METHOD(CConsumer,setMemoryLimit)
 		return;
 	}
 
-	if(memLimitLen > 0){
-		zend_update_property_string(CConsumerCe,getThis(),ZEND_STRL("memoryLimit"),memLimit TSRMLS_CC);
+	if(memLimitLen == 0){
+		trueMemLimit = estrdup("8084M"); 
+	}else{
+		trueMemLimit = estrdup(memLimit);
 	}
+
+	zend_update_property_string(CConsumerCe,getThis(),ZEND_STRL("memoryLimit"),trueMemLimit TSRMLS_CC);
 
 	memZval = zend_read_property(CConsumerCe,getThis(),ZEND_STRL("memoryLimit"), 0 TSRMLS_CC);
 	if(IS_STRING == Z_TYPE_P(memZval)){
@@ -124,6 +129,7 @@ PHP_METHOD(CConsumer,setMemoryLimit)
 	}
 
 	RETVAL_ZVAL(getThis(),1,0);
+	efree(trueMemLimit);
 }
 
 PHP_METHOD(CConsumer,setTimeLimit)

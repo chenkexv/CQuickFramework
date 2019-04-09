@@ -261,8 +261,12 @@ PHP_METHOD(CArrayHelper,get)
 
 	if(IS_STRING == Z_TYPE_P(key)){
 		CArrayHelper_getKeyString(array,Z_STRVAL_P(key),sendDefault,&returnZval TSRMLS_CC);
+	}else if(IS_LONG == Z_TYPE_P(key)){
+		convert_to_string(key);
+		CArrayHelper_getKeyInt(array,Z_LVAL_P(key),sendDefault,&returnZval TSRMLS_CC);
 	}else{
-		CArrayHelper_getKeyInt(array,Z_STRVAL_P(key),sendDefault,&returnZval TSRMLS_CC);
+		RETVAL_ZVAL(sendDefault,1,1);
+		return;
 	}
 
 	zval_ptr_dtor(&sendDefault);
@@ -277,7 +281,8 @@ void CArrayHelper_sortArrByOneField(zval *array,char *field,int sort,zval **retu
 			*functionReturn,
 			sizeObjectReturn;
 
-	int		i,j,keyInt;
+	int		i,j;
+	ulong	keyInt;
 	char	*key;
 
 	MAKE_STD_ZVAL(*returnZval);

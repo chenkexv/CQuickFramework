@@ -324,7 +324,7 @@ void setGetParamArray(HashTable *params TSRMLS_DC)
 				efree(sendString);
 			}
 		}else if(HASH_KEY_IS_LONG == zend_hash_get_current_key_type(params)){
-			int thisIntKey;
+			ulong thisIntKey;
 			char thisKeyString[64];
 			zend_hash_get_current_key(params, &key, &thisIntKey, 0);
 			zend_hash_get_current_data(params,(void**)&thisVal);
