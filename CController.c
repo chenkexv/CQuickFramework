@@ -380,8 +380,9 @@ PHP_METHOD(CController,assign)
 	zval	*val,
 			*viewObjectZval,
 			*cconfigInstanceZval,
-			*useQuickTemplate,
-			*templateUsed;
+			*useQuickTemplate;
+
+	char	*templateUsed;
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"sz",&key,&keyLen,&val) == FAILURE){
 		RETURN_FALSE;
