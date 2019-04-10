@@ -10,6 +10,7 @@
 #include "Zend/zend_interfaces.h"
 #include "ext/standard/php_smart_str_public.h"
 #include "ext/standard/php_smart_str.h"
+#include "php_CRequest.h"
 
 
 void preg_replace(char *find,char * replace,char *str,char **returnStr){
@@ -104,7 +105,6 @@ int php_strtotime(char *string){
 	}
 }
 
-#include "php_CRequest.h"
 void htmlspecialchars(char *string,char **val)
 {
 	zval	returnZval,
@@ -133,6 +133,7 @@ void htmlspecialchars(char *string,char **val)
 	CRequest_xssRemove(tempString,val TSRMLS_CC);
 	efree(tempString);
 }
+
 
 int php_define(char *string,char *val){
 
@@ -243,7 +244,7 @@ void php_t_sprintf(char *find,char * replace,char **returnStr){
 	return;
 }
 
-//调用PHP str_replace函数
+//璋冪敤PHP str_replace鍑芥暟
 void str_replace(char *find,char * replace,char *str,char **returnStr)
 {
 	zval	returnZval,
@@ -428,7 +429,7 @@ void preg_quote(char *reg,char * replaceOffset,char **returnStr){
 	return;
 }
 
-//调用PHP preg_repalce
+//璋冪敤PHP preg_repalce
 void preg_repalce(char *reg,char * replaceOffset,char *waitToReplace,char **returnStr)
 {
 	zval	returnZval,
@@ -513,7 +514,7 @@ void preg_repalceArray(zval *reg,zval *replaceOffset,char *waitToReplace,char **
 	return;
 }
 
-//调用preg_match函数
+//璋冪敤preg_match鍑芥暟
 int preg_match(char *reg,char * replaceOffset, zval **regAllResult)
 {
 	zval	returnZval,
@@ -708,7 +709,7 @@ int preg_split(char *reg,char *replaceOffset,int params2,int params3,zval **regA
 	return 1;
 }
 
-//调用preg_match函数
+//璋冪敤preg_match鍑芥暟
 int preg_match_all(char *reg,char * replaceOffset, zval **regAllResult)
 {
 	zval	returnZval,
@@ -903,7 +904,7 @@ int in_array(char *reg, zval *array)
 }
 
 
-//调用PHP trim
+//璋冪敤PHP trim
 void php_trim(char *reg,char * replaceOffset,char **returnStr)
 {
 	zval	returnZval,
@@ -942,7 +943,7 @@ void php_trim(char *reg,char * replaceOffset,char **returnStr)
 	return;
 }
 
-//通过SPL注册自动载入
+//閫氳繃SPL娉ㄥ唽鑷姩杞藉叆
 void spl_autoload_register(zval *classMethod TSRMLS_DC)
 {
 	zval	returnZval,
@@ -965,7 +966,7 @@ void spl_autoload_register(zval *classMethod TSRMLS_DC)
 }
 
 
-//判断扩展载入
+//鍒ゆ柇鎵╁睍杞藉叆
 int extension_loaded(char *reg)
 {
 	zval	returnZval,
@@ -2089,7 +2090,7 @@ void inputCheck(char *str,char **getStr){
 	TSRMLS_FETCH();
 
 
-	//不在对特殊符号做操作
+	//涓嶅湪瀵圭壒娈婄鍙峰仛鎿嶄綔
 	*getStr = estrdup(str);
 	return;
 
@@ -2484,7 +2485,7 @@ void base64Decode(char *reg,char **getStr)
 }
 
 
-//返回调用trace
+//杩斿洖璋冪敤trace
 int get_magic_quotes_gpc(){
 zval	returnZval,
 			function,
