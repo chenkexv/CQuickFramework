@@ -405,6 +405,7 @@ PHP_METHOD(CController,assign)
 	//视图对象
 	CView_factory(templateUsed,&viewObjectZval TSRMLS_CC);
 
+
 	//赋值
 	smarty_assign_ex(viewObjectZval,key,val TSRMLS_CC);
 

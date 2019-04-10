@@ -2575,9 +2575,9 @@ int CQuickTemplate__compile_block_tag(zval *object,char *tag_command,char *tag_m
 
 		strcat2(&_out_tag_text,callInfoString,"($this->_tag_stack[count($this->_tag_stack)-1][1], $_block_content, $this, $_block_repeat)",NULL);	
 		smart_str_appends(&output,"<?php $_block_content = ob_get_contents(); ob_end_clean(); ");
-		smart_str_appends(&output,"$_block_repeat=false;echo ");
+		smart_str_appends(&output,"$_block_repeat=false;echo htmlspecialchars(");
 		smart_str_appends(&output,_out_tag_text);
-		smart_str_appends(&output,"; } ");
+		smart_str_appends(&output,"); } ");
 		smart_str_appends(&output," array_pop($this->_tag_stack); ?>");
 		smart_str_0(&output);
 		efree(_out_tag_text);
@@ -2678,9 +2678,9 @@ int CQuickTemplate__compile_custom_tag(zval *object,char *tag_command,char *tag_
 		smart_str_appends(&output,Z_STRVAL_P(argsListString));
 		smart_str_appends(&output,"), $this)");
 		smart_str_0(&output);
-		smart_str_appends(&output1,"<?php echo ");
+		smart_str_appends(&output1,"<?php echo htmlspecialchars(");
 		smart_str_appends(&output1,output.c);
-		smart_str_appends(&output1,";?>\n");
+		smart_str_appends(&output1,");?>\n");
 		smart_str_0(&output1);
 		*returnString = estrdup(output1.c);
 		smart_str_free(&output);
@@ -2778,7 +2778,7 @@ void CQuickTemplate_compile_tag(zval *object,zval *template_tag,zval **returnTag
 		MAKE_STD_ZVAL(sendZval);
 		ZVAL_STRING(sendZval,paramsAppend,1);
 		CQuickTemplate__parse_var_props(object,sendZval,&varRetruen TSRMLS_CC);
-		strcat2(&returnString,"<?php echo ",Z_STRVAL_P(varRetruen),"; ?>","\n",NULL);
+		strcat2(&returnString,"<?php echo htmlspecialchars(",Z_STRVAL_P(varRetruen),"); ?>","\n",NULL);
 		ZVAL_STRING(*returnTagsInfo,returnString,1);
 
 		efree(paramsAppend);

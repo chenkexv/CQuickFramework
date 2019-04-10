@@ -902,6 +902,14 @@ void CRequest_filterHTML(zval *array,zval **newArray TSRMLS_DC)
 	h = zend_hash_num_elements(Z_ARRVAL_P(array));
 	for(i = 0 ; i < h;i++){
 		zend_hash_get_current_data(Z_ARRVAL_P(array),(void**)&thisVal);
+
+		if(IS_STRING != Z_TYPE_PP(thisVal)){
+			zval_ptr_dtor(newArray);
+			MAKE_STD_ZVAL(*newArray);
+			ZVAL_ZVAL(*newArray,array,1,0);
+			return;
+		}
+
 		convert_to_string(*thisVal);
 		strip_tags(Z_STRVAL_PP(thisVal),&filterString);
 
@@ -1164,34 +1172,25 @@ void CRequest_Args(char *key,char *type,char *from,int noFilter,zval **returnStr
 		if(noFilter == 1){
 			ZVAL_STRING(*returnString,getReturn,1);
 		}else{
-			char *thisVal,
-					*thisVal2;
+			char *thisVal;
 			strip_tags(getReturn,&thisVal);
-			htmlspecialchars(thisVal,&thisVal2);
-			ZVAL_STRING(*returnString,thisVal2,1);
+			ZVAL_STRING(*returnString,thisVal,1);
 			efree(thisVal);
-			efree(thisVal2);
 		}
 	}else if(strcmp(lowType,"html") == 0){
 		//filter xss
-		char	*xssFilterString,
-				*endString;
+		char	*xssFilterString;
 		CRequest_xssRemove(getReturn,&xssFilterString TSRMLS_CC);
-		htmlspecialchars(xssFilterString,&endString);
-		ZVAL_STRING(*returnString,endString,1);
+		ZVAL_STRING(*returnString,xssFilterString,1);
 		efree(xssFilterString);
-		efree(endString);
 	}else{
 		if(noFilter == 1){
 			ZVAL_STRING(*returnString,getReturn,1);
 		}else{
-			char *thisVal,
-					*endString;
+			char *thisVal;
 			CRequest_xssRemove(getReturn,&thisVal TSRMLS_CC);
-			htmlspecialchars(thisVal,&endString);
-			ZVAL_STRING(*returnString,endString,1);
+			ZVAL_STRING(*returnString,thisVal,1);
 			efree(thisVal);
-			efree(endString);
 		}
 	}
 
