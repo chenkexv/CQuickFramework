@@ -1164,25 +1164,34 @@ void CRequest_Args(char *key,char *type,char *from,int noFilter,zval **returnStr
 		if(noFilter == 1){
 			ZVAL_STRING(*returnString,getReturn,1);
 		}else{
-			char *thisVal;
+			char *thisVal,
+					*thisVal2;
 			strip_tags(getReturn,&thisVal);
-			ZVAL_STRING(*returnString,thisVal,1);
+			htmlspecialchars(thisVal,&thisVal2);
+			ZVAL_STRING(*returnString,thisVal2,1);
 			efree(thisVal);
+			efree(thisVal2);
 		}
 	}else if(strcmp(lowType,"html") == 0){
 		//filter xss
-		char	*xssFilterString;
+		char	*xssFilterString,
+				*endString;
 		CRequest_xssRemove(getReturn,&xssFilterString TSRMLS_CC);
-		ZVAL_STRING(*returnString,xssFilterString,1);
+		htmlspecialchars(xssFilterString,&endString);
+		ZVAL_STRING(*returnString,endString,1);
 		efree(xssFilterString);
+		efree(endString);
 	}else{
 		if(noFilter == 1){
 			ZVAL_STRING(*returnString,getReturn,1);
 		}else{
-			char *thisVal;
+			char *thisVal,
+					*endString;
 			CRequest_xssRemove(getReturn,&thisVal TSRMLS_CC);
-			ZVAL_STRING(*returnString,thisVal,1);
+			htmlspecialchars(thisVal,&endString);
+			ZVAL_STRING(*returnString,endString,1);
 			efree(thisVal);
+			efree(endString);
 		}
 	}
 

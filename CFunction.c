@@ -104,6 +104,29 @@ int php_strtotime(char *string){
 	}
 }
 
+void htmlspecialchars(char *string,char **val)
+{
+	zval	returnZval,
+			*params[1],
+			function,
+			*sthisReturnZval;
+
+	TSRMLS_FETCH();
+	MAKE_STD_ZVAL(params[0]);
+	ZVAL_STRING(params[0],string,1);
+	
+	INIT_ZVAL(function);
+	ZVAL_STRING(&function,"htmlspecialchars",0);
+	call_user_function(EG(function_table), NULL, &function, &returnZval, 1, params TSRMLS_CC);
+	zval_ptr_dtor(&params[0]);
+
+	if(IS_STRING == Z_TYPE(returnZval)){
+		*val = estrdup(Z_STRVAL(returnZval));
+	}else{
+		*val = estrdup(string);
+	}
+}
+
 int php_define(char *string,char *val){
 
 	zval	returnZval,
