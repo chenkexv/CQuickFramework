@@ -196,10 +196,10 @@ PHP_METHOD(CLog,parse)
 		for(i = 0 ; i < j ; i++){
 
 			//¼ü
-			zend_hash_index_find(Z_ARRVAL_PP(result1),i,(zval**)&thisKeyString);
+			zend_hash_index_find(Z_ARRVAL_PP(result1),i,(void**)&thisKeyString);
 
 			//Öµ
-			zend_hash_index_find(Z_ARRVAL_PP(result2),i,(zval**)&thisValString);
+			zend_hash_index_find(Z_ARRVAL_PP(result2),i,(void**)&thisValString);
 
 			//explode·Ö¸î
 			php_explode("|LogSplit|",Z_STRVAL_PP(thisValString),&thisValArray);

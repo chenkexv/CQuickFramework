@@ -175,7 +175,7 @@ PHP_METHOD(CSession,get)
 			RETVAL_ZVAL(currentData,1,0);
 			zval_ptr_dtor(&currentData);
 			zval_ptr_dtor(&cutArr);
-			return SUCCESS;
+			return;
 		}
 		zval_ptr_dtor(&cutArr);
 	}

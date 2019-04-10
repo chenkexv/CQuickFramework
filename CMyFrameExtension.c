@@ -387,9 +387,8 @@ PHP_MINFO_FUNCTION(CMyFrameExtension)
 PHP_FUNCTION(CDump)
 {
 	zval *arg = NULL;
-	int argLen;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &arg, &argLen) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &arg) == FAILURE) {
 		RETURN_FALSE;
 		return;
 	}

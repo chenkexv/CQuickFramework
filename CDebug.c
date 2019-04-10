@@ -275,9 +275,15 @@ PHP_METHOD(CDebug,dumpRequestData)
 //register Hooks
 PHP_METHOD(CDebug,setHooks)
 {
-	CHooks_registerHooks("HOOKS_EXECUTE_END","getDatabaseExecuteEnd",getThis(),0 TSRMLS_CC);
-	CHooks_registerHooks("HOOKS_ERROR_HAPPEN","getErrorsData",getThis(),0 TSRMLS_CC);
-	CHooks_registerHooks("HOOKS_SYSTEM_SHUTDOWN","getRequestShutdown",getThis(),0 TSRMLS_CC);
+	zval	*sapiZval;
+
+	//cli not use
+	if(zend_hash_find(EG(zend_constants),"PHP_SAPI",strlen("PHP_SAPI")+1,(void**)&sapiZval) == SUCCESS && strcmp(Z_STRVAL_P(sapiZval),"cli") == 0){
+	}else{
+		CHooks_registerHooks("HOOKS_EXECUTE_END","getDatabaseExecuteEnd",getThis(),0 TSRMLS_CC);
+		CHooks_registerHooks("HOOKS_ERROR_HAPPEN","getErrorsData",getThis(),0 TSRMLS_CC);
+		CHooks_registerHooks("HOOKS_SYSTEM_SHUTDOWN","getRequestShutdown",getThis(),0 TSRMLS_CC);
+	}
 }
 
 

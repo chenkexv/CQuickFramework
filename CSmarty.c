@@ -397,8 +397,9 @@ PHP_METHOD(CSmarty,checkRight)
 			param1,
 			param2,
 			*appPath,
-			adminPath[1024],
 			*object;
+
+	char	adminPath[10240];
 
 	zend_class_entry	**adminControllerPP,
 						*adminController;
