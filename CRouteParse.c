@@ -213,14 +213,16 @@ void urlNoWriteResult(zval *paramsList,zval *reWriteList,int type,char **getStr 
 		//拼接URL
 		if(IS_STRING == Z_TYPE_PP(val) && Z_STRLEN_PP(val) > 0 ){
 		
+			char *filterKey;
+			htmlspecialchars(Z_STRVAL_PP(val),&filterKey);
+
 			smart_str_appends(&smart_url,"/");
 			smart_str_appends(&smart_url,key);
 			smart_str_appends(&smart_url,"/");
-			smart_str_appends(&smart_url,Z_STRVAL_PP(val));
-
+			smart_str_appends(&smart_url,filterKey);
+			efree(filterKey);
 		}else if(IS_LONG == Z_TYPE_PP(val) ){
 
-			
 			smart_str_appends(&smart_url,"/");
 			smart_str_appends(&smart_url,key);
 			smart_str_appends(&smart_url,"/");
@@ -541,6 +543,10 @@ void CRouteParse_url(zval *paramsList,char **returnUrl TSRMLS_DC)
 
 	//获取参数中的c和a参数
 	if(zend_hash_exists(Z_ARRVAL_P(paramsList),"c",strlen("c")+1) && SUCCESS == zend_hash_find(Z_ARRVAL_P(paramsList),"c",strlen("c")+1,(void**)&thisVal) && IS_STRING == Z_TYPE_PP(thisVal) && strlen(Z_STRVAL_PP(thisVal)) > 0 ){
+		char	*filterXss;
+		htmlspecialchars(Z_STRVAL_PP(thisVal),&filterXss);
+		add_assoc_string(paramsList,"c",filterXss,1);
+		efree(filterXss);
 	}else{
 		zval_ptr_dtor(&reWriteList);
 		efree(domain);
@@ -550,6 +556,10 @@ void CRouteParse_url(zval *paramsList,char **returnUrl TSRMLS_DC)
 	}
 
 	if(zend_hash_exists(Z_ARRVAL_P(paramsList),"a",strlen("a")+1) && SUCCESS == zend_hash_find(Z_ARRVAL_P(paramsList),"a",strlen("a")+1,(void**)&thisVal) && IS_STRING == Z_TYPE_PP(thisVal) && strlen(Z_STRVAL_PP(thisVal)) > 0  ){
+		char	*filterXss;
+		htmlspecialchars(Z_STRVAL_PP(thisVal),&filterXss);
+		add_assoc_string(paramsList,"a",filterXss,1);
+		efree(filterXss);
 	}else{
 		zval_ptr_dtor(&reWriteList);
 		efree(domain);

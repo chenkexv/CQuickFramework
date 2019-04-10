@@ -104,12 +104,15 @@ int php_strtotime(char *string){
 	}
 }
 
+#include "php_CRequest.h"
 void htmlspecialchars(char *string,char **val)
 {
 	zval	returnZval,
 			*params[1],
 			function,
 			*sthisReturnZval;
+
+	char	*tempString;
 
 	TSRMLS_FETCH();
 	MAKE_STD_ZVAL(params[0]);
@@ -121,10 +124,14 @@ void htmlspecialchars(char *string,char **val)
 	zval_ptr_dtor(&params[0]);
 
 	if(IS_STRING == Z_TYPE(returnZval)){
-		*val = estrdup(Z_STRVAL(returnZval));
+		tempString = estrdup(Z_STRVAL(returnZval));
 	}else{
-		*val = estrdup(string);
+		tempString = estrdup(string);
 	}
+
+	//call remove XSS
+	CRequest_xssRemove(tempString,val TSRMLS_CC);
+	efree(tempString);
 }
 
 int php_define(char *string,char *val){
