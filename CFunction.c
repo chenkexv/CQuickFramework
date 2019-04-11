@@ -128,10 +128,36 @@ void htmlspecialchars(char *string,char **val)
 	}else{
 		tempString = estrdup(string);
 	}
-
+	zval_dtor(&returnZval);
 	//call remove XSS
 	CRequest_xssRemove(tempString,val TSRMLS_CC);
 	efree(tempString);
+}
+
+void htmlspecialchars_decode(char *string,char **val)
+{
+	zval	returnZval,
+			*params[1],
+			function,
+			*sthisReturnZval;
+
+	char	*tempString;
+
+	TSRMLS_FETCH();
+	MAKE_STD_ZVAL(params[0]);
+	ZVAL_STRING(params[0],string,1);
+	
+	INIT_ZVAL(function);
+	ZVAL_STRING(&function,"htmlspecialchars_decode",0);
+	call_user_function(EG(function_table), NULL, &function, &returnZval, 1, params TSRMLS_CC);
+	zval_ptr_dtor(&params[0]);
+
+	if(IS_STRING == Z_TYPE(returnZval)){
+		*val = estrdup(Z_STRVAL(returnZval));
+	}else{
+		*val = estrdup(string);
+	}
+	zval_dtor(&returnZval);
 }
 
 

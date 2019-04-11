@@ -39,6 +39,7 @@ zend_function_entry CSmarty_functions[] = {
 	PHP_ME(CSmarty,cn_substr,NULL,ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
 	PHP_ME(CSmarty,sayTime,NULL,ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
 	PHP_ME(CSmarty,checkRight,NULL,ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
+	PHP_ME(CSmarty,showHTML,NULL,ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
 	{NULL, NULL, NULL}
 };
 
@@ -347,6 +348,36 @@ void CSmarty_sayTime(long timestamp,char **returnString TSRMLS_DC){
 
 	zval_ptr_dtor(&nowTime);
 	efree(sayType);
+}
+
+PHP_METHOD(CSmarty,showHTML)
+{
+	zval	*params,
+			**append,
+			*other1,
+			*other2,
+			*other3,
+			**content;
+
+	long	timestamp = 0;
+
+	char	*sayString;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"z|zzz",&params,&other1,&other2,&other3) == FAILURE){
+		return;
+	}
+
+	if(SUCCESS == zend_hash_find(Z_ARRVAL_P(params),"c",2,(void**)&content)  ){
+
+		//run htmlspecialchars_decode
+		char	*returnString;
+		convert_to_string(*content);
+		htmlspecialchars_decode(Z_STRVAL_PP(content),&returnString);
+		RETVAL_STRING(returnString,1);
+		efree(returnString);
+	}else{
+		RETVAL_STRING("",1);
+	}
 }
 
 PHP_METHOD(CSmarty,sayTime)

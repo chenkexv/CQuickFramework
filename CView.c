@@ -140,7 +140,8 @@ void CView_init_CTemplate(zval *viewObject TSRMLS_DC){
 			*PageInfo,
 			*substrFn,
 			*sayTime,
-			*checkRightFn;
+			*checkRightFn,
+			*showHtml;
 
 
 	controller = zend_read_static_property(CRouteCe,ZEND_STRL("thisController"),0 TSRMLS_CC);
@@ -188,6 +189,14 @@ void CView_init_CTemplate(zval *viewObject TSRMLS_DC){
 	add_next_index_string(checkRightFn,"checkRight",1);
 	CQuickTemplate_register_block(viewObject,"checkRight",checkRightFn TSRMLS_CC);
 	zval_ptr_dtor(&checkRightFn);
+
+	//showHTML
+	MAKE_STD_ZVAL(showHtml);
+	array_init(showHtml);
+	add_next_index_string(showHtml,"CSmarty",1);
+	add_next_index_string(showHtml,"showHTML",1);
+	CQuickTemplate_register_function(viewObject,"showHTML",showHtml TSRMLS_CC);
+	zval_ptr_dtor(&showHtml);
 
 
 	//读取配置文件
@@ -901,6 +910,8 @@ PHP_METHOD(CView,__construct)
 	registerSmartyFunction(viewObject,"PageInfo","CSmarty","showPageData" TSRMLS_CC);
 	registerSmartyFunction(viewObject,"substr","CSmarty","cn_substr" TSRMLS_CC);
 	registerSmartyFunction(viewObject,"sayTime","CSmarty","sayTime" TSRMLS_CC);
+	registerSmartyFunction(viewObject,"showHTML","CSmarty","showHTML" TSRMLS_CC);
+
 	
 	//设置smarty默认值
 	smarty_assign(viewObject,"thisUrl",Z_STRVAL_P(requsetUri) TSRMLS_CC);

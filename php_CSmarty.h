@@ -26,5 +26,6 @@ PHP_METHOD(CSmarty,showPageData);
 PHP_METHOD(CSmarty,cn_substr);
 PHP_METHOD(CSmarty,sayTime);
 PHP_METHOD(CSmarty,checkRight);
+PHP_METHOD(CSmarty,showHTML);
 
 
