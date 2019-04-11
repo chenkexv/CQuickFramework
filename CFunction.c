@@ -144,7 +144,7 @@ void htmlspecialchars_decode(char *string,char **val)
 	char	*tempString;
 
 	TSRMLS_FETCH();
-	MAKE_STD_ZVAL(params[0]);
+	MAKE_STD_ZVAL(params[0]); 
 	ZVAL_STRING(params[0],string,1);
 	
 	INIT_ZVAL(function);
