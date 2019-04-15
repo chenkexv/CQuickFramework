@@ -108,7 +108,7 @@ int php_strtotime(char *string){
 void htmlspecialchars(char *string,char **val)
 {
 	zval	returnZval,
-			*params[1],
+			*params[2],
 			function,
 			*sthisReturnZval;
 
@@ -117,11 +117,14 @@ void htmlspecialchars(char *string,char **val)
 	TSRMLS_FETCH();
 	MAKE_STD_ZVAL(params[0]);
 	ZVAL_STRING(params[0],string,1);
+	MAKE_STD_ZVAL(params[1]);
+	ZVAL_LONG(params[1],3);
 	
 	INIT_ZVAL(function);
 	ZVAL_STRING(&function,"htmlspecialchars",0);
-	call_user_function(EG(function_table), NULL, &function, &returnZval, 1, params TSRMLS_CC);
+	call_user_function(EG(function_table), NULL, &function, &returnZval, 2, params TSRMLS_CC);
 	zval_ptr_dtor(&params[0]);
+	zval_ptr_dtor(&params[1]);
 
 	if(IS_STRING == Z_TYPE(returnZval)){
 		tempString = estrdup(Z_STRVAL(returnZval));

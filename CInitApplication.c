@@ -372,14 +372,6 @@ void CInitApplication_initCDiContainer(TSRMLS_D)
 	CDiContainer_set("CResponse",responseZval,setParams,diInstanceZval TSRMLS_CC);
 
 
-	//绑定分页系统服务
-	MAKE_STD_ZVAL(setParams);
-	array_init(setParams);
-	CPagination_getInstance(&pageZval TSRMLS_CC);
-	CDiContainer_set("CPagination",pageZval,setParams,diInstanceZval TSRMLS_CC);
-
-
-
 	//绑定配置文件中的服务
 	if(IS_ARRAY == Z_TYPE_P(componentsZval)){
 		int i,

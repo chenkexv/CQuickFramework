@@ -2778,7 +2778,7 @@ void CQuickTemplate_compile_tag(zval *object,zval *template_tag,zval **returnTag
 		MAKE_STD_ZVAL(sendZval);
 		ZVAL_STRING(sendZval,paramsAppend,1);
 		CQuickTemplate__parse_var_props(object,sendZval,&varRetruen TSRMLS_CC);
-		strcat2(&returnString,"<?php echo htmlspecialchars(",Z_STRVAL_P(varRetruen),"); ?>","\n",NULL);
+		strcat2(&returnString,"<?php echo htmlspecialchars(",Z_STRVAL_P(varRetruen),",ENT_QUOTES); ?>","\n",NULL);
 		ZVAL_STRING(*returnTagsInfo,returnString,1);
 
 		efree(paramsAppend);
