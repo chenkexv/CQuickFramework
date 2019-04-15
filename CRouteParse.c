@@ -213,21 +213,25 @@ void urlNoWriteResult(zval *paramsList,zval *reWriteList,int type,char **getStr 
 		//Æ´½ÓURL
 		if(IS_STRING == Z_TYPE_PP(val) && Z_STRLEN_PP(val) > 0 ){
 		
-			char *filterKey;
+			char	*filterKey,
+					*filterName;
 			htmlspecialchars(Z_STRVAL_PP(val),&filterKey);
+			htmlspecialchars(key,&filterName);
 
 			smart_str_appends(&smart_url,"/");
-			smart_str_appends(&smart_url,key);
+			smart_str_appends(&smart_url,filterName);
 			smart_str_appends(&smart_url,"/");
 			smart_str_appends(&smart_url,filterKey);
 			efree(filterKey);
+			efree(filterName);
 		}else if(IS_LONG == Z_TYPE_PP(val) ){
-
+			char	*filterKey;
+			htmlspecialchars(key,&filterKey);
 			smart_str_appends(&smart_url,"/");
-			smart_str_appends(&smart_url,key);
+			smart_str_appends(&smart_url,filterKey);
 			smart_str_appends(&smart_url,"/");
 			smart_str_append_long(&smart_url,Z_LVAL_PP(val));
-			
+			efree(filterKey);
 		}else{
 			zend_hash_move_forward(Z_ARRVAL_P(paramsList));
 			continue;
@@ -786,7 +790,8 @@ void CRouteParse_requestURI(zval **returnZval TSRMLS_DC)
 		MODULE_BEGIN
 			char	*pathFileTemp,
 					*pathFile,
-					*uri;
+					*uri,
+					*filterUri;
 
 			zval		*findTable,
 						*replaceTable;
@@ -1377,8 +1382,11 @@ void CRouteParse_getRoute(zval **returnZval TSRMLS_DC)
 					char	*requestUrl;
 					getServerParam("REQUEST_URI",&requestUrl TSRMLS_CC);
 					if(requestUrl != NULL){
-						php_error_docref(NULL TSRMLS_CC,E_ERROR,"[RouteException] The requested address does not exist : %s",requestUrl);
-						efree(requestUrl);
+							char	*fitler;
+							htmlspecialchars(requestUrl,&fitler);
+							php_error_docref(NULL TSRMLS_CC,E_ERROR,"[RouteException] The requested address does not exist : %s",fitler);
+							efree(requestUrl);
+							efree(fitler);
 					}else{
 						php_error_docref(NULL TSRMLS_CC,E_ERROR,"[RouteException] The requested address does not exist : %s","Unknown");
 					}
@@ -1393,8 +1401,11 @@ void CRouteParse_getRoute(zval **returnZval TSRMLS_DC)
 		char	*requestUrl;
 		getServerParam("REQUEST_URI",&requestUrl TSRMLS_CC);
 		if(requestUrl != NULL){
-			php_error_docref(NULL TSRMLS_CC,E_ERROR,"[RouteException] The requested address does not exist : %s",requestUrl);
+			char	*fitler;
+			htmlspecialchars(requestUrl,&fitler);
+			php_error_docref(NULL TSRMLS_CC,E_ERROR,"[RouteException] The requested address does not exist : %s",fitler);
 			efree(requestUrl);
+			efree(fitler);
 		}else{
 			php_error_docref(NULL TSRMLS_CC,E_ERROR,"[RouteException] The requested address does not exist : %s","Unknown");
 		}

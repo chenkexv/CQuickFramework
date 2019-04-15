@@ -1225,7 +1225,8 @@ PHP_METHOD(CRequest,getUrl)
 	zval *requsetUri;
 
 	char	*host,
-			*url;
+			*url,
+			*filter;
 	getServerParam("HTTP_HOST",&host TSRMLS_CC);
 	if(host == NULL){
 		RETVAL_NULL();
@@ -1233,18 +1234,25 @@ PHP_METHOD(CRequest,getUrl)
 	}
 
 	requsetUri = zend_read_static_property(CRouteCe,ZEND_STRL("requsetUri"),0 TSRMLS_CC);
-	strcat2(&url,"http://",host,Z_STRVAL_P(requsetUri),NULL);
+	convert_to_string(requsetUri);
+	htmlspecialchars(Z_STRVAL_P(requsetUri),&filter);
+
+
+	strcat2(&url,"http://",host,filter,NULL);
 	RETVAL_STRING(url,1);
 	efree(url);
+	efree(filter);
 }
 
 PHP_METHOD(CRequest,getUri)
 {
 	zval *requsetUri;
+	char	*filter;
 
 	requsetUri = zend_read_static_property(CRouteCe,ZEND_STRL("requsetUri"),0 TSRMLS_CC);
-
-	RETVAL_STRING(Z_STRVAL_P(requsetUri),1);
+	htmlspecialchars(Z_STRVAL_P(requsetUri),&filter);
+	RETVAL_STRING(filter,1);
+	efree(filter);
 }
 
 PHP_METHOD(CRequest,getIp)

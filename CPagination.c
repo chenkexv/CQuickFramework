@@ -319,6 +319,9 @@ void CPagination_getPageListString(int nowPage,zval *configZval,zval *object,cha
 		nowUriArr = zend_read_property(CPaginationCe,object,ZEND_STRL("routeArray"),0 TSRMLS_CC);
 		MAKE_STD_ZVAL(thisArr);
 		ZVAL_ZVAL(thisArr,nowUriArr,1,0);
+		if(IS_ARRAY != Z_TYPE_P(thisArr)){
+			array_init(thisArr);
+		}
 		add_assoc_long(thisArr,"page",nowPageInt);
 
 		//Éú³ÉURL
@@ -607,7 +610,7 @@ PHP_METHOD(CPagination,fpage)
 
 int CPagination_getNowPage(){
 
-	zval *getReturn;
+	char *getReturn;
 	int page = 1;
 
 	getGetParams("page",&getReturn);
@@ -619,7 +622,11 @@ int CPagination_getNowPage(){
 		return 1;
 	}
 
-	page = toInt(getReturn);
+	if(isdigitstr(getReturn)){
+		page = toInt(getReturn);
+	}else{
+		page = 1; 
+	}
 	efree(getReturn);
 	return page;
 }
@@ -650,6 +657,41 @@ PHP_METHOD(CPagination,__construct)
 
 	totalPage = (int)ceil((float)totalRows/pageRows);
 	zend_update_property_long(CPaginationCe,getThis(),ZEND_STRL("totalPage"),totalPage TSRMLS_CC);
+
+	//read now route Info
+	MODULE_BEGIN
+		zval	*controller,
+				*action,
+				*getParams,
+				*saveParams,
+				*cconfigInstanceZval,
+				*actionPreFix;
+		char	*trueAction;
+
+		controller = zend_read_static_property(CRouteCe,ZEND_STRL("thisController"),0 TSRMLS_CC);
+		action = zend_read_static_property(CRouteCe,ZEND_STRL("thisAction"),0 TSRMLS_CC);
+
+		//get actionPre
+		CConfig_getInstance("main",&cconfigInstanceZval TSRMLS_CC);
+		CConfig_load("ACTION_PREFIX",cconfigInstanceZval,&actionPreFix TSRMLS_CC);
+		convert_to_string(actionPreFix);
+		str_replace(Z_STRVAL_P(actionPreFix),"",Z_STRVAL_P(action),&trueAction);
+
+		//read all request Params
+		getParams = PG(http_globals)[TRACK_VARS_GET];
+		
+		MAKE_STD_ZVAL(saveParams);
+		ZVAL_ZVAL(saveParams,getParams,1,0);
+		add_assoc_string(saveParams,"c",Z_STRVAL_P(controller),1);
+		add_assoc_string(saveParams,"a",trueAction,1);
+
+		zend_update_property(CPaginationCe,getThis(),ZEND_STRL("routeArray"),saveParams TSRMLS_CC);
+		zval_ptr_dtor(&saveParams);
+		zval_ptr_dtor(&cconfigInstanceZval);
+		zval_ptr_dtor(&actionPreFix);
+		efree(trueAction);
+
+	MODULE_END
 
 
 	requsetUri = zend_read_static_property(CRouteCe,ZEND_STRL("requsetUri"),0 TSRMLS_CC);
