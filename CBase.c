@@ -233,7 +233,7 @@ void getGetParam(char *key,char **getStr TSRMLS_DC)
 	}
 	else if(Z_TYPE_PP(ret) == IS_STRING)
 	{
-		htmlspecialchars(Z_STRVAL_P(*ret),getStr);
+		*getStr = estrdup(Z_STRVAL_P(*ret));
 		return;
 	}
 
@@ -414,7 +414,7 @@ void getPostParams(char *key,char **getStr)
          zend_hash_get_current_key(h, &skey, &ikey, 0);
         
 		 if(strcmp(key,skey) == 0  && IS_STRING == Z_TYPE_PP(data)){
-			htmlspecialchars(Z_STRVAL_PP(data),&returnString);
+			returnString = estrdup(Z_STRVAL_PP(data));
 			break;
 		 }
 
