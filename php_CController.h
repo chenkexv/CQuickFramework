@@ -33,5 +33,9 @@ PHP_METHOD(CController,setKeyword);
 PHP_METHOD(CController,setDescription);
 PHP_METHOD(CController,setPageData);
 PHP_METHOD(CController,__set);
+PHP_METHOD(CController,showMessage);
+PHP_METHOD(CController,showMessageData);
+PHP_METHOD(CController,showErrorMessage);
+PHP_METHOD(CController,setLanguage);
 
 

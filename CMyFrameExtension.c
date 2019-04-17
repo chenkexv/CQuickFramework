@@ -332,6 +332,7 @@ PHP_MINIT_FUNCTION(CMyFrameExtension)
 
 	//controller
 	CMYFRAME_REGISTER_CLASS(CGuardController);
+	CMYFRAME_REGISTER_CLASS(CCrontabController);
 
 	//regsiter ini config
 	REGISTER_INI_ENTRIES();

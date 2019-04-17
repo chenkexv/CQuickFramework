@@ -256,6 +256,34 @@ int CConfig_loadfromIni(char *key,zval **returnZval TSRMLS_DC){
 
 }
 
+int CConfig_loadIntKey(ulong key,zval *object,zval **returnZval TSRMLS_DC)
+{
+	zval	*configsData;
+
+	MAKE_STD_ZVAL(*returnZval);
+
+	//获取该对象中的thisConfigData数组
+	configsData = zend_read_property(CConfigCe,object,ZEND_STRL("thisConfigData"),0 TSRMLS_CC);
+
+	//如果不是数据返回null
+	if(IS_ARRAY != Z_TYPE_P(configsData)){
+		ZVAL_NULL(*returnZval);
+		return FAILURE;
+	}
+
+	//有key则直接返回
+	if(zend_hash_index_exists(Z_ARRVAL_P(configsData),key)){
+		zval **keyVal;
+		if(SUCCESS == zend_hash_index_find(Z_ARRVAL_P(configsData),key,(void**)&keyVal)){
+			ZVAL_ZVAL(*returnZval,*keyVal,1,0);
+			return SUCCESS;
+		}
+	}else{
+		ZVAL_NULL(*returnZval);
+		return FAILURE;
+	}
+}
+
 //Load方法
 int CConfig_load(char *key,zval *object,zval **returnZval TSRMLS_DC)
 {

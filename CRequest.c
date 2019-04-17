@@ -68,6 +68,7 @@ zend_function_entry CRequset_functions[] = {
 	PHP_ME(CRequest,disablePOST,NULL,ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
 	PHP_ME(CRequest,disableGET,NULL,ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
 	PHP_ME(CRequest,isWap,NULL,ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
+	PHP_ME(CRequest,isCli,NULL,ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
 	PHP_ME(CRequest,end,NULL,ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
 	PHP_ME(CRequest,removeXSS,NULL,ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
 
@@ -785,6 +786,17 @@ void CRequest_execAction(zval *routeObject,zval *object TSRMLS_DC)
 		}
 	}
 
+	//set language
+	MODULE_BEGIN
+		zval	constructReturn,
+				constructVal;
+		INIT_ZVAL(constructVal);
+		ZVAL_STRING(&constructVal, "setLanguage", 0);
+		call_user_function(NULL, &controllerObject, &constructVal, &constructReturn, 0, NULL TSRMLS_CC);
+		zval_dtor(&constructReturn);
+	MODULE_END
+
+
 	//检查类存在请求方法
 	php_strtolower(requsetAction,strlen(requsetAction)+1);
 	if(!zend_hash_exists(&controllerCe->function_table,requsetAction,strlen(requsetAction)+1)){
@@ -1403,6 +1415,17 @@ PHP_METHOD(CRequest,disablePOST)
 
 PHP_METHOD(CRequest,disableGET)
 {
+}
+
+PHP_METHOD(CRequest,isCli)
+{
+	zval	*sapiZval;
+
+	if(zend_hash_find(EG(zend_constants),"PHP_SAPI",strlen("PHP_SAPI")+1,(void**)&sapiZval) == SUCCESS && strcmp(Z_STRVAL_P(sapiZval),"cli") == 0){
+		RETVAL_TRUE;
+	}else{
+		RETVAL_FALSE;
+	}
 }
 
 //判断是否为wap方式的请求

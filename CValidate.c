@@ -51,6 +51,7 @@ zend_function_entry CValidate_functions[] = {
 	PHP_ME(CValidate,isJson,NULL,ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
 	PHP_ME(CValidate,isDate,NULL,ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
 	PHP_ME(CValidate,checkMustField,NULL,ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
+	PHP_ME(CValidate,checkMustKeys,NULL,ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
 	{NULL, NULL, NULL}
 };
 
@@ -80,7 +81,7 @@ int CValidate_isPhone(char *phone){
 		return 0;
 	}
 
-	if(preg_match("/^1[3|4|5|7|8][0-9]\\d{4,8}$/",phone,&match)){
+	if(preg_match("/^1[3|4|5|7|8|9][0-9]\\d{4,8}$/",phone,&match)){
 		isTrue = 1;
 	}
 
@@ -409,17 +410,65 @@ PHP_METHOD(CValidate,isComplexString)
 	RETVAL_BOOL(isTrue);
 }
 
-PHP_METHOD(CValidate,checkMustField)
+int CValidate_checkMustKeys(zval *params,zval *checked TSRMLS_DC)
+{
+	int		i,h;
+
+	zval	**checkKey;
+
+	if(IS_ARRAY != Z_TYPE_P(params) || IS_ARRAY != Z_TYPE_P(checked)){
+		return 0;
+	}
+
+	zend_hash_internal_pointer_reset(Z_ARRVAL_P(checked));
+	h = zend_hash_num_elements(Z_ARRVAL_P(checked));
+	for(i = 0 ; i < h; i++){
+
+		zend_hash_get_current_data(Z_ARRVAL_P(checked),(void**)&checkKey);
+
+		//check type
+		if(IS_STRING == Z_TYPE_PP(checkKey)){
+			if(!zend_hash_exists(Z_ARRVAL_P(params), Z_STRVAL_PP(checkKey),strlen(Z_STRVAL_PP(checkKey))+1)){
+				return 0;
+			}
+		}else if(IS_LONG == Z_TYPE_PP(checkKey)){
+			if(!zend_hash_index_exists(Z_ARRVAL_P(params), Z_LVAL_PP(checkKey))){
+				return 0;
+			}
+		}
+	}
+	return 1;
+}
+
+PHP_METHOD(CValidate,checkMustKeys)
 {
 	zval	*params,
-			*checked,
-			**rowZval,
-			**checkedRows;
+			*checked;
 
-	int		i,j,k,n;
+	int		status;
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"aa",&params,&checked) == FAILURE){
 		RETURN_FALSE;
+	}
+
+	status = CValidate_checkMustKeys(params,checked TSRMLS_CC);
+
+	if(status == 1){
+		RETVAL_TRUE;
+	}else{
+		RETVAL_FALSE;
+	}
+}
+
+int CValidate_checkMustField(zval *params,zval *checked TSRMLS_DC)
+{
+	zval		**rowZval,
+				**checkedRows;
+
+	int		i,j,k,n;
+
+	if(IS_ARRAY != Z_TYPE_P(params) || IS_ARRAY != Z_TYPE_P(checked)){
+		return 0;
 	}
 
 	j = zend_hash_num_elements(Z_ARRVAL_P(params));
@@ -427,7 +476,7 @@ PHP_METHOD(CValidate,checkMustField)
 	for(i = 0 ; i < j ; i ++){
 		zend_hash_get_current_data(Z_ARRVAL_P(params),(void**)&rowZval);
 		if(IS_ARRAY != Z_TYPE_PP(rowZval)){
-			RETURN_FALSE;
+			return 0;
 		}
 
 		//只要一次不存在则直接返回失败
@@ -438,11 +487,11 @@ PHP_METHOD(CValidate,checkMustField)
 
 			if(IS_STRING == Z_TYPE_PP(checkedRows)){
 				if(!zend_hash_exists(Z_ARRVAL_PP(rowZval),Z_STRVAL_PP(checkedRows),strlen(Z_STRVAL_PP(checkedRows))+1)){
-					RETURN_FALSE;
+					return 0;
 				}
 			}else if(IS_LONG == Z_TYPE_PP(checkedRows)){
 				if(!zend_hash_index_exists(Z_ARRVAL_PP(rowZval),Z_LVAL_PP(checkedRows))){
-					RETURN_FALSE;
+					return 0;
 				}
 			}
 
@@ -452,7 +501,27 @@ PHP_METHOD(CValidate,checkMustField)
 
 		zend_hash_move_forward(Z_ARRVAL_P(params));
 	}
-	RETURN_TRUE;
+	return 1;
+}
+
+PHP_METHOD(CValidate,checkMustField)
+{
+	zval	*params,
+			*checked;
+
+	int		status;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"aa",&params,&checked) == FAILURE){
+		RETURN_FALSE;
+	}
+
+	status = CValidate_checkMustField(params,checked TSRMLS_CC);
+
+	if(status == 1){
+		RETVAL_TRUE;
+	}else{
+		RETVAL_FALSE;
+	}
 }
 
 void CValidate_getInstance(char *groupName,zval **returnZval TSRMLS_DC){
