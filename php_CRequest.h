@@ -55,6 +55,7 @@ PHP_METHOD(CRequest,createUrl);
 PHP_METHOD(CRequest,disablePOST);
 PHP_METHOD(CRequest,disableGET);
 PHP_METHOD(CRequest,isWap);
+PHP_METHOD(CRequest,isCli);
 PHP_METHOD(CRequest,end);
 PHP_METHOD(CRequest,removeXSS);
 

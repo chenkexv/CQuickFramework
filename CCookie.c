@@ -40,7 +40,6 @@ zend_function_entry CCookie_functions[] = {
 	{NULL, NULL, NULL}
 };
 
-char *aesKey = "8jnbhgtvfdcxmkiu";
 
 //模块被加载时
 CMYFRAME_REGISTER_CLASS_RUN(CCookie)
@@ -62,7 +61,7 @@ int CCookie_set(char *key,char *val,int timeout TSRMLS_DC){
 
 
 	//对val进行加密
-	CEncrypt_AesEncode(val,aesKey,&encodeString TSRMLS_CC);
+	CEncrypt_AesEncode(val,"8jnbhgtvfdcxmkiu",&encodeString TSRMLS_CC);
 
 	if(IS_STRING != Z_TYPE_P(encodeString)){
 		zval_ptr_dtor(&encodeString);
@@ -192,7 +191,7 @@ void CCookie_get(char *key,char **returnString TSRMLS_DC){
 	//再将string解码
 	MAKE_STD_ZVAL(paramsZval);
 	ZVAL_STRING(paramsZval,decodeString,1);
-	CEncrypt_AesDecode(paramsZval,aesKey,&aesDecode TSRMLS_CC);
+	CEncrypt_AesDecode(paramsZval,"8jnbhgtvfdcxmkiu",&aesDecode TSRMLS_CC);
 
 	if(IS_STRING != Z_TYPE_P(aesDecode)){
 		*returnString = estrdup("");

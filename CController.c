@@ -27,6 +27,7 @@
 
 #include "php_CMyFrameExtension.h"
 #include "php_CController.h"
+#include "php_CWebApp.h"
 #include "php_CException.h"
 
 ZEND_BEGIN_ARG_INFO_EX(session_set_arginfo, 0, 0, 2)
@@ -47,6 +48,10 @@ zend_function_entry CController_functions[] = {
 	PHP_ME(CController,setKeyword,NULL,ZEND_ACC_PUBLIC)
 	PHP_ME(CController,setDescription,NULL,ZEND_ACC_PUBLIC)
 	PHP_ME(CController,setPageData,NULL,ZEND_ACC_PUBLIC)
+	PHP_ME(CController,showMessage,NULL,ZEND_ACC_PROTECTED)
+	PHP_ME(CController,showMessageData,NULL,ZEND_ACC_PROTECTED)
+	PHP_ME(CController,showErrorMessage,NULL,ZEND_ACC_PROTECTED)
+	PHP_ME(CController,setLanguage,NULL,ZEND_ACC_PUBLIC)
 	PHP_ME(CController,__set,session_set_arginfo,ZEND_ACC_PUBLIC)
 	{NULL, NULL, NULL}
 };
@@ -61,7 +66,8 @@ CMYFRAME_REGISTER_CLASS_RUN(CController)
 	//定义变量
 	zend_declare_property_null(CControllerCe, ZEND_STRL("viewObject"),ZEND_ACC_PROTECTED TSRMLS_CC);
 	zend_declare_property_null(CControllerCe, ZEND_STRL("pageInfo"),ZEND_ACC_PROTECTED TSRMLS_CC);
-
+	zend_declare_property_string(CControllerCe, ZEND_STRL("langType"),"",ZEND_ACC_PROTECTED TSRMLS_CC);
+	zend_declare_property_null(CControllerCe, ZEND_STRL("lang"),ZEND_ACC_PROTECTED TSRMLS_CC);
 
 	return SUCCESS;
 }
@@ -171,6 +177,7 @@ PHP_METHOD(CController,display){
 			*viewObjectZval,
 			*cacheNum = NULL,
 			*pageInfoZval,
+			*langInfoZval,
 			*cconfigInstanceZval,
 			*useQuickTemplate;
 
@@ -268,6 +275,12 @@ PHP_METHOD(CController,display){
 	pageInfoZval = zend_read_property(CControllerCe,getThis(),ZEND_STRL("pageInfo"),1 TSRMLS_CC);
 	smarty_assign_ex(viewObjectZval,"pageInfo",pageInfoZval TSRMLS_CC);
 
+	//set lang info
+	langInfoZval = zend_read_property(CControllerCe,getThis(),ZEND_STRL("lang"),1 TSRMLS_CC);
+	if(IS_ARRAY == Z_TYPE_P(langInfoZval)){
+		smarty_assign_ex(viewObjectZval,"lang",langInfoZval TSRMLS_CC);
+	}
+
 	//存在布局文件时
 	if(strlen(layoutPath) > 0){
 		smarty_assign(viewObjectZval,"CONTENT_INSERET_LAYOUT",templateName TSRMLS_CC);
@@ -313,7 +326,9 @@ PHP_METHOD(CController,fetch)
 			*fetchResult,
 			*returnZval,
 			*cconfigInstanceZval,
-			*useQuickTemplate;
+			*useQuickTemplate,
+			*langInfoZval,
+			*pageInfoZval;
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"s",&gettemplateName,&templateLen) == FAILURE){
 		RETURN_NULL();
@@ -362,6 +377,15 @@ PHP_METHOD(CController,fetch)
 		return;
 	}
 
+	//pageInfo的值
+	pageInfoZval = zend_read_property(CControllerCe,getThis(),ZEND_STRL("pageInfo"),1 TSRMLS_CC);
+	smarty_assign_ex(viewObjectZval,"pageInfo",pageInfoZval TSRMLS_CC);
+
+	//set lang info
+	langInfoZval = zend_read_property(CControllerCe,getThis(),ZEND_STRL("lang"),1 TSRMLS_CC);
+	if(IS_ARRAY == Z_TYPE_P(langInfoZval)){
+		smarty_assign_ex(viewObjectZval,"lang",langInfoZval TSRMLS_CC);
+	}
 
 	//调用fetch方法
 	smarty_fetch(viewObjectZval,templateName,&fetchResult TSRMLS_CC);
@@ -573,4 +597,240 @@ PHP_METHOD(CController,__set)
 		zval_ptr_dtor(&viewObjectZval);
 	}
 
+}
+
+void CController_showMessage(long result,zval *nowData,char *errorId,char *thisMessage TSRMLS_DC){
+
+	char	*outputString;
+
+	zval	*endData,
+			*errorData;
+
+	MAKE_STD_ZVAL(endData);
+	array_init(endData);
+
+	add_assoc_bool(endData,"result",result);
+	add_assoc_zval(endData,"data",nowData);
+
+	MAKE_STD_ZVAL(errorData);
+	array_init(errorData);
+	add_assoc_string(errorData,"id",errorId,1);
+	add_assoc_string(errorData,"message",thisMessage,1);
+
+	add_assoc_zval(endData,"error",errorData);
+
+	//clear output
+	ob_end_clean();
+	json_encode(endData,&outputString);
+
+	php_printf("%s",outputString);
+
+	zval_ptr_dtor(&endData);
+	zval_ptr_dtor(&errorData);
+	efree(outputString);
+
+	zend_bailout();
+}
+
+PHP_METHOD(CController,showMessage)
+{
+	long	result = 0,
+			errorId = 0;
+
+	zval	*data = NULL,
+			*nowData;
+	
+	char	*message,
+			*thisMessage,
+			errorIdString[32];
+	
+	int		messageLen = 0;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"b|zls",&result,&data,&errorId,&message,&messageLen) == FAILURE){
+		php_error_docref(NULL TSRMLS_CC,E_ERROR,"[FatalException] Call CController->showMessage(bool offset,array data,int errorId,string message) params error");
+		return;
+	}
+
+	if(messageLen == 0){
+		thisMessage = estrdup("");
+	}else{
+		thisMessage = estrdup(message);
+	}
+
+	if(data == NULL){
+		MAKE_STD_ZVAL(nowData);
+		array_init(nowData);
+	}else{
+		MAKE_STD_ZVAL(nowData);
+		ZVAL_ZVAL(nowData,data,1,0);
+	}
+
+	sprintf(errorIdString,"%d",errorId);
+	CController_showMessage(result,nowData,errorIdString,thisMessage TSRMLS_CC);
+
+	zval_ptr_dtor(&nowData);
+	efree(thisMessage);
+}
+
+PHP_METHOD(CController,showMessageData)
+{
+	zval	*data;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"z",&data) == FAILURE){
+		php_error_docref(NULL TSRMLS_CC,E_ERROR,"[FatalException] Call CController->showMessageData(zval data) params error");
+		return;
+	}
+
+	CController_showMessage(1,data,"0","" TSRMLS_CC);
+}
+
+void CController_showErrorMessage(char *error,char *errorFile TSRMLS_DC)
+{
+	zval	*cconfigInstanceZval,
+			*thisErrorInfo,
+			*data;
+
+	char	*showError;
+
+	//check error configs
+	CConfig_getInstance(errorFile,&cconfigInstanceZval TSRMLS_CC);
+
+	if(isdigitstr(error)){
+		CConfig_loadIntKey(toInt(error),cconfigInstanceZval,&thisErrorInfo TSRMLS_CC);
+	}else{
+		CConfig_load(error,cconfigInstanceZval,&thisErrorInfo TSRMLS_CC);
+	}
+
+	if(IS_STRING == Z_TYPE_P(thisErrorInfo)){
+		showError = estrdup(Z_STRVAL_P(thisErrorInfo));
+	}else{
+		showError = estrdup(error);
+	}
+
+	MAKE_STD_ZVAL(data);
+	array_init(data);
+
+	CController_showMessage(0,data,error,showError TSRMLS_CC);
+
+	zval_ptr_dtor(&cconfigInstanceZval);
+	zval_ptr_dtor(&thisErrorInfo);
+	zval_ptr_dtor(&data);
+	efree(showError);
+}
+
+PHP_METHOD(CController,showErrorMessage)
+{
+	zval	*error;
+
+	char	*errorFile,
+			*configName;
+
+	int		errorFileLen = 0;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"z|s",&error,&errorFile,&errorFileLen) == FAILURE){
+		php_error_docref(NULL TSRMLS_CC,E_ERROR,"[FatalException] Call CController->showErrorMessage(string/int data,string errorFile) params error");
+		return;
+	}
+
+	if(IS_STRING != Z_TYPE_P(error) && IS_LONG != Z_TYPE_P(error)){
+		php_error_docref(NULL TSRMLS_CC,E_ERROR,"[FatalException] Call CController->showErrorMessage(string/int data,string errorFile) params error");
+		return;
+	}
+
+	//tostring
+	convert_to_string(error);
+
+	//configName
+	if(errorFileLen == 0){
+		configName = estrdup("errors");
+	}else{
+		configName = estrdup(errorFile);
+	}
+
+	CController_showErrorMessage(Z_STRVAL_P(error),configName TSRMLS_CC);
+
+	efree(configName);
+}
+
+PHP_METHOD(CController,setLanguage)
+{
+	zval	*cconfigInstanceZval,
+			*defaultLang,
+			*classSetLang,
+			*appPath;
+
+	char	*defaultLanguage,
+			*nowRequestLang,
+			*getLang,
+			*postLang,
+			*cookieLang,
+			*langFilePath;
+	
+	CConfig_getInstance("main",&cconfigInstanceZval TSRMLS_CC);
+	CConfig_load("DEFAULT_LANG",cconfigInstanceZval,&defaultLang TSRMLS_CC);
+	
+	classSetLang = zend_read_property(CControllerCe,getThis(), ZEND_STRL("langType"),0 TSRMLS_CC);
+
+	//get from config file
+	if(IS_STRING == Z_TYPE_P(defaultLang)){
+		defaultLanguage = estrdup(Z_STRVAL_P(defaultLang));
+	}else{
+		//un use lang
+		zval_ptr_dtor(&cconfigInstanceZval);
+		zval_ptr_dtor(&defaultLang);
+		return;
+	}
+
+
+	if(IS_STRING == Z_TYPE_P(classSetLang) && strlen(Z_STRVAL_P(classSetLang)) > 0){
+		nowRequestLang = estrdup(Z_STRVAL_P(classSetLang));
+	}else{
+
+		nowRequestLang = estrdup(defaultLanguage);
+
+		//check get have lang
+		getGetParams("lang",&getLang);
+		if(getLang != NULL){
+			efree(nowRequestLang);
+			nowRequestLang = getLang;
+		}
+
+		//check post have lang
+		getPostParams("lang",&postLang);
+		if(postLang != NULL){
+			efree(nowRequestLang);
+			nowRequestLang = postLang;
+		}
+
+		//get cookie
+		CCookie_get("lang",&cookieLang);
+		if(strlen(cookieLang) > 0){
+			efree(nowRequestLang);
+			nowRequestLang = estrdup(cookieLang);
+		}
+		efree(cookieLang);
+	}
+
+	//check lang file is exists
+	appPath = zend_read_static_property(CWebAppCe,ZEND_STRL("app_path"),0 TSRMLS_CC);
+	spprintf(&langFilePath,0,"%s%s%s%s",Z_STRVAL_P(appPath),"/application/configs/",nowRequestLang,".php");
+	if(SUCCESS != fileExist(langFilePath)){
+		efree(langFilePath);
+		spprintf(&langFilePath,0,"%s%s%s%s",Z_STRVAL_P(appPath),"/application/configs/",defaultLanguage,".php");
+	}
+
+	if(SUCCESS == fileExist(langFilePath)){
+		//load this file
+		zval	*langClassContent;
+		CLoader_import(langFilePath,langFilePath,&langClassContent TSRMLS_CC);
+		zend_update_property(CControllerCe,getThis(), ZEND_STRL("lang"),langClassContent TSRMLS_CC);
+		zval_ptr_dtor(&langClassContent);
+	}
+
+	efree(nowRequestLang);
+	efree(langFilePath);
+	efree(defaultLanguage);
+	zval_ptr_dtor(&cconfigInstanceZval);
+	zval_ptr_dtor(&defaultLang);
+	
 }

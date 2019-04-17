@@ -71,10 +71,10 @@ void CPagination_getFirstString(int nowPage,zval *configZval,zval *object,char *
 	zval	**firstConfigs;
 	char	*firstSay;
 
-	//读取首页配置
+	
 	zend_hash_find(Z_ARRVAL_P(configZval),"first",strlen("first")+1,(void**)&firstConfigs);
 
-	//当前为第一页
+
 	if(nowPage == 1){
 		strcat2(returnString,"<a href=\"javascript:void(0)\">",Z_STRVAL_PP(firstConfigs),"</a>",NULL);
 	}else{
@@ -84,7 +84,6 @@ void CPagination_getFirstString(int nowPage,zval *configZval,zval *object,char *
 
 		char	*hrefUrl;
 
-		//读取当前URI
 		nowUriArr = zend_read_property(CPaginationCe,object,ZEND_STRL("routeArray"),0 TSRMLS_CC);
 		MAKE_STD_ZVAL(thisArr);
 		ZVAL_ZVAL(thisArr,nowUriArr,1,0);
@@ -135,10 +134,9 @@ void CPagination_getNextPageString(int nowPage,int totalPage,zval *configZval,zv
 	zval	**firstConfigs;
 	char	*firstSay;
 
-	//读取首页配置
 	zend_hash_find(Z_ARRVAL_P(configZval),"next",strlen("next")+1,(void**)&firstConfigs);
 
-	//当前为第一页
+
 	if(nowPage >= totalPage){
 		strcat2(returnString,"<a href=\"javascript:void(0)\">",Z_STRVAL_PP(firstConfigs),"</a>",NULL);
 	}else{
@@ -148,7 +146,7 @@ void CPagination_getNextPageString(int nowPage,int totalPage,zval *configZval,zv
 
 		char	*hrefUrl;
 
-		//读取当前URI
+
 		nowUriArr = zend_read_property(CPaginationCe,object,ZEND_STRL("routeArray"),0 TSRMLS_CC);
 		MAKE_STD_ZVAL(thisArr);
 		ZVAL_ZVAL(thisArr,nowUriArr,1,0);
@@ -509,7 +507,7 @@ PHP_METHOD(CPagination,fpage)
 	nowPageZval = zend_read_property(CPaginationCe,getThis(),ZEND_STRL("nowPage"),0 TSRMLS_CC);
 	uriZval = zend_read_property(CPaginationCe,getThis(),ZEND_STRL("uri"),0 TSRMLS_CC);
 
-	//读取配置信息
+
 	zend_hash_find(Z_ARRVAL_P(configZval),"header",strlen("header")+1,(void**)&header);
 
 	if(showKeys == NULL || IS_ARRAY != Z_TYPE_P(showKeys) ){
@@ -523,33 +521,33 @@ PHP_METHOD(CPagination,fpage)
 		add_next_index_long(showKeys,7);
 	}
 
-	//值的记录
+
 	MAKE_STD_ZVAL(showValues);
 	array_init(showValues);
 
-	//共计记录
+
 	sprintf(totalRowsString,"%d",Z_LVAL_P(totalRows));
 	strcat2(&line0,"<div class=\"page_left\">&nbsp;&nbsp;Total<b>,totalRowsString,</b>",Z_STRVAL_PP(header),"&nbsp;&nbsp;",NULL);
 
-	//本页显示
+
 	strcat2(&line1,"&nbsp;&nbsp;now Page show <b></b> rows",NULL);
 
-	//第X页
+
 	strcat2(&line2,"&nbsp;&nbsp;<b></b> page",NULL);
 
-	//首页
+
 	CPagination_getFirstString(Z_LVAL_P(nowPageZval),configZval,getThis(),&line3 TSRMLS_CC);
 
-	//前一页
+
 	CPagination_getPrevString(Z_LVAL_P(nowPageZval),configZval,getThis(),&line4 TSRMLS_CC);
 
 	//PageList
 	CPagination_getPageListString(Z_LVAL_P(nowPageZval),configZval,getThis(),&line5 TSRMLS_CC);
 
-	//下一页
+
 	CPagination_getNextPageString(Z_LVAL_P(nowPageZval),Z_LVAL_P(totalPage),configZval,getThis(),&line6 TSRMLS_CC);
 
-	//尾页
+
 	CPagination_getLastPageString(Z_LVAL_P(nowPageZval),Z_LVAL_P(totalPage),configZval,getThis(),&line7 TSRMLS_CC);
 
 	add_index_string(showValues,0,line0,1);
@@ -563,7 +561,6 @@ PHP_METHOD(CPagination,fpage)
 	add_index_string(showValues,8,"",1);
 
 
-	//组装最终页码数据
 	MODULE_BEGIN
 		int		i,j;
 		zval	**showKeysAttr,
@@ -573,7 +570,7 @@ PHP_METHOD(CPagination,fpage)
 		j = zend_hash_num_elements(Z_ARRVAL_P(showKeys));
 		zend_hash_internal_pointer_reset(Z_ARRVAL_P(showKeys));
 		for(i = 0 ; i < j ; i++){
-			//获取当前的键值
+		
 			zend_hash_get_current_data(Z_ARRVAL_P(showKeys),(void**)&showKeysAttr);
 
 			if(IS_LONG != Z_TYPE_PP(showKeysAttr)){
@@ -581,7 +578,7 @@ PHP_METHOD(CPagination,fpage)
 				continue;
 			}
 
-			//取相应的值
+
 			if(SUCCESS == zend_hash_index_find( Z_ARRVAL_P(showValues),Z_LVAL_PP(showKeysAttr),(void**)&thisKeyAttrHtml) ){
 				smart_str_appends(&pageHtml,Z_STRVAL_PP(thisKeyAttrHtml));
 			}
@@ -703,7 +700,6 @@ PHP_METHOD(CPagination,__construct)
 
 		char	*unsetPageString;
 
-		//替换其中的 &page=d
 		findPage = preg_match_all("/[?|&]page=\\d+/",Z_STRVAL_P(requsetUri),&matchResult);
 		if(findPage != 0){
 
@@ -734,13 +730,35 @@ PHP_METHOD(CPagination,__construct)
 	}
 
 
-	MAKE_STD_ZVAL(configsZval);
-	array_init(configsZval);
-	add_assoc_string(configsZval,"header","rows",1);
-	add_assoc_string(configsZval,"prev","<",1);
-	add_assoc_string(configsZval,"next",">",1);
-	add_assoc_string(configsZval,"first","<<",1);
-	add_assoc_string(configsZval,"last",">>",1);
+	MODULE_BEGIN
+
+		char	*prevPage,
+				*nextPage,
+				*firstPage,
+				*lastPage;
+
+		MAKE_STD_ZVAL(configsZval);
+		array_init(configsZval);
+
+		//prev
+		base64Decode("5LiK5LiA6aG1",&prevPage);
+		base64Decode("5LiL5LiA6aG1",&nextPage);
+		base64Decode("6aaWIOmhtQ==",&firstPage);
+		base64Decode("5bC+IOmhtQ==",&lastPage);
+
+
+		add_assoc_string(configsZval,"header","rows",1);
+		add_assoc_string(configsZval,"prev",prevPage,1);
+		add_assoc_string(configsZval,"next",nextPage,1);
+		add_assoc_string(configsZval,"first",firstPage,1);
+		add_assoc_string(configsZval,"last",lastPage,1);
+
+		efree(prevPage);
+		efree(nextPage);
+		efree(firstPage);
+		efree(lastPage);
+
+	MODULE_END
 
 	zend_update_property(CPaginationCe,getThis(),ZEND_STRL("configs"),configsZval TSRMLS_CC);
 	zval_ptr_dtor(&configsZval);

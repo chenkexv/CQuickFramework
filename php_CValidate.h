@@ -30,6 +30,7 @@ PHP_METHOD(CValidate,isUrl);
 PHP_METHOD(CValidate,isSimpleString);
 PHP_METHOD(CValidate,isComplexString);
 PHP_METHOD(CValidate,checkMustField);
+PHP_METHOD(CValidate,checkMustKeys);
 PHP_METHOD(CValidate,getInstance);
 PHP_METHOD(CValidate,check);
 PHP_METHOD(CValidate,set);
