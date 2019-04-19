@@ -96,8 +96,12 @@ void CModel_factory(char *modelName,zval **returnZval TSRMLS_DC)
 	//获取modelList类变量
 	modelListZval = zend_read_static_property(CModelCe,ZEND_STRL("modelList"),0 TSRMLS_CC);
 	if(IS_NULL == Z_TYPE_P(modelListZval)){
-		array_init(modelListZval);
-		zend_update_static_property(CModelCe,ZEND_STRL("modelList"),modelListZval TSRMLS_CC);
+		zval *saveArray;
+		MAKE_STD_ZVAL(saveArray);
+		array_init(saveArray);
+		zend_update_static_property(CModelCe,ZEND_STRL("modelList"),saveArray TSRMLS_CC);
+		zval_ptr_dtor(&saveArray);
+		modelListZval = zend_read_static_property(CModelCe,ZEND_STRL("modelList"),0 TSRMLS_CC);
 	}
 
 	//判断变量中是否存在该模型的对象
@@ -117,6 +121,7 @@ void CModel_factory(char *modelName,zval **returnZval TSRMLS_DC)
 				char errMessage[10240];
 				sprintf(errMessage,"%s%s%s","[ModelException] Model [",modelName,"] does not exist or cannot be found");
 				ZVAL_NULL(*returnZval);
+				efree(trueModelName);
 				zend_throw_exception(CModelExceptionCe, errMessage, "" TSRMLS_CC);
 				return;
 			}
@@ -125,12 +130,11 @@ void CModel_factory(char *modelName,zval **returnZval TSRMLS_DC)
 
 		//获取模型条目
 		if(zend_hash_find(EG(class_table),trueModelName,strlen(trueModelName)+1,(void**)&modelCePP) == FAILURE ){
-	
 			char errMessage[10240];
 			sprintf(errMessage,"%s%s%s","[ModelException] Model [",modelName,"] does not exist or cannot be found");
 			ZVAL_NULL(*returnZval);
+			efree(trueModelName);
 			zend_throw_exception(CModelExceptionCe, errMessage, "" TSRMLS_CC);
-			
 			return;
 		}
 
@@ -157,21 +161,20 @@ void CModel_factory(char *modelName,zval **returnZval TSRMLS_DC)
 		return;
 	}else{
 		zval **saveModelZval;
+
 		//直接从保存表中读取
 		zend_hash_find(Z_ARRVAL_P(modelListZval),modelName,strlen(modelName)+1,(void**)&saveModelZval);
 		ZVAL_ZVAL(*returnZval,*saveModelZval,1,0);
 		efree(trueModelName);
 		return;
 	}
-
-	ZVAL_BOOL(*returnZval,0);
-	return;
 }
 
 //工厂方法
 PHP_METHOD(CModel,factory)
 {
-	char	*modelName;
+	char	*modelName,
+			*trueModelName;
 	int		modelNameLen = 0;
 	zval	*returnZval;
 
@@ -182,12 +185,15 @@ PHP_METHOD(CModel,factory)
 
 	//未指定模型 返回空模型
 	if(0 == modelNameLen){
-		modelName = "CEmptyModel";
+		trueModelName = estrdup("CEmptyModel");
+	}else{
+		trueModelName = estrdup(modelName);
 	}
 
-	CModel_factory(modelName,&returnZval TSRMLS_CC);
+	CModel_factory(trueModelName,&returnZval TSRMLS_CC);
 	ZVAL_ZVAL(return_value,returnZval,1,0);
 	zval_ptr_dtor(&returnZval);
+	efree(trueModelName);
 }
 
 //返回CEmptyModel

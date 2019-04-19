@@ -47,6 +47,7 @@ zend_function_entry CQuickTemplate_functions[] = {
 	PHP_ME(CQuickTemplate,getInstance,NULL,ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
 	PHP_ME(CQuickTemplate,assign,NULL,ZEND_ACC_PUBLIC)
 	PHP_ME(CQuickTemplate,display,NULL,ZEND_ACC_PUBLIC)
+	PHP_ME(CQuickTemplate,displayHTML,NULL,ZEND_ACC_PUBLIC)
 	PHP_ME(CQuickTemplate,compileTemplate,NULL,ZEND_ACC_PRIVATE)
 	PHP_ME(CQuickTemplate,_parse_include_tags,NULL,ZEND_ACC_PRIVATE)
 	PHP_ME(CQuickTemplate,_compile_tag,NULL,ZEND_ACC_PRIVATE)
@@ -2975,7 +2976,7 @@ void CQuickTemplate_compile_tag(zval *object,zval *template_tag,zval **returnTag
 }
 
 //执行编译模板
-int CQuickTemplate_compileTemplate(zval *object,char *name TSRMLS_DC){
+int CQuickTemplate_compileTemplate(zval *object,char *name,char *html TSRMLS_DC){
 	
 	char	*templatePath,
 			*source_content,
@@ -3001,10 +3002,17 @@ int CQuickTemplate_compileTemplate(zval *object,char *name TSRMLS_DC){
 
 	smart_str	compiled_content = {0};
 
-	CQuickTemplate_getTemplateTruePath(object,name,&templatePath TSRMLS_CC);
+	//use html now
+	if(strlen(html) > 0 ){
+		templatePath = estrdup("");
+		source_content = estrdup(html);
+	}else{
 
-	//读取文件内容
-	file_get_contents(templatePath,&source_content);
+		CQuickTemplate_getTemplateTruePath(object,name,&templatePath TSRMLS_CC);
+
+		//读取文件内容
+		file_get_contents(templatePath,&source_content);
+	}
 
 	//确定左右标签
 	left_delimiter = zend_read_property(CQuickTemplateCe,object,ZEND_STRL("left_delimiter"),0 TSRMLS_CC);
@@ -3326,7 +3334,7 @@ void CQuickTemplate_display(zval *object,char *name TSRMLS_DC){
 		//重新编译模板
 		int		compileStatus = 0;
 
-		compileStatus = CQuickTemplate_compileTemplate(object,name TSRMLS_CC);
+		compileStatus = CQuickTemplate_compileTemplate(object,name,"" TSRMLS_CC);
 
 		if(!compileStatus){
 			char errorMessage[1024];
@@ -3340,6 +3348,52 @@ void CQuickTemplate_display(zval *object,char *name TSRMLS_DC){
 	CQuickTemplate_getCompileCache(object,name,&loPath TSRMLS_CC);
 	CLoader_loadFile(loPath);
 	efree(loPath);
+}
+
+void CQuickTemplate_displayHTML(zval *object,char *html,char *name TSRMLS_DC){
+
+	int		exists = 0,
+			needCompile = 1;
+
+	char	*loPath;
+
+	//检查是否需要重新编译模板
+	needCompile = CQuickTemplate_checkNeedCompileTemplate(object,name TSRMLS_CC);
+
+	if(1 == needCompile){
+
+		int		compileStatus = 0;
+
+		compileStatus = CQuickTemplate_compileTemplate(object,name,html TSRMLS_CC);
+
+		if(!compileStatus){
+			char errorMessage[1024];
+			sprintf(errorMessage,"%s%s","[CQuickTemplate] Compiler error , can not complete template :",name);
+			php_error_docref(NULL TSRMLS_CC, E_ERROR ,errorMessage);
+			return;
+		}
+	}
+
+
+	//引用模板
+	CQuickTemplate_getCompileCache(object,name,&loPath TSRMLS_CC);
+	CLoader_loadFile(loPath);
+	efree(loPath);
+}
+
+PHP_METHOD(CQuickTemplate,displayHTML){
+
+	char	*html,
+			*name;
+	long	htmlLen = 0,
+			nameLen = 0;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"ss",&html,&htmlLen,&name,&nameLen) == FAILURE){
+		php_error_docref(NULL TSRMLS_CC, E_ERROR ,"[CViewException] call display params error");
+		RETURN_FALSE;
+	}
+
+	CQuickTemplate_displayHTML(getThis(),html,name TSRMLS_CC);
 }
 
 PHP_METHOD(CQuickTemplate,display){

@@ -304,7 +304,6 @@ void CHooks_loadPlugin(TSRMLS_D){
 				//查找类
 				if(zend_hash_find(EG(class_table),className,strlen(className)+1,(void**)&thisClass ) == FAILURE){
 					//如果找不到类则发出一条警告
-					php_error_docref(NULL TSRMLS_CC,E_NOTICE,"Plugin[%s] lose base define Class",className);
 					zend_hash_move_forward(Z_ARRVAL_P(pluginDirList));
 					efree(className);
 					continue;
@@ -319,7 +318,6 @@ void CHooks_loadPlugin(TSRMLS_D){
 					parentName = estrdup(thisClassP->parent->name);
 					php_strtolower(parentName,strlen(parentName)+1);
 					if(strcmp(parentName,"cplugin") != 0){
-						php_error_docref(NULL TSRMLS_CC,E_NOTICE,"Plugin[%s] must extends the class CPlugin",Z_STRVAL_PP(pluginNameZval));
 						zend_hash_move_forward(Z_ARRVAL_P(pluginDirList));
 						//计入加载失败列表
 						add_next_index_string(loadFailList,Z_STRVAL_PP(pluginNameZval),1);
@@ -328,7 +326,6 @@ void CHooks_loadPlugin(TSRMLS_D){
 					}
 					efree(parentName);
 				}else{
-					php_error_docref(NULL TSRMLS_CC,E_NOTICE,"Plugin[%s] must extends the class CPlugin",Z_STRVAL_PP(pluginNameZval));
 					zend_hash_move_forward(Z_ARRVAL_P(pluginDirList));
 					//计入加载失败列表
 					add_next_index_string(loadFailList,Z_STRVAL_PP(pluginNameZval),1);

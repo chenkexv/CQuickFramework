@@ -29,6 +29,8 @@
 #include "php_CDebug.h"
 #include "php_CHooks.h"
 #include "php_CWebApp.h"
+#include "php_CRoute.h"
+#include "php_CGuardController.h"
 #include "php_CException.h"
 #include "ext/standard/php_smart_str_public.h"
 #include "ext/standard/php_smart_str.h"
@@ -311,6 +313,11 @@ PHP_METHOD(CDebug,getDatabaseExecuteEnd)
 		sqlList = zend_read_property(CDebugCe,getThis(),ZEND_STRL("_sqlList"),0 TSRMLS_CC);
 	}
 
+	//more than 1024 will ignore
+	if(IS_ARRAY == Z_TYPE_P(sqlList) && zend_hash_num_elements(Z_ARRVAL_P(sqlList)) >= 1024){
+		return;
+	}
+
 	//create save array
 	MAKE_STD_ZVAL(saveData);
 	array_init(saveData);
@@ -441,6 +448,11 @@ PHP_METHOD(CDebug,getErrorsData)
 		errorList = zend_read_property(CDebugCe,getThis(),ZEND_STRL("_errorList"),0 TSRMLS_CC);
 	}
 
+	//more than 64 will ignore
+	if(IS_ARRAY == Z_TYPE_P(errorList) && zend_hash_num_elements(Z_ARRVAL_P(errorList)) >= 64){
+		return;
+	}
+
 	MAKE_STD_ZVAL(saveData);
 	array_init(saveData);
 
@@ -483,6 +495,677 @@ PHP_METHOD(CDebug,getErrorsData)
 	add_next_index_zval(errorList,saveData);
 }
 
+static char *templateString = "PCFET0NUWVBFIGh0bWwgUFVCTElDICItLy9XM0MvL0RURCBYSFRNTCAxLjAgVHJhbnNpdGlvbmFsLy9FTiIgImh0dHA6Ly93d3cudzMub3JnL1RSL3hodG1sMS9EVEQveGh0bWwxLXRyYW5zaXRpb25hbC5kdGQiPjxodG1sIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hodG1sIj48aGVhZD48bWV0YSBodHRwLWVxdWl2PSJDb250ZW50LVR5cGUiIGNvbnRlbnQ9InRleHQvaHRtbDsgY2hhcnNldD11dGYtOCIgLz48dGl0bGU+Q1F1aWNrRnJhbWV3b3Jr6ZSZ6K+v5oql5ZGKPC90aXRsZT48c3R5bGU+Ym9keXttYXJnaW46MDtwYWRkaW5nOjA7Zm9udC1mYW1pbHk6IuW+rui9r+mbhem7kSI7Zm9udC1zaXplOjE0cHg7b3ZlcmZsb3c6aGlkZGVuO2hlaWdodDoxMDAlfS5lcnJvck1haW57d2lkdGg6MTAwJTtvdmVyZmxvdzpoaWRkZW47aGVpZ2h0OjEwMCV9LmNsZWFye2NsZWFyOmJvdGh9LmVycm9yTGVmdHt3aWR0aDoyOCU7b3ZlcmZsb3cteTphdXRvO2JhY2tncm91bmQtY29sb3I6I2Q0ZDRkNDtvdmVyZmxvdy14OmhpZGRlbjtoZWlnaHQ6MTAwJTtwb3NpdGlvbjphYnNvbHV0ZX0uZXJyb3JSaWdodHt3aWR0aDo3MiU7aGVpZ2h0OjEwMCU7bGVmdDoyOCU7cG9zaXRpb246YWJzb2x1dGU7b3ZlcmZsb3cteTphdXRvO292ZXJmbG93LXg6aGlkZGVufS5lcnJvclR5cGUgc3Bhbntmb250LXNpemU6MTRweDtmb250LXdlaWdodDpub3JtYWw7Y29sb3I6I2ZmZn0uZXJyb3JUeXBlIGF7Y29sb3I6I2ZmZjt0ZXh0LWRlY29yYXRpb246bm9uZTtjdXJzb3I6dGV4dH0uZXJyTWVzc2FnZXtwYWRkaW5nOjEwcHg7YmFja2dyb3VuZC1jb2xvcjojMDAwO2JvcmRlci1sZWZ0OnNvbGlkIDZweCAjY2QzZjNmO2JvcmRlci1ib3R0b206c29saWQgMXB4ICM2NjZ9LmVycm9yVHlwZXtjb2xvcjojY2QzZjNmO2ZvbnQtd2VpZ2h0OmJvbGQ7Zm9udC1zaXplOjE2cHg7Zm9udC1mYW1pbHk6VmVyZGFuYSxBcmlhbCxIZWx2ZXRpY2Esc2Fucy1zZXJpZjtwYWRkaW5nLWxlZnQ6MjBweDtwYWRkaW5nLXRvcDoxMHB4O21hcmdpbi1ib3R0b206MTBweDtsaW5lLWhlaWdodDoyNnB4fS5lcnJvckNvbnRlbnR7Zm9udC1zaXplOjE0cHg7Y29sb3I6I2ZmZjtwYWRkaW5nLWxlZnQ6MzBweDttYXJnaW4tdG9wOjEzcHh9LnNo"
+"b3dGaWxle3BhZGRpbmc6N3B4O2JvcmRlci1sZWZ0OnNvbGlkIDZweCAjNDI4OGNlO2JhY2tncm91bmQtY29sb3I6I2JkYmRiZH0uc2hvd0ZpbGVUaXRsZXtiYWNrZ3JvdW5kOiNjNmM2YzY7Y29sb3I6IzUyNTI1Mjt0ZXh0LXNoYWRvdzowIDFweCAwICNlN2U3ZTc7cGFkZGluZzoxMHB4IDEwcHggNXB4IDEwcHg7Ym9yZGVyLXRvcC1yaWdodC1yYWRpdXM6NnB4O2JvcmRlci10b3AtbGVmdC1yYWRpdXM6NnB4O2JvcmRlcjoxcHggc29saWQgcmdiYSgwLDAsMCwuMSk7Ym9yZGVyLWJvdHRvbTowO2JveC1zaGFkb3c6aW5zZXQgMCAxcHggMCAjZGFkYWRhO2ZvbnQtZmFtaWx5OlZlcmRhbmEsQXJpYWwsSGVsdmV0aWNhLHNhbnMtc2VyaWZ9LnNob3dGaWxlRm9vdHtib3gtc2hhZG93Omluc2V0IDAgMCA2cHggcmdiYSgwLDAsMCwuMyk7Ym9yZGVyOjFweCBzb2xpZCByZ2JhKDAsMCwwLC4yKTtib3JkZXItdG9wOjA7Ym9yZGVyLWJvdHRvbS1yaWdodC1yYWRpdXM6NnB4O2JvcmRlci1ib3R0b20tbGVmdC1yYWRpdXM6NnB4O2hlaWdodDoyNXB4O2JhY2tncm91bmQtY29sb3I6IzQwNDA0MH0uc2hvd0ZpbGVDb250ZW50e2JhY2tncm91bmQtY29sb3I6IzI3MjcyNztwYWRkaW5nOjI1cHggMCA1cHggMH0ubGluZU51bXtjb2xvcjojOTk5O3dpZHRoOjQwcHg7ZGlzcGxheTpibG9jazt0ZXh0LWFsaWduOmNlbnRlcjtmbG9hdDpsZWZ0O21hcmdpbi1yaWdodDoxMHB4fS5zaG93T3RoZXJEYXRhe2JvcmRlci1sZWZ0OnNvbGlkIDZweCAjYmRiZGJkO3BhZGRpbmc6NXB4fS5vdGhlclRpdGxle21hcmdpbi10b3A6OHB4O2JvcmRlci1ib3R0b206ZG90dGVkIDFweCAjOTk5O3BhZGRpbmctYm90dG9tOjRweDtwYWRkaW5nLWxlZnQ6NHB4O2ZvbnQtZmFtaWx5OlZlcmRhbmEsQXJpYWwsSGVsdmV0aWNhLHNhbnMtc2VyaWY7Y29sb3I6IzQyODhjZTtmb250LXdlaWdodDpib2xkO21hcmdpbi1ib3R0b206MTBweH0ub3RoZXJDb250ZW50IHRhYmxle2JvcmRlcjpzb2xpZCAxcHggIzA2Zjt3aWR0aDoxMDAlO21hcmdpbi10b3A6MnB4O2JvcmRlcjpzb2xpZCAxcHggI2NjYztib3"
+"JkZXItY29sbGFwc2U6Y29sbGFwc2U7Ym9yZGVyLXNwYWNpbmc6MDt0ZXh0LWFsaWduOmxlZnQ7Y29sb3I6IzJiMmIyYn0ub3RoZXJDb250ZW50IHRhYmxlIHRoe2ZvbnQtd2VpZ2h0Om5vcm1hbDtmb250LWZhbWlseTpoZWx2ZXRpY2EsYXJpYWwsc2Fucy1zZXJpZjtiYWNrZ3JvdW5kLWNvbG9yOiNlNGUzZTM7aGVpZ2h0OjI0cHg7Ym9yZGVyOjFweCBzb2xpZCAjQ0NDO3BhZGRpbmctbGVmdDoxMHB4fS5vdGhlckNvbnRlbnQgdGFibGUgdHJ7ZGlzcGxheTp0YWJsZS1yb3c7dmVydGljYWwtYWxpZ246aW5oZXJpdDtib3JkZXItY29sb3I6aW5oZXJpdH0ub3RoZXJDb250ZW50IHRhYmxlIHRke2JvcmRlcjoxcHggc29saWQgI0NDQztjb2xvcjojNDYzYzU0O2ZvbnQtc2l6ZToxMnB4O2hlaWdodDoyNHB4O3BhZGRpbmctbGVmdDoxMHB4O2xpbmUtaGVpZ2h0OjIzcHg7YmFja2dyb3VuZDojZmZmfS5lcnJvckxlZnQgbGl7Ym9yZGVyLWJvdHRvbTpzb2xpZCAxcHggI2Q0ZDRkNDtsaXN0LXN0eWxlOm5vbmU7cGFkZGluZzoxMHB4O2xpbmUtaGVpZ2h0OjIycHh9LmVycm9yTGVmdCBsaTpob3ZlcntiYWNrZ3JvdW5kLWNvbG9yOiMwMDA7ZmlsdGVyOmFscGhhKG9wYWNpdHk9ODApO29wYWNpdHk6Ljg7Y3Vyc29yOnBvaW50ZXI7KmN1cnNvcjpoYW5kfS5lcnJvckxlZnQgbGk6aG92ZXIgcHtjb2xvcjojZmZmfS5lcnJvckxlZnRfbGl7YmFja2dyb3VuZDojZmZmfS5lcnJvckxlZnRfbGlfaG92ZXJ7YmFja2dyb3VuZDojMDAwO2ZpbHRlcjphbHBoYShvcGFjaXR5PTgwKTtvcGFjaXR5Oi44O2N1cnNvcjpwb2ludGVyOypjdXJzb3I6aGFuZH0uZXJyb3JMZWZ0X2xpX2hvdmVyIHB7Y29sb3I6I2ZmZn0uZXJyb3JMZWZ0TGlTcGFue2ZvbnQtc2l6ZToxMnB4O2NvbG9yOiM5OTk7aGVpZ2h0OjIwcHg7b3ZlcmZsb3c6aGlkZGVufS5lcnJvckxlZnRUeXBle2ZvbnQtd2VpZ2h0OmJvbGQ7Y29sb3I6IzkzMH0uZXJyb3JMZWZ0IGxpIHB7bWFyZ2luOjA7cGFkZGluZzowO2hlaWdodDoyMnB4O292ZXJmbG93OmhpZGRlbn06Oi13ZWJraXQtc2Nyb2xsYmFye3BhZGRpbmctbGVmdDoxcHg7Ym9yZGVyLWxlZnQ6MXB4IHNvbGlkICNkNWQ1ZDU7YmFja2dyb3VuZC1jb2xvcjojZmFmYWZhO292ZXJmbG93OnZpc2libGU7d2lkdGg6MTNweH06Oi13ZWJraXQtc2Nyb2xsYmFyLXRodW1ie2JhY2tncm91bmQtY29sb3I6cmdiYSgwLDAsMCwuMik7YmF"
+"ja2dyb3VuZC1jbGlwOnBhZGRpbmctYm94O2JvcmRlcjoxcHggc29saWQgdHJhbnNwYXJlbnQ7Ym9yZGVyLWxlZnQtd2lkdGg6MnB4O21pbi1oZWlnaHQ6MTVweDtib3gtc2hhZG93Omluc2V0IDFweCAxcHggMCByZ2JhKDAsMCwwLC4xKSxpbnNldCAwIC0xcHggMCByZ2JhKDAsMCwwLC4wNyl9Ojotd2Via2l0LXNjcm9sbGJhci10aHVtYjp2ZXJ0aWNhbDpob3ZlcntiYWNrZ3JvdW5kLWNvbG9yOnJnYmEoMCwwLDAsLjMpfTo6LXdlYmtpdC1zY3JvbGxiYXItdGh1bWI6dmVydGljYWw6YWN0aXZle2JhY2tncm91bmQtY29sb3I6cmdiYSgwLDAsMCwuNSl9Ojotd2Via2l0LXNjcm9sbGJhci1idXR0b257aGVpZ2h0OjA7d2lkdGg6MH06Oi13ZWJraXQtc2Nyb2xsYmFyLXRyYWNre2JhY2tncm91bmQtY2xpcDpwYWRkaW5nLWJveDtib3JkZXI6c29saWQgdHJhbnNwYXJlbnQ7Ym9yZGVyLXdpZHRoOjAgMCAwIDRweH06Oi13ZWJraXQtc2Nyb2xsYmFyLWNvcm5lcntiYWNrZ3JvdW5kOnRyYW5zcGFyZW50fTwvc3R5bGU+PC9oZWFkPjxib2R5PjxkaXYgaWQ9ImVycm9yTWFpbiIgY2xhc3M9ImVycm9yTWFpbiI+PGRpdiBpZD0iZXJyb3JMZWZ0IiBjbGFzcz0iZXJyb3JMZWZ0Ij48e2ZvcmVhY2ggZnJvbT0kYWxsRXJyb3IgaXRlbT1lcnIga2V5PWVycktleX0+PGxpIGlkPSJsaTx7JGVycktleX0+IiBubz0iPHskZXJyS2V5fT4iIG9uY2xpY2s9ImNoYW5nZVNob3coPHskZXJyS2V5fT4pIiBjbGFzcz0iZXJyb3JMZWZ0X2xpIDx7aWYgJGVycktleSA9PSAwfT5lcnJvckxlZnRfbGlfaG92ZXI8ey9pZn0+Ij48c3BhbiBjbGFzcz0iZXJyb3JMZWZ0VHlwZSI+Wzx7JGVyci50eXBlfT5dPC9zcGFuPiA8cD48eyRlcnIubWVzc2FnZX0+PC9wPjxzcGFuIGNsYXNzPSJlcnJvckxlZnRMaVNwYW4iPjx7JGVyci5maWxlfT4gLSBMaW5lOjx7JGVyci5saW5lfT48L3NwYW4+PC9saT48ey9mb3JlYWNofT48L2Rpdj48ZGl2IGlkPSJlcnJvclJpZ2h0IiBjbGFzcz0iZXJyb3JSaWdodCI+PGRpdiBzdHlsZT0iaGVpZ2h0OjU5M3B4OyBvdmVyZmxvdzpoaWRkZW4iPjxkaXYgaWQ9InJvbGxBcmVhIiBzdHlsZT0ibWFyZ2luLXRvcDowIj48e2ZvcmVhY2ggZnJvbT0kYWxsRXJyb3IgaXRlbT1lcnIga2V5PWVycktleX0+PGRpdiBjbGFzcz0iZGV0YWlsIiBubz0iPHskZXJyS2V5fT4iPHtpZiAkZXJyS2V5ID09IDB9Pjx7ZWxzZX0+c3R5bGU9ImRpc3"
+"BsYXk6Ijx7L2lmfT4gaWQ9ImNvbnRlbnRsaTx7JGVycktleX0+Ij48ZGl2IGNsYXNzPSJlcnJNZXNzYWdlIiBpZD0idGl0bGVsaTx7JGVycktleX0+Ij48ZGl2IGNsYXNzPSJlcnJvclR5cGUiPltNeUZyYW1lRXhjZXB0aW9uXSAtPHtzaG93SFRNTCBjPSRlcnIubWVzc2FnZX0+PC9zcGFuPjwvZGl2PiA8L2Rpdj48ZGl2IGNsYXNzPSJzaG93RmlsZSI+PGRpdiBjbGFzcz0ic2hvd0ZpbGVUaXRsZSI+PHskZXJyLmZpbGV9PjwvZGl2PjxkaXYgY2xhc3M9InNob3dGaWxlQ29udGVudCIgc3R5bGU9IiBoZWlnaHQ6NDU1cHgiPjx7Zm9yZWFjaCBmcm9tPSRlcnIuZGV0YWlsIGtleT1saW5lTnVtIGl0ZW09Y29kZX0+PHNwYW4gY2xhc3M9ImxpbmVOdW0iPjx7JGxpbmVOdW19Pjwvc3Bhbj48e3Nob3dIVE1MIGM9JGNvZGV9Pjx7L2ZvcmVhY2h9PjwvZGl2PjxkaXYgY2xhc3M9InNob3dGaWxlRm9vdCI+PC9kaXY+PC9kaXY+PC9kaXY+PHsvZm9yZWFjaH0+PC9kaXY+PC9kaXY+PGRpdiBjbGFzcz0ic2hvd090aGVyRGF0YSI+PGRpdiBjbGFzcz0ib3RoZXJUaXRsZSI+UmVxdWVzdDwvZGl2PjxkaXYgY2xhc3M9Im90aGVyQ29udGVudCI+PHRhYmxlPjx0aGVhZD48dHI+PHRoIHdpZHRoPSIzMyUiPktleTwvdGg+PHRoIHdpZHRoPSI2NyUiPlZhbHVlPC90aD4gIDwvdHI+PC90aGVhZD48e2ZvcmVhY2ggZnJvbT0kcmVxdWVzdCBpdGVtPXJlcSBrZXk9cmVxVHlwZX0+ICA8dHI+PHRkPjx7JHJlcVR5cGV9PjwvdGQ+PHRkPjx7JHJlcX0+PC90ZD4gIDwvdHI+PHsvZm9yZWFjaH0+PC90YWJsZT48L2Rpdj48L2Rpdj48ZGl2IGNsYXNzPSJzaG93T3RoZXJEYXRhIj48ZGl2IGNsYXNzPSJvdGhlclRpdGxlIj5QZXJmb3JtYW5jZU1vbml0b3I8L2Rpdj48ZGl2IGNsYXNzPSJvdGhlckNvbnRlbnQiPjx0YW"
+"JsZT48dGhlYWQ+PHRyPjx0aCB3aWR0aD0iMzMlIj5DYXN0PC90aD48dGggd2lkdGg9IjY3JSI+U2NyaXB0PC90aD4gIDwvdHI+PC90aGVhZD48e2ZvcmVhY2ggZnJvbT0kc2VydmVyIGl0ZW09cmVxIGtleT1yZXFUeXBlfT4gIDx0cj48dGQ+PHskcmVxLmNhc3R9PjwvdGQ+PHRkPjx7JHJlcS5zY3JpcHR9PjwvdGQ+ICA8L3RyPjx7L2ZvcmVhY2h9PjwvdGFibGU+PC9kaXY+PC9kaXY+PGRpdiBjbGFzcz0ic2hvd090aGVyRGF0YSI+PGRpdiBjbGFzcz0ib3RoZXJUaXRsZSI+SW5jbHVkZUZpbGVzPC9kaXY+PGRpdiBjbGFzcz0ib3RoZXJDb250ZW50IiBzdHlsZT0ibWFyZ2luLWJvdHRvbToyMHB4Ij48dGFibGU+PHRoZWFkPjx0cj48dGggd2lkdGg9IjUlIj5OdW08L3RoPjx0aCB3aWR0aD0iOTUlIj5GaWxlTmFtZTwvdGg+ICA8L3RyPjwvdGhlYWQ+PHtmb3JlYWNoIGZyb209JGluY2x1ZGVGaWxlIGl0ZW09aWMga2V5PWlub30+ICA8dHI+PHRkIHN0eWxlPSJwYWRkaW5nOjA7IHRleHQtYWxpZ246Y2VudGVyIj48eyRpbm8rMX0+PC90ZD48dGQ+PHskaWN9PjwvdGQ+ICA8L3RyPjx7L2ZvcmVhY2h9PjwvdGFibGU+PC9kaXY+PC9kaXY+PC9kaXY+PC9kaXY+PC9ib2R5PjwvaHRtbD48c2NyaXB0PmZ1bmN0aW9uIGNoYW5nZVNob3coa2V5KXt2YXIgYWxsVGl0bGUgPSBkb2N1bWVudC5nZXRFbGVtZW50c0J5Q2xhc3NOYW1lKCdlcnJvckxlZnRfbGknKTtmb3IodmFyIGkgPSAwIDsgaTwgYWxsVGl0bGUubGVuZ3RoIDsgaSsrKXt2"
+"YXIgdGhpc0VsZW1lbnQgPSBhbGxUaXRsZVtpXTt0aGlzRWxlbWVudC5jbGFzc0xpc3QucmVtb3ZlKCJlcnJvckxlZnRfbGlfaG92ZXIiKTt9ZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoImxpIiArIGtleSkuY2xhc3NMaXN0LmFkZCgiZXJyb3JMZWZ0X2xpX2hvdmVyIik7dmFyIHRvVG9wID0gKDAtcGFyc2VJbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoImNvbnRlbnRsaSIgKyBrZXkpLm9mZnNldFRvcCkpICsgcGFyc2VJbnQoZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQoInJvbGxBcmVhIikuc3R5bGUubWFyZ2luVG9wKTtkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgicm9sbEFyZWEiKS5zdHlsZS5jc3NUZXh0PSAibWFyZ2luLXRvcDoiICsgdG9Ub3AgKyAicHgiO308L3NjcmlwdD4=";
+
+static char *debugString = "PC9wcmU+PG1ldGEgY2hhcnNldD0idXRmLTgiLz48c3R5bGU+LmRlYnVnVGFne3Bvc2l0aW9uOmZpeGVkO19wb3NpdGlvbjphYnNvbHV0ZTtib3R0b206MHB4OyByaWdodDo1cHg7IHdpZHRoOjcwcHg7IGhlaWdodDoyN3B4OyBiYWNrZ3JvdW5kLWNvbG9yOiMwMDAwMDA7IGNvbG9yOiNGRkZGRkY7IGJvcmRlci10b3AtbGVmdC1yYWRpdXM6N3B4O2JvcmRlci10b3AtcmlnaHQtcmFkaXVzOjdweDtsaW5lLWhlaWdodDoyN3B4OyB0ZXh0LWFsaWduOmNlbnRlcjsgZm9udC1mYW1pbHk6IuW+rui9r+mbhem7kSI7IGZvbnQtc2l6ZToxMnB4OyBjdXJzb3I6cG9pbnRlcjsgKmN1cnNvcjpoYW5kOyB6LWluZGV4OjEwMDAwMTt9LmRlYnVnRGF0YXtwb3NpdGlvbjpmaXhlZDtfcG9zaXRpb246YWJzb2x1dGU7aGVpZ2h0OjEwMCU7IGxlZnQ6MDt0cmFuc2Zvcm06dHJhbnNsYXRlM2QoMCwxMDAlLDApOyBib3R0b206MDtyaWdodDowOyBiYWNrZ3JvdW5kOiNENEQ0RDQ7IGZvbnQtZmFtaWx5OiLlvq7ova/pm4Xpu5EiOyBmb250LXNpemU6MTRweDsgcGFkZGluZzowOyBtYXJnaW46MDsgZGlzcGxheTo7IHotaW5kZXg6MTAwMDAwOyBib3JkZXItdG9wOnNvbGlkIDFweCAjQkRCREJEfS5zaG93RGVidWd7dHJhbnNpdGlvbi1kdXJhdGlvbjo0MDBtczt0cmFuc2Zvcm06IHRyYW5zbGF0ZTNkKDAsMCwwKTt9LmhpZGVEZWJ1Z3t0cmFuc2l0aW9uLWR1cmF0aW9uOjQwMG1zO3RyYW5zZm9ybTogdHJhbnNsYXRlM2QoMCwxMDAlLDApO30uZGVidWdMZWZ0eyB3aWR0aDoxMCU7IHBvc2l0aW9uOmFic29sdXRlO292ZXJmbG93LXg6aGlkZGVuOyBvdmVyZmxvdy15OmF1dG87IGhlaWdodDoxMDAlfS5sZWZ0VGFnc3toZWlnaHQ6NDVweDsgY29sb3I6IzMzMzsgbGluZS1oZWlnaHQ6NDVweDsgcGFkZGluZy1sZWZ0OjE1cHg7IGZvbnQtZmFtaWx5OlZlcmRhbmEsIEFyaWFsLCBIZWx2ZXRpY2EsIHNhbnMtc2VyaWY7IGZvbnQtc2l6ZToxNHB4OyBiYWNrZ3JvdW5kLWNvbG9yOiNGRkZGRkY7IGN1cnNvcjpwb2ludGVyOyAqY3Vyc29yOmhhbmR9LmxlZnRUYWdzOmhvdmVye2JhY2tncm91bmQtY29sb3I6IzAwMDtjb2xvcjp3aGl0ZX0ubGVmdFRhZ3NPbntoZWlnaHQ6NDVweDtsaW5lLWhlaWdodDo0NXB4OyBmb250LXd"
+"laWdodDpib2xkOyBwYWRkaW5nLWxlZnQ6MTVweDsgZm9udC1mYW1pbHk6VmVyZGFuYSwgQXJpYWwsIEhlbHZldGljYSwgc2Fucy1zZXJpZjsgZm9udC1zaXplOjE0cHg7IGJhY2tncm91bmQtY29sb3I6I0ZGRkZGRjsgY3Vyc29yOnBvaW50ZXI7ICpjdXJzb3I6aGFuZDtib3JkZXItcmlnaHQ6IDFweCBzb2xpZCByZ2JhKDAsIDAsIDAsIC4yKTsgYmFja2dyb3VuZC1jb2xvcjojMDAwOyBjb2xvcjp3aGl0ZTtib3gtc2hhZG93OiBpbnNldCAtMnB4IDAgMCByZ2JhKDI1NSwgMjU1LCAyNTUsIC4xKTt9LmRlYnVnUmlnaHR7IHBvc2l0aW9uOmFic29sdXRlOyB3aWR0aDo5MCU7IGxlZnQ6MTAlOyBoZWlnaHQ6MTAwJTtvdmVyZmxvdy14OmF1dG87IG92ZXJmbG93LXk6YXV0bzsgYm9yZGVyLWxlZnQ6c29saWQgNnB4ICNCREJEQkQ7fS5kZWJ1Z1Nob3dPdGhlckRhdGF7cGFkZGluZzo1cHg7IHBhZGRpbmctbGVmdDo4cHh9LmRlYnVnT3RoZXJUaXRsZXttYXJnaW4tdG9wOjhweDsgYm9yZGVyLWJvdHRvbTpkb3R0ZWQgMXB4ICM5OTk5OTk7IHBhZGRpbmctYm90dG9tOjRweDsgcGFkZGluZy1sZWZ0OjRweDsgZm9udC1mYW1pbHk6VmVyZGFuYSwgQXJpYWwsIEhlbHZldGljYSwgc2Fucy1zZXJpZjsgY29sb3I6IzAwMDsgZm9udC13ZWlnaHQ6Ym9sZDsgbWFyZ2luLWJvdHRvbToxMHB4fS5kZWJ1Z090aGVyQ29udGVudCB0YWJsZXsgYm9yZGVyOnNvbGlkIDFweCAjMDA2NkZGOyB3aWR0aDoxMDAlOyBtYXJnaW4tdG9wOjJweDsgYm9yZGVyOnNvbGlkIDFweCAjY2NjO2JvcmRlci1jb2xsYXBzZTogY29sbGFwc2U7Ym9yZGVyLXNwYWNpbmc6IDA7IHRleHQtYWxpZ246bGVmdDsgY29sb3I6IzJCMkIyQn0uZGVidWdPdGhlckNvbnRlbnQgdGFibGUgdGh7Zm9udC13ZWlnaHQ6bm9ybWFsOyBmb250LWZhbWlseTpoZWx2ZXRpY2EsIGFyaWFsLCBzYW5zLXNlcmlmOyBiYWNrZ3JvdW5kLWNvbG9yOiNFNEUzRTM7IGhlaWdodDoyNHB4O2JvcmRlcjogMXB4IHNvbGlkICNDQ0M7IHBhZGRpbmctbGVmdDoxMHB4OyBmb250LXNpemU6MTRweDsgbGluZS1oZWlnaHQ6MjRweH0uZGVidWdPdGhlckNvbnRlbnR7YmFja2dyb3VuZC1jb2xvcjojRkZGRkZGfS5kZWJ1Z090aGVyQ29udGVudCB0YWJsZSB0cntkaXNwbGF5OiB0YWJsZS1yb3c7dmVydGljYWwtYWxpZ246IGluaGVyaXQ7Ym9yZGVyLWNvbG9yOiBpbmhlcml0O30uZGVidWdPdGhlckNvbnRlbnQgdGFibGUgdGR7Ym9yZGVyOiAxcHggc29saWQgI0NDQztjb2xvcjogIzQ2M0M1NDsgZm9udC1zaXplOjEycHg7IGhlaWdodDoyNHB4OyBwYWRkaW5nLWxlZnQ6MTBweDsgbGluZS1oZWlnaHQ6MjNweDsgYmFja2dyb3VuZDojRkZGRkZGO3dvcmQtYnJlYWs6YnJ"
+"lYWstYWxsO30uZGVidWdQbHVnaW5Nb3JlRGF0YXtjb2xvcjojOTk5OTk5fS5kZWJ1Z1BsdWdpbkxvYWR7Y29sb3I6IzAwOTkwMH0uZGVidWdQbHVnaW5VbkxvYWR7Y29sb3I6I0NDMDAwMH0uZGVidWdQbHVnaW5EZXNje2NvbG9yOiM0NjNDNTQ7fS5kZWJ1Z1B1YnV7IGJvcmRlcjpzb2xpZCAxcHggI2NjYzsgaGVpZ2h0OjQwMHB4fS5kZWJ1Z0JpbmdMZWZ0e2Zsb2F0OmxlZnQ7IHdpZHRoOjQ0JTsgaGVpZ2h0OjQwMHB4fS5kZWJ1Z0JpbmdSaWdodHtmbG9hdDpyaWdodDsgd2lkdGg6NDQlOyBoZWlnaHQ6NDAwcHh9LmRlYnVnQm90dG9teyBtYXJnaW46MDsgcGFkZGluZzowfTo6LXdlYmtpdC1zY3JvbGxiYXJ7cGFkZGluZy1sZWZ0OjFweDtib3JkZXItbGVmdDoxcHggc29saWQgI2Q1ZDVkNTtiYWNrZ3JvdW5kLWNvbG9yOiNmYWZhZmE7b3ZlcmZsb3c6dmlzaWJsZTt3aWR0aDoxM3B4O306Oi13ZWJraXQtc2Nyb2xsYmFyLXRodW1ie2JhY2tncm91bmQtY29sb3I6cmdiYSgwLCAwLCAwLCAuMik7YmFja2dyb3VuZC1jbGlwOnBhZGRpbmctYm94O2JvcmRlcjoxcHggc29saWQgdHJhbnNwYXJlbnQ7Ym9yZGVyLWxlZnQtd2lkdGg6MnB4O21pbi1oZWlnaHQ6MTVweDtib3gtc2hhZG93Omluc2V0IDFweCAxcHggMCByZ2JhKDAsIDAsIDAsIC4xKSxpbnNldCAwIC0xcHggMCByZ2JhKDAsIDAsIDAsIC4wNyk7fTo6LXdlYmtpdC1zY3JvbGxiYXItdGh1bWI6dmVydGljYWw6aG92ZXJ7YmFja2dyb3VuZC1jb2xvcjpyZ2JhKDAsIDAsIDAsIC4zKTt9Ojotd2Via2l0LXNjcm9sbGJhci10aHVtYjp2ZXJ0aWNhbDphY3RpdmV7YmFja2dyb3VuZC1jb2xvcjpyZ2JhKDAsIDAsIDAsIC41KTt9Ojotd2Via2l0LXNjcm9sbGJhci1idXR0b257aGVpZ2h0OjA7d2lkdGg6MDt9Ojotd2Via2l0LXNjcm9sbGJhci10cmFja3tiYWNrZ3JvdW5kLWNsaXA6cGFkZGluZy1ib3g7Ym9yZGVyOnNvbGlkIHRyYW5zcGFyZW50O2JvcmRlci13aWR0aDowIDAgMCA0cHg7fTo6LXdlYmtpdC1zY3JvbGxiYXItY29ybmVye2JhY2tncm91bmQ6dHJhbnNwYXJlbnQ7fTwvc3R5bGU+PGRpdiBjbG"
+"Fzcz0iZGVidWdUYWciIGlkPSJkZWJ1Z0J1dHRvbiIgb25DbGljaz0ib3BlbkRlYnVnKCkiPuWxleW8gOiwg+ivlTwvZGl2PjxkaXYgY2xhc3M9ImRlYnVnRGF0YSIgaWQ9ImRlYnVnTWFpbiI+CTxkaXYgY2xhc3M9ImRlYnVnTGVmdCIgaWQ9ImRlYnVnTGVmdCI+CQk8ZGl2IGlkPSJyZXF1ZXN0RGF0YUtleSIgcmlkPSJyZXF1ZXN0RGF0YSIgb25jbGljaz0iZGVidWdQbHVnaW5DaGFuZ2VUYWdzKCdyZXF1ZXN0RGF0YScpIiBjbGFzcz0iRGVidWdNZW51IGxlZnRDbGljayBsZWZ0VGFnc09uIj5BcHBsaWNhdGlvbjwvZGl2PgkJPGRpdiBpZD0ic2VydmVyc0RhdGFLZXkiIHJpZD0ic2VydmVyc0RhdGEiIG9uY2xpY2s9ImRlYnVnUGx1Z2luQ2hhbmdlVGFncygnc2VydmVyc0RhdGEnKSIgY2xhc3M9IkRlYnVnTWVudSBsZWZ0Q2xpY2sgbGVmdFRhZ3MiPlNlcnZlcnM8L2Rpdj4JCTxkaXYgaWQ9InNxbERhdGFLZXkiIHJpZD0ic3FsRGF0YSIgb25jbGljaz0iZGVidWdQbHVnaW5DaGFuZ2VUYWdzKCdzcWxEYXRhJykiIGNsYXNzPSJEZWJ1Z01lbnUgbGVmdENsaWNrIGxlZnRUYWdzIj5TUUw8L2Rpdj4JCTxkaXYgaWQ9Indhcm5EYXRhS2V5IiByaWQ9InNxbERhdGEiIG9uY2xpY2s9ImRlYnVnUGx1Z2luQ2hhbmdlVGFncygnd2FybkRhdGEnKSIgY2xhc3M9IkRlYnVnTWVudSBsZWZ0Q2xpY2sgbGVmdFRhZ3MiPldhcm48L2Rpdj4JCTxkaXYgaWQ9InRyYWNlRGF0YUtleSIgcmlkPSJ0cmFjZURhdGEiIG9uY2xpY2s9ImRlYnVnUGx1Z2luQ2hhbmdlVGFncygndHJhY2VEYXRhJykiIGNsYXNzPSJEZWJ1Z01lbnUgbGVmdENsaWNrIGxlZnRUYWdzIj5UcmFjZTwvZGl2Pgk8L2Rpdj4JPGRpdiBjbGFzcz0iZGVidWdSaWdodCIgaWQ9ImRlYnVnUmlnaHQiPgkJCQkJPGRpdiBpZD0icmVxdWVzdERhdGEiIGNsYXNzPSJkZWJ1Z1JpZ2h0Q29udGVudCI+CQkJCQkJPGRpdiBjbGFzcz0iZGVidWdTaG93T3RoZXJEYXRhIj4JCQkJPGRpdiBjbGFzcz0iZGVidWdPdGhlclRpdGxlIj5SZXF1ZXN0ICg8eyRyZXF1ZXN0fEBjb3VudH0+KTwvZGl2PgkJCQk8ZGl2IGNsYXNzPSJ"
+"kZWJ1Z090aGVyQ29udGVudCI+CQkJCQk8dGFibGU+CQkJCQkJPHRoZWFkPgkJCQkJCTx0cj4JCQkJCQkJPHRoIHdpZHRoPSIyMyUiPktleTwvdGg+CQkJCQkJCTx0aCB3aWR0aD0iNzclIj5WYWx1ZTwvdGg+CQkJCQkJPC90cj4JCQkJCQk8L3RoZWFkPgkJCQkJCTx7Zm9yZWFjaCBmcm9tPSRyZXF1ZXN0IGl0ZW09cmVxIGtleT1yZXFUeXBlfT4JCQkJCQk8dHI+CQkJCQkJCTx0ZD48eyRyZXFUeXBlfT48L3RkPgkJCQkJCQk8dGQ+PHskcmVxfT48L3RkPgkJCQkJCTwvdHI+CQkJCQkJPHsvZm9yZWFjaH0+CQkJCQkJCQkJCQkJCQkJCQkJPHtpZiAhZW1wdHkoJGNvb2tpZSl9PgkJCQkJCTx0cj48dGQgY29sc3Bhbj0iMiI+PC90ZD48L3RyPgkJCQkJCTx7Zm9yZWFjaCBmcm9tPSRjb29raWUgaXRlbT1jb29raWUga2V5PWNvb2tpZUtleX0+CQkJCQkJPHRyPgkJCQkJCQk8dGQ+Q29va2llIC08eyRjb29raWVLZXl9PjwvdGQ+CQkJCQkJCTx0ZD48eyRjb29raWV9PjwvdGQ+CQkJCQkJPC90cj4JCQkJCQk8ey9mb3JlYWNofT4JCQkJCQk8ey9pZn0+CQkJCQkJCQkJCQk8L3RhYmxlPgkJCQk8L2Rpdj4JCQk8L2Rpdj4JCQkJCQkJCQk8ZGl2IGNsYXNzPSJkZWJ1Z1Nob3dPdGhlckRhdGEiPgkJCQk8ZGl2IGNsYXNzPSJkZWJ1Z090aGVyVGl0bGUiPlBsdWdpbiAoPHskcGx1Z2luRGF0YXxAY291bnR9Pik8L2Rpdj4JCQkJPGRpdiBjbGFzcz0iZGVidWdPdGhlckNvbnRlbnQiPgkJCQkJPHRhYmxlPgkJCQkJCTx0aGVhZD4JCQkJCQk8dHI+CQkJCQkJCTx0aCB3aWR0aD0iMjMlIj5OYW1lPC90aD4JCQkJCQkJPHRoIHdpZHRoPSI3NyUiPlN0YXR1czwvdGg+CQkJCQkJPC90cj4JCQkJCQk8L3RoZWFkPgkJCQkJCTx7Zm9yZWFjaCBmcm9tPSRwbHVnaW5EYXRhIGl0ZW09cmVxIGtleT1yZXFUeXBlfT4JCQkJCQk8dHI+CQkJCQkJCTx0ZD48eyRyZXFUeXBlfT48L3RkPgkJCQkJCQk8dGQ+PHskcmVxfT48L3RkPgkJCQkJCTwvdHI+CQkJCQkJPHsvZm9yZWFjaH0+CQkJCQk8L3RhYmxlPgkJCQk8L2Rpdj4JCQk8L2Rpdj4JCQkJCQkJCQk8ZGl2IGNsYXNzPSJkZWJ1Z1Nob3dPdGhlckRhdGEiPgkJCQk8ZGl2IGNsYXNzPSJkZWJ1Z090aGVyVGl0bGUiPkluY2x1ZGVGaWxlcyAoPHskaW5jbHVkZUZpbGV8QGNvdW50fT4pPC9kaXY+CQkJCTxkaXYgY2xhc3M9ImRlYnVnT3RoZXJDb250ZW50Ij4JCQkJCTx0YWJsZT4JCQkJCQk8dGhlYWQ+CQkJCQkJCTx0cj4JCQkJCQkJCTx0aCB3aWR0aD0iNSUiPk51bTwvdGg+CQkJCQkJCQk8dGggd2lkdGg9Ijk1JSI+RmlsZU5hbWU8L3RoPgkJCQkJCQk8L3RyPgkJCQkJCTwvdGhlYWQ+CQkJCQkJPHtmb3JlYWNoIGZyb209JGluY2x1ZGVGaWxlIGl0ZW09aWMga2V5PWlub30+CQkJCQkJPHRyPgkJCQkJCQk8dGQgc3R5bGU9InBhZGRpbmc6MDsgdGV4dC1hbGlnbjpjZW50ZXIiPjx7JGlubysxfT48L3RkPgkJCQkJCQk8dGQ+PHskaWN9PjwvdGQ+CQkJCQkJPC90cj4JCQkJCQk8ey9mb3JlYWNofT4JCQkJCTwvdGFibGU+CQkJCTwvZ"
+"Gl2PgkJCTwvZGl2PgkJPC9kaXY+CQkJCQkJPGRpdiBpZD0ic2VydmVyc0RhdGEiIGNsYXNzPSJkZWJ1Z1JpZ2h0Q29udGVudCIgc3R5bGU9ImRpc3BsYXk6bm9uZSI+CQkJCQkJPGRpdiBjbGFzcz0iZGVidWdTaG93T3RoZXJEYXRhIj4JCQkJPGRpdiBjbGFzcz0iZGVidWdPdGhlclRpdGxlIj5TZXJ2ZXJTdGF0dXMgKDx7JHNlcnZlckxvYWR8QGNvdW50fT4pPC9kaXY+CQkJCTxkaXYgY2xhc3M9ImRlYnVnT3RoZXJDb250ZW50Ij4JCQkJCTx0YWJsZT4JCQkJCQk8dGhlYWQ+CQkJCQkJPHRyPgkJCQkJCQk8dGggd2lkdGg9IjMzJSI+S2V5PC90aD4JCQkJCQkJPHRoIHdpZHRoPSI2NyUiPlZhbHVlPC90aD4JCQkJCQk8L3RyPgkJCQkJCTwvdGhlYWQ+CQkJCQkJPHtmb3JlYWNoIGZyb209JHNlcnZlckxvYWQgaXRlbT1yZXEga2V5PXJlcVR5cGV9PgkJCQkJCTx0cj4JCQkJCQkJPHRkPjx7JHJlcVR5cGV9PjwvdGQ+CQkJCQkJCTx0ZD48eyRyZXF9PjwvdGQ+CQkJCQkJPC90cj4JCQkJCQk8ey9mb3JlYWNofT4JCQkJCTwvdGFibGU+CQkJCTwvZGl2PgkJCTwvZGl2PgkJPC9kaXY+CQkJCQkJPGRpdiBpZD0ic3FsRGF0YSIgY2xhc3M9ImRlYnVnUmlnaHRDb250ZW50IiBzdHlsZT0iZGlzcGxheTpub25lIj4JCQkJCQk8ZGl2IGNsYXNzPSJkZWJ1Z1Nob3dPdGhlckRhdGEiPgkJCQk8ZGl2IGNsYXNzPSJkZWJ1Z090aGVyVGl0bGUiPkV4ZWN1dGVTUUwgKDx7JGV4ZWN1dGVEYXRhfEBjb3VudH0+KTwvZGl2PgkJCQk8ZGl2IGNsYXNzPSJkZWJ1Z090aGVyQ29udGVudCI+CQkJCQk8dGFibGU+CQkJCQkJPHRoZWFkPgkJCQkJCTx0cj4JCQkJCQkJPHRoIHdpZHRoPSI4MHB4Ij5EYXRhYmFzZTwvdGg+CQkJCQkJCTx0aCB3aWR0aD0iNjBweCI+RnJvbUNhY2hlPC90aD4JCQkJCQkJPHRoIHdpZHRoPSI5MHB4Ij5DYXN0VGltZTwvdGg+CQkJCQkJCTx0aD5FeGVjdXRlU1FMPC90aD4JCQkJCQk8L3RyPgkJCQkJCTwvdGhlYWQ+CQkJCQkJPHtmb3JlYWNoIGZyb209JGV4ZWN1dGVEYXRhIGl0ZW09c3FsfT4JCQkJCQk8dHI+CQkJCQkJCTx0ZD48e2lmICRzcWwubWFzdGVyID09IDF9Pk1hc3Rlcjx7ZWxzZX0+U2xhdmVyPHsvaWZ9PjwvdGQ+CQkJCQkJCTx0ZD48e2lmICRzcWwuY2FjaGUgPT0gMX0+5pivPHtlbHNlfT7lkKY8ey9pZn0+PC90ZD4JCQkJCQkJPHRkPjx7JHNxbC50aW1lfT4gU2VjPC90ZD4JCQkJCQkJPHRkPjx7JHNxbC5"
+"zcWx9Pjxicj5WYWx1ZSA6PHtmb3JlYWNoIGZyb209JHNxbC53aGVyZVZhbHVlIGl0ZW09d30+Wzx7JHd9Pl3jgIE8ey9mb3JlYWNofT48L3RkPgkJCQkJCTwvdHI+CQkJCQkJPHsvZm9yZWFjaH0+CQkJCQk8L3RhYmxlPgkJCQk8L2Rpdj4JCQk8L2Rpdj4JCQk8L2Rpdj4JCQkJCQk8ZGl2IGlkPSJ3YXJuRGF0YSIgY2xhc3M9ImRlYnVnUmlnaHRDb250ZW50IiBzdHlsZT0iZGlzcGxheTpub25lIj4JCQkJCQk8ZGl2IGNsYXNzPSJkZWJ1Z1Nob3dPdGhlckRhdGEiPgkJCQk8ZGl2IGNsYXNzPSJkZWJ1Z090aGVyVGl0bGUiPlJ1bnRpbWVXYXJuICg8eyR3YXJuTGlzdHxAY291bnR9Pik8L2Rpdj4JCQkJPGRpdiBjbGFzcz0iZGVidWdPdGhlckNvbnRlbnQiPgkJCQkJPHRhYmxlPgkJCQkJCTx0aGVhZD4JCQkJCQk8dHI+CQkJCQkJCTx0aCB3aWR0aD0iMzMlIj5LZXk8L3RoPgkJCQkJCQk8dGggd2lkdGg9IjY3JSI+VmFsdWU8L3RoPgkJCQkJCTwvdHI+CQkJCQkJPC90aGVhZD4JCQkJCQk8e2ZvcmVhY2ggZnJvbT0kd2Fybkxpc3QgaXRlbT1yZXEga2V5PXJlcVR5cGV9PgkJCQkJCTx0cj4JCQkJCQkJPHRkPjx7JHJlcS50eXBlfT48L3RkPgkJCQkJCQk8dGQ+PHskcmVxLm1lc3NhZ2V9PiAgJm5ic3A7Jm5ic3A7Jm5ic3A7Jm5ic3A7LSBJbiBTY3JpcHQ8eyRyZXEuZmlsZX0+IExpbmU8eyRyZXEubGluZX0+PC90ZD4JCQkJCQk8L3RyPgkJCQkJCTx7L2ZvcmVhY2h9PgkJCQkJPC90YWJsZT4JCQkJPC9kaXY+CQkJPC9kaXY+CQk8L2Rpdj4JCQkJCQk8ZGl2IGlkPSJ0cmFjZURhdGEiIGNsYXNzPSJkZWJ1Z1JpZ2h0Q29udGVudCIgc3R5bGU9ImRpc3BsYXk6bm9uZSI+CQkJCQk8ZGl2IGNsYXNzPSJkZWJ1Z1Nob3dPdGhlckRhdGEiPgkJCQk8ZGl2IGNsYXNzPSJkZWJ1Z090aGVyVGl0bGUiPkZ1bmN0aW9uQ2FsbFN0YWNrICg8eyRjYWxsU3RhY2t8QGNvdW50fT4pPC9kaXY+CQkJCTxkaXYgY2xhc3M9ImRlYnVnT3RoZXJDb250ZW50Ij4JCQkJCTx0YWJsZT4JCQkJCQk8dGhlYWQ+CQkJCQkJPHRyPgkJCQkJCQk8dGggd2lkdGg9IjMzJSI+Q2FzdDwvdGg+CQkJCQkJCTx0aCB3aWR0aD0iNjclIj5TY3JpcHQ8L3RoPgkJCQkJCTwvdHI+CQkJCQkJPC90aGVhZD4JCQkJCQk8e2ZvcmVhY2ggZnJvbT0kY2FsbFN0YWNrIGl0ZW09ZH0+CQkJCQkJPHRyPgkJCQkJCQk8dGQ+PHskZC5jYXN0fT48L3RkPgkJCQkJCQk8dGQ+PHskZC5zY3J"
+"pcHR9PjwvdGQ+CQkJCQkJPC90cj4JCQkJCQk8ey9mb3JlYWNofT4JCQkJCTwvdGFibGU+CQkJCTwvZGl2PgkJCTwvZGl2PgkJCTwvZGl2PgkJCQkJCQkJPHAgY2xhc3M9ImRlYnVnQm90dG9tIj4mbmJzcDs8L3A+CTwvZGl2PjwvZGl2PjxkaXYgY2xhc3M9ImRlYnVnUGx1Z2luRGVzY1Nob3ciPjwvZGl2PjxzY3JpcHQ+ZnVuY3Rpb24gb3BlbkRlYnVnKCl7CWlmKGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJkZWJ1Z01haW4iKS5jbGFzc0xpc3QuY29udGFpbnMoJ3Nob3dEZWJ1ZycpKXsJCWRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJkZWJ1Z01haW4iKS5jbGFzc0xpc3QucmVtb3ZlKCdzaG93RGVidWcnKTsJCWRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJkZWJ1Z01haW4iKS5jbGFzc0xpc3QuYWRkKCdoaWRlRGVidWcnKTsJfWVsc2V7CQlkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgiZGVidWdNYWluIikuY2xhc3NMaXN0LnJlbW92ZSgnaGlkZURlYnVnJyk7CQlkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgiZGVidWdNYWluIikuY2xhc3NMaXN0LmFkZCgnc2hvd0RlYnVnJyk7CX19ZnVuY3Rpb24gZGVidWdQbHVnaW5DaGFuZ2VUYWdzKGNvbnRlbnRJZCl7CXZhciB0YWdLZXkgPSBjb250ZW50SWQgKyAnS2V5JzsJdmFyIGFsbFRpdGxlID0gZG9jdW1lbnQuZ2V0RWxlbWVudHNCeUNsYXNzTmFtZSgnRGVidWdNZW51Jyk7CWZvcih2YXIgaSA9IDAgOyBpPCBhbGxUaXRsZS5sZW5ndGggOyBpKyspewkJdmFyIHRoaXNFbGVtZW50ID0g"
+"YWxsVGl0bGVbaV07CQl0aGlzRWxlbWVudC5jbGFzc0xpc3QucmVtb3ZlKCJsZWZ0VGFnc09uIik7CQl0aGlzRWxlbWVudC5jbGFzc0xpc3QucmVtb3ZlKCJsZWZ0VGFncyIpOwkJdGhpc0VsZW1lbnQuY2xhc3NMaXN0LmFkZCgibGVmdFRhZ3MiKTsJfQlkb2N1bWVudC5nZXRFbGVtZW50QnlJZCh0YWdLZXkpLmNsYXNzTGlzdC5hZGQoJ2xlZnRUYWdzT24nKTsJZG9jdW1lbnQuZ2V0RWxlbWVudEJ5SWQodGFnS2V5KS5jbGFzc0xpc3QucmVtb3ZlKCdsZWZ0VGFncycpOwl2YXIgYWxsQ29udGVudCA9IGRvY3VtZW50LmdldEVsZW1lbnRzQnlDbGFzc05hbWUoJ2RlYnVnUmlnaHRDb250ZW50Jyk7CWZvcih2YXIgaSA9IDAgOyBpPCBhbGxDb250ZW50Lmxlbmd0aCA7IGkrKyl7CQlhbGxDb250ZW50W2ldLnN0eWxlLmNzc1RleHQgPSAnZGlzcGxheTpub25lJzsJfQlkb2N1bWVudC5nZXRFbGVtZW50QnlJZChjb250ZW50SWQpLnN0eWxlLmNzc1RleHQgPSAnZGlzcGxheTpibG9jayc7fTwvc2NyaXB0Pg==";
+
+
+void CDebug_getLastErrorFileArr(char *file,int line,zval **codeArray TSRMLS_DC){
+
+	int		padding = 10,i,h;
+	char	*fileContent;
+	zval	*codeParse,
+			**thisVal;
+
+	MAKE_STD_ZVAL(*codeArray);
+	array_init(*codeArray);
+
+	//check file exists;
+	if(SUCCESS != fileExist(file) || line == 0){
+		return;
+	}
+
+	MODULE_BEGIN
+		zval	callFunction,
+				callReturn,
+				*params[2];
+		MAKE_STD_ZVAL(params[0]);
+		MAKE_STD_ZVAL(params[1]);
+		ZVAL_STRING(params[0],file,1);
+		ZVAL_BOOL(params[1],1);
+		INIT_ZVAL(callFunction);
+		ZVAL_STRING(&callFunction,"highlight_file",0);
+		call_user_function(EG(function_table), NULL, &callFunction, &callReturn, 2, params TSRMLS_CC);
+		if(IS_STRING == Z_TYPE(callReturn)){
+			fileContent = estrdup(Z_STRVAL(callReturn));
+		}else{
+			zval_ptr_dtor(&params[0]);
+			zval_ptr_dtor(&params[1]);
+			zval_dtor(&callReturn);
+			return;
+		}
+		zval_ptr_dtor(&params[0]);
+		zval_ptr_dtor(&params[1]);
+		zval_dtor(&callReturn);
+	MODULE_END
+	
+
+	//explode
+	php_explode("<br />",fileContent,&codeParse);
+
+	h = zend_hash_num_elements(Z_ARRVAL_P(codeParse));
+	for(i = 0 ; i < h ; i++){
+		zend_hash_get_current_data(Z_ARRVAL_P(codeParse),(void**)&thisVal);
+
+		if(i < line - padding - 1){
+			zend_hash_move_forward(Z_ARRVAL_P(codeParse));
+			continue;
+		}else if(i >= line - padding  - 1 && i <= line + padding){
+
+			zval	*nowFind,
+					*nowReplace;
+
+			char	*thisCodeLine;
+
+			MAKE_STD_ZVAL(nowFind);
+			MAKE_STD_ZVAL(nowReplace);
+			array_init(nowFind);
+			array_init(nowReplace);
+
+			add_next_index_string(nowFind,"<code>",1);
+			add_next_index_string(nowFind,"</code>",1);
+			add_next_index_string(nowFind,"#0000BB",1);
+			add_next_index_string(nowFind,"&lt;?php",1);
+			add_next_index_string(nowFind,"?&gt;",1);
+
+			add_next_index_string(nowReplace,"",1);
+			add_next_index_string(nowReplace,"",1);
+			add_next_index_string(nowReplace,"#0066FF",1);
+			add_next_index_string(nowReplace,"<span style=\"color:#DD0000\">&lt;?php</span>",1);
+			add_next_index_string(nowReplace,"<span style=\"color:#DD0000\">?&gt;</span>",1);
+
+			str_replaceArray(nowFind,nowReplace,Z_STRVAL_PP(thisVal),&thisCodeLine);
+
+			if(i + 1 == line){
+				char *saveString;
+				spprintf(&saveString,0,"%s%s%s","<div style=\"border:soild 1px #352C2C;  background:rgba(255, 120, 120, .17)\">",thisCodeLine,"</div>");
+				add_index_string(*codeArray,i+1,saveString,1);
+				efree(saveString);
+			}else{
+				char *saveString;
+				spprintf(&saveString,0,"%s%s",thisCodeLine,"<br>");
+				add_index_string(*codeArray,i+1,saveString,1);
+				efree(saveString);
+			}
+
+			zval_ptr_dtor(&nowFind);
+			zval_ptr_dtor(&nowReplace);
+			efree(thisCodeLine);
+		}else{
+			break;
+		}
+
+		zend_hash_move_forward(Z_ARRVAL_P(codeParse));
+	}
+
+
+	//destroy
+	efree(fileContent);
+	zval_ptr_dtor(&codeParse);
+}
+
+void CDebug_getErrorDetail(zval *errorList TSRMLS_DC){
+
+	int		i,h;
+	zval	**thisVal,
+			**line,
+			**file,
+			*appPath;
+	char	*mohu;
+
+	appPath = zend_read_static_property(CWebAppCe,ZEND_STRL("app_path"),0 TSRMLS_CC);
+
+	zend_hash_internal_pointer_reset(Z_ARRVAL_P(errorList));
+	h = zend_hash_num_elements(Z_ARRVAL_P(errorList));
+	for(i = 0 ; i < h ; i++){
+
+		zend_hash_get_current_data(Z_ARRVAL_P(errorList),(void**)&thisVal);
+
+		if(IS_ARRAY == Z_TYPE_PP(thisVal) &&
+			SUCCESS == zend_hash_find(Z_ARRVAL_PP(thisVal),"file",strlen("file")+1,(void**)&file) && 
+			SUCCESS == zend_hash_find(Z_ARRVAL_PP(thisVal),"line",strlen("line")+1,(void**)&line)  
+		){
+			zval	*codeArray;
+			convert_to_string(*file);
+			convert_to_long(*line);
+			CDebug_getLastErrorFileArr(Z_STRVAL_PP(file),Z_LVAL_PP(line),&codeArray TSRMLS_CC);
+			add_assoc_zval(*thisVal,"detail",codeArray);
+		}
+
+		if(IS_ARRAY == Z_TYPE_PP(thisVal) && SUCCESS == zend_hash_find(Z_ARRVAL_PP(thisVal),"file",strlen("file")+1,(void**)&file)){
+			str_replace(Z_STRVAL_P(appPath),"APP_PATH",Z_STRVAL_PP(file),&mohu);
+			add_assoc_string(*thisVal,"file",mohu,0);
+		}
+
+
+		zend_hash_move_forward(Z_ARRVAL_P(errorList));
+	}
+}
+
+int CDebug_getIsDebugStats(TSRMLS_D){
+	
+	char		*getDebug,
+				*remoteAdder;
+
+	zval		*cconfigInstanceZval,
+				*debugIp;
+
+	//check get params
+	getGetParam("debug",&getDebug);
+	if(getDebug == NULL){
+		return 0;
+	}
+
+	CConfig_getInstance("main",&cconfigInstanceZval TSRMLS_CC);
+	CConfig_load("DEBUG_IP",cconfigInstanceZval,&debugIp TSRMLS_CC);
+	
+	getServerParam("REMOTE_ADDR",&remoteAdder TSRMLS_CC);
+	if(remoteAdder == NULL || IS_ARRAY != Z_TYPE_P(debugIp)){
+		zval_ptr_dtor(&cconfigInstanceZval);
+		zval_ptr_dtor(&debugIp);
+		if(remoteAdder != NULL){
+			efree(remoteAdder);
+		}
+		return 0;
+	}
+
+	if(!in_array(remoteAdder,debugIp)){
+		efree(remoteAdder);
+		zval_ptr_dtor(&cconfigInstanceZval);
+		zval_ptr_dtor(&debugIp);
+		return 0;
+	}
+
+
+	efree(remoteAdder);
+	return 1;
+}
+
+void CDebug_createServerLoadData(zval **data TSRMLS_DC){
+
+	MAKE_STD_ZVAL(*data);
+	array_init(*data);
+
+	CGuardController_getCacheStatus(*data TSRMLS_CC);
+
+	CGuardController_getFpmStatus(*data TSRMLS_CC);
+
+	CGuardController_getMQStatus(*data TSRMLS_CC);
+}
+
+void CDebug_createServerData(zval **data TSRMLS_DC){
+
+	char	*tempString,
+			*header,
+			*funAllname,
+			*funCast,
+			*stackString;
+	zval	**thisVal,
+			**nowTime,
+			**classname,
+			**functionname,
+			**filename,
+			*classObject,
+			*appPath,
+			*thisSaveArray		
+			;
+
+	int		i,h;
+
+	double	lastTime = 0,
+			castTime = 0,
+			beginTime = 0,
+			endTime = 0,
+			allTime = 0,
+			castTimeRate = 0;
+
+	classObject = zend_read_static_property(CDebugCe,ZEND_STRL("functionTrace"),0 TSRMLS_CC);
+
+	MAKE_STD_ZVAL(*data);
+	array_init(*data);
+
+	if(IS_ARRAY != Z_TYPE_P(classObject)){
+		return;
+	}
+
+	//firset
+	zend_hash_internal_pointer_reset(Z_ARRVAL_P(classObject));
+	zend_hash_get_current_data(Z_ARRVAL_P(classObject),(void**)&thisVal);
+	zend_hash_find(Z_ARRVAL_PP(thisVal),"time",strlen("time")+1,(void**)&nowTime);
+	beginTime = Z_DVAL_PP(nowTime);
+
+	//endTime
+	zend_hash_internal_pointer_end(Z_ARRVAL_P(classObject));
+	zend_hash_get_current_data(Z_ARRVAL_P(classObject),(void**)&thisVal);
+	zend_hash_find(Z_ARRVAL_PP(thisVal),"time",strlen("time")+1,(void**)&nowTime);
+	endTime = Z_DVAL_PP(nowTime);
+	allTime = endTime - beginTime;
+
+	appPath = zend_read_static_property(CWebAppCe,ZEND_STRL("app_path"),0 TSRMLS_CC);
+
+	//foreach array get casttime
+	zend_hash_internal_pointer_reset(Z_ARRVAL_P(classObject));
+	h = zend_hash_num_elements(Z_ARRVAL_P(classObject));
+	for(i = 0 ; i < h ; i++){
+		zend_hash_get_current_data(Z_ARRVAL_P(classObject),(void**)&thisVal);
+
+		zend_hash_find(Z_ARRVAL_PP(thisVal),"time",strlen("time")+1,(void**)&nowTime);
+		zend_hash_find(Z_ARRVAL_PP(thisVal),"class_name",strlen("class_name")+1,(void**)&classname);
+		zend_hash_find(Z_ARRVAL_PP(thisVal),"function_name",strlen("function_name")+1,(void**)&functionname);
+		zend_hash_find(Z_ARRVAL_PP(thisVal),"file_name",strlen("file_name")+1,(void**)&filename);
+		if(i == 0){
+			castTime = 0;
+		}else{
+			castTime = Z_DVAL_PP(nowTime) - lastTime;
+		}
+
+		//cast Time rate
+		castTimeRate = castTime / allTime*100;
+
+		spprintf(&funAllname,0,"%.8f%s%.4f%s",castTime," / ",castTimeRate,"%");
+
+
+		if(strlen(Z_STRVAL_PP(classname))){
+			spprintf(&stackString,0,"%s%d%s%s%s%s%s","[",i+1,"] ",Z_STRVAL_PP(classname),"::",Z_STRVAL_PP(functionname),"()");
+		}else{
+			spprintf(&stackString,0,"%s%d%s%s%s","[",i+1,"] ",Z_STRVAL_PP(functionname),"()");
+		}
+
+		MODULE_BEGIN
+			char *mohu;
+			str_replace(Z_STRVAL_P(appPath),"APP_PATH",Z_STRVAL_PP(filename),&mohu);
+			spprintf(&funCast,0,"%s%s%s",stackString," - In script : ",mohu);
+			efree(mohu);
+		MODULE_END
+
+		MAKE_STD_ZVAL(thisSaveArray);
+		array_init(thisSaveArray);
+		add_assoc_string(thisSaveArray,"cast",funAllname,0);
+		add_assoc_string(thisSaveArray,"script",funCast,0);
+
+		add_next_index_zval(*data,thisSaveArray);
+
+		efree(stackString);
+
+		lastTime = Z_DVAL_PP(nowTime);
+		zend_hash_move_forward(Z_ARRVAL_P(classObject));
+	}
+}
+
+void CDebug_createRequestData(zval **data,int type TSRMLS_DC){
+	
+	zval	*cconfigInstanceZval;
+
+	CConfig_getInstance("main",&cconfigInstanceZval TSRMLS_CC);
+	
+
+	MAKE_STD_ZVAL(*data);
+	array_init(*data);
+
+
+	//sessionId
+	MODULE_BEGIN
+		zval	callFunction,
+				callReturn;
+		INIT_ZVAL(callFunction);
+		ZVAL_STRING(&callFunction,"session_id",0);
+		call_user_function(EG(function_table), NULL, &callFunction, &callReturn, 0, NULL TSRMLS_CC);
+		if(IS_STRING == Z_TYPE(callReturn)){
+			char *filter;
+			htmlspecialchars(Z_STRVAL(callReturn),&filter);
+			add_assoc_string(*data,"SessionID",filter,0);
+		}
+		zval_dtor(&callReturn);
+	MODULE_END
+
+	//IP
+	MODULE_BEGIN
+		char	*clientIp,
+				*filter;
+		getServerParam("HTTP_CLIENT_IP",&clientIp TSRMLS_CC);
+		if(clientIp != NULL){
+			htmlspecialchars(clientIp,&filter);
+			add_assoc_string(*data,"HTTP_CLIENT_IP",filter,0);
+			efree(clientIp);
+		}
+	MODULE_END
+
+	//REMOTE_ADDR
+	MODULE_BEGIN
+		char	*clientIp,
+				*filter;
+		getServerParam("REMOTE_ADDR",&clientIp TSRMLS_CC);
+		if(clientIp != NULL){
+			htmlspecialchars(clientIp,&filter);
+			add_assoc_string(*data,"REMOTE_ADDR",filter,0);
+			efree(clientIp);
+		}
+	MODULE_END
+
+
+	//HTTP_X_FORWARDED_FOR
+	MODULE_BEGIN
+		char	*clientIp,
+				*filter;
+		getServerParam("HTTP_X_FORWARDED_FOR",&clientIp TSRMLS_CC);
+		if(clientIp != NULL){
+			htmlspecialchars(clientIp,&filter);
+			add_assoc_string(*data,"HTTP_X_FORWARDED_FOR",filter,0);
+			efree(clientIp);
+		}
+	MODULE_END
+
+	//chart
+	MODULE_BEGIN
+		zval	*charst;
+		
+		CConfig_load("CHARSET",cconfigInstanceZval,&charst TSRMLS_CC);
+		if(IS_STRING == Z_TYPE_P(charst)){
+			add_assoc_string(*data,"Charset",Z_STRVAL_P(charst),1);
+		}else{
+			add_assoc_string(*data,"Charset","UTF-8",0);
+		}
+		zval_ptr_dtor(&charst);
+	MODULE_END
+
+	//cast Time
+	MODULE_BEGIN
+		zval	**startTimeZval,
+				**begin,
+				**end;
+		if(zend_hash_find(&EG(symbol_table),"SYSTEM_INIT",strlen("SYSTEM_INIT")+1,(void**)&startTimeZval) == SUCCESS && IS_ARRAY == Z_TYPE_PP(startTimeZval) ){
+			
+			if( SUCCESS == zend_hash_find(Z_ARRVAL_PP(startTimeZval),"frameBegin",strlen("frameBegin")+1,(void**)&begin) && IS_DOUBLE == Z_TYPE_PP(begin) && 
+				SUCCESS == zend_hash_find(Z_ARRVAL_PP(startTimeZval),"systemEnd",strlen("systemEnd")+1,(void**)&end) && IS_DOUBLE == Z_TYPE_PP(end)
+			){
+				char	*castTimeString;
+				spprintf(&castTimeString,0,"%.6f%s",Z_DVAL_PP(end) - Z_DVAL_PP(begin)," Sec");
+				add_assoc_string(*data,"CastTime",castTimeString,0);
+			}
+		}
+	MODULE_END
+
+	//Meme
+	MODULE_BEGIN
+		zval	returnZval,
+				function;
+		TSRMLS_FETCH();
+		INIT_ZVAL(function);
+		ZVAL_STRING(&function,"memory_get_usage",0);
+		call_user_function(EG(function_table), NULL, &function, &returnZval,0, NULL TSRMLS_CC);
+		if(IS_LONG == Z_TYPE(returnZval)){
+			double	usedFloat;
+			char	*useString;
+			usedFloat = (float)(Z_LVAL(returnZval)) / 1024.00;
+			spprintf(&useString,0,"%.2f%s",usedFloat," Kb");
+			add_assoc_string(*data,"Memory",useString,0);
+		}
+		zval_dtor(&returnZval);
+	MODULE_END
+
+	//memory limit
+	if(type == 2){
+		char	*memLimit;
+		ini_get("memory_limit",&memLimit);
+		add_assoc_string(*data,"MemoryLimit",memLimit,0);
+	}
+
+	//httponly
+	MODULE_BEGIN
+		char	*httponly;
+		ini_get("session.cookie_httponly",&httponly);
+		add_assoc_string(*data,"HttpOnly",strcmp(httponly,"1") == 0 ? "On" : "Off",0);
+	MODULE_END
+
+	//framework version
+	MODULE_BEGIN
+		add_assoc_string(*data,"Version","CQuickFramework extension by C , Version 3.0.0",0);
+	MODULE_END
+
+	//route
+	MODULE_BEGIN
+		zval	*controller,
+				*action,
+				*module;
+		char	*routeString,
+				*filter,
+				*keyName;
+		
+		controller = zend_read_static_property(CRouteCe,ZEND_STRL("thisController"),0 TSRMLS_CC);
+		action = zend_read_static_property(CRouteCe,ZEND_STRL("thisAction"),0 TSRMLS_CC);
+		module = zend_read_static_property(CRouteCe,ZEND_STRL("thisModule"),0 TSRMLS_CC);
+		spprintf(&routeString,0,"%s%s%s%s%s",Z_STRVAL_P(module),"/",Z_STRVAL_P(controller),"/",Z_STRVAL_P(action));
+		htmlspecialchars(routeString,&filter);
+		add_assoc_string(*data,"RouteParse",filter,0);
+		efree(routeString);
+	MODULE_END
+
+	MODULE_BEGIN
+		char	*openTrace,
+				*keyName;
+		ini_get("CMyFrameExtension.open_trace",&openTrace);
+		add_assoc_string(*data,"TraceMonitor",strcmp(openTrace,"1") == 0 ? "On" : "Off",0);
+	MODULE_END
+
+	//shell check
+	MODULE_BEGIN
+		char	*openTrace;
+		ini_get("CMyFrameExtension.open_shell_check",&openTrace);
+		add_assoc_string(*data,"ShellListener",strcmp(openTrace,"1") == 0 ? "On" : "Off",0);
+	MODULE_END
+
+	//notifyMail
+	MODULE_BEGIN
+		zval	*cconfigInstanceZval,
+				*mailConfg,
+				**thisVal;
+
+		CConfig_getInstance("watch",&cconfigInstanceZval TSRMLS_CC);
+		CConfig_load("notify",cconfigInstanceZval,&mailConfg TSRMLS_CC);
+		if(
+			IS_ARRAY == Z_TYPE_P(mailConfg) && 
+			SUCCESS == zend_hash_find(Z_ARRVAL_P(mailConfg),"host",strlen("host")+1,(void**)&thisVal) && IS_STRING == Z_TYPE_PP(thisVal) && 
+			SUCCESS == zend_hash_find(Z_ARRVAL_P(mailConfg),"port",strlen("port")+1,(void**)&thisVal) && IS_LONG == Z_TYPE_PP(thisVal) && 
+			SUCCESS == zend_hash_find(Z_ARRVAL_P(mailConfg),"user",strlen("user")+1,(void**)&thisVal) && IS_STRING == Z_TYPE_PP(thisVal) && 
+			SUCCESS == zend_hash_find(Z_ARRVAL_P(mailConfg),"pass",strlen("pass")+1,(void**)&thisVal) && IS_STRING == Z_TYPE_PP(thisVal) && 
+			SUCCESS == zend_hash_find(Z_ARRVAL_P(mailConfg),"to",strlen("to")+1,(void**)&thisVal) 
+		){
+			char	*say;
+			add_assoc_string(*data,"NotifyMail","Ready",0);
+		}else{
+			char	*say;
+			add_assoc_string(*data,"NotifyMail","Not Ready",0);
+		}
+		zval_ptr_dtor(&cconfigInstanceZval);
+		zval_ptr_dtor(&mailConfg);
+	MODULE_END
+
+
+	if(type == 2){
+
+	}
+
+
+	zval_ptr_dtor(&cconfigInstanceZval);
+}
+
+void CDebug_createPluginData(zval **data TSRMLS_DC){
+
+	zval	*loadPlugin,
+			**thisVal;
+
+	int		i,h;
+
+	MAKE_STD_ZVAL(*data);
+	array_init(*data);
+
+	add_assoc_string(*data,"CDebug","Loaded , extension by C",0);
+
+	loadPlugin = zend_read_static_property(CHooksCe,ZEND_STRL("_pluginList"), 0 TSRMLS_CC);
+	if(IS_ARRAY != Z_TYPE_P(loadPlugin)){
+		return;
+	}
+	
+	h = zend_hash_num_elements(Z_ARRVAL_P(loadPlugin));
+	for(i = 0 ; i < h;i++){
+		zend_hash_get_current_data(Z_ARRVAL_P(loadPlugin),(void**)&thisVal);
+		add_assoc_string(*data,Z_STRVAL_PP(thisVal),"Loaded",0);
+		zend_hash_move_forward(Z_ARRVAL_P(loadPlugin));
+	}
+
+	loadPlugin = zend_read_static_property(CHooksCe,ZEND_STRL("_failLoadPluginList"), 0 TSRMLS_CC);
+	h = zend_hash_num_elements(Z_ARRVAL_P(loadPlugin));
+	for(i = 0 ; i < h;i++){
+		zend_hash_get_current_data(Z_ARRVAL_P(loadPlugin),(void**)&thisVal);
+		add_assoc_string(*data,Z_STRVAL_PP(thisVal),"UnLoaded",0);
+		zend_hash_move_forward(Z_ARRVAL_P(loadPlugin));
+	}
+}
+
+void CDebug_checkShowDebugInfo(zval *object TSRMLS_DC){
+	
+	zval	*cconfigInstanceZval,
+			*debugIp,
+			*viewObjectZval,
+			*useQuickTemplate,
+			*requestData,
+			*serverData,
+			*files,
+			*appPath,
+			*applicationData,
+			*pluginData,
+			*sqlList,
+			*errorList,
+			*serverLoad;
+
+	char	*remoteAdder,
+			*templateUsed,
+			*tempHtml,
+			*getDebug = NULL;
+
+	//check get params
+	getGetParam("debug",&getDebug);
+	if(getDebug == NULL){
+		return;
+	}
+
+	CConfig_getInstance("main",&cconfigInstanceZval TSRMLS_CC);
+	CConfig_load("DEBUG_IP",cconfigInstanceZval,&debugIp TSRMLS_CC);
+	
+	getServerParam("REMOTE_ADDR",&remoteAdder TSRMLS_CC);
+	if(remoteAdder == NULL || IS_ARRAY != Z_TYPE_P(debugIp)){
+		zval_ptr_dtor(&cconfigInstanceZval);
+		zval_ptr_dtor(&debugIp);
+		if(remoteAdder != NULL){
+			efree(remoteAdder);
+		}
+		return;
+	}
+
+
+	if(!in_array(remoteAdder,debugIp)){
+		efree(remoteAdder);
+		zval_ptr_dtor(&cconfigInstanceZval);
+		zval_ptr_dtor(&debugIp);
+		return;
+	}
+
+	appPath = zend_read_static_property(CWebAppCe,ZEND_STRL("app_path"),0 TSRMLS_CC);
+
+	//tempType
+	CConfig_load("USE_QUICKTEMPLATE",cconfigInstanceZval,&useQuickTemplate TSRMLS_CC);
+
+	//get view object
+	templateUsed = "smarty";
+	if(IS_LONG == Z_TYPE_P(useQuickTemplate) && 1 == Z_LVAL_P(useQuickTemplate)){
+		templateUsed = "CQuickTemplate";
+	}
+	zval_ptr_dtor(&useQuickTemplate);
+
+	base64Decode(debugString,&tempHtml);
+
+	//视图对象
+	CView_factory(templateUsed,&viewObjectZval TSRMLS_CC);
+
+	//get include files
+	MODULE_BEGIN
+		char	*entry;
+		MAKE_STD_ZVAL(files);
+		array_init(files);
+		zend_hash_internal_pointer_reset(&EG(included_files));
+		while (zend_hash_get_current_key(&EG(included_files), &entry, NULL, 1) == HASH_KEY_IS_STRING) {
+			char *mohu;
+			str_replace(Z_STRVAL_P(appPath),"APP_PATH",entry,&mohu);
+			add_next_index_string(files, mohu, 0);
+			zend_hash_move_forward(&EG(included_files));
+		}
+		CQuickTemplate_assign(viewObjectZval,"includeFile",files TSRMLS_CC);
+	MODULE_END
+
+
+	//create requestData
+	CDebug_createRequestData(&requestData,2 TSRMLS_CC);
+	CQuickTemplate_assign(viewObjectZval,"request",requestData TSRMLS_CC);
+
+	CDebug_createServerData(&serverData TSRMLS_CC);
+	CQuickTemplate_assign(viewObjectZval,"server",serverData TSRMLS_CC);
+
+	sqlList = zend_read_property(CDebugCe,object,ZEND_STRL("_sqlList"),0 TSRMLS_CC);
+	CQuickTemplate_assign(viewObjectZval,"executeData",sqlList TSRMLS_CC);
+
+	//serverLoad
+	CDebug_createServerLoadData(&serverLoad TSRMLS_CC);
+	CQuickTemplate_assign(viewObjectZval,"serverLoad",serverLoad TSRMLS_CC);
+
+
+	//pluginData
+	CDebug_createPluginData(&pluginData TSRMLS_CC);
+	CQuickTemplate_assign(viewObjectZval,"pluginData",pluginData TSRMLS_CC);
+
+	//callStack
+	CDebug_createServerData(&serverData TSRMLS_CC);
+	CQuickTemplate_assign(viewObjectZval,"callStack",serverData TSRMLS_CC);
+
+	errorList = zend_read_property(CDebugCe,object,ZEND_STRL("_errorList"),1 TSRMLS_CC);
+	CQuickTemplate_assign(viewObjectZval,"warnList",errorList TSRMLS_CC);
+
+	//show HTML
+	MODULE_BEGIN
+		zval	callFunction,
+				callReturn,
+				*params[2];
+		MAKE_STD_ZVAL(params[0]);
+		ZVAL_STRING(params[0],tempHtml,1);
+		MAKE_STD_ZVAL(params[1]);
+		ZVAL_STRING(params[1],"internal/debugTemplate",1);
+		INIT_ZVAL(callFunction);
+		ZVAL_STRING(&callFunction,"displayHTML",0);
+		call_user_function(NULL, &viewObjectZval, &callFunction, &callReturn, 2, params TSRMLS_CC);
+		zval_dtor(&callReturn);
+		zval_ptr_dtor(&params[0]);
+		zval_ptr_dtor(&params[1]);
+	MODULE_END
+
+	zval_ptr_dtor(&cconfigInstanceZval);
+	zval_ptr_dtor(&debugIp);
+	efree(remoteAdder);
+	efree(tempHtml);
+}
+
 PHP_METHOD(CDebug,getRequestShutdown)
 {
 	zval		*errorList,
@@ -496,14 +1179,23 @@ PHP_METHOD(CDebug,getRequestShutdown)
 				**traceDetail,
 				*errorInstance,
 				*cconfigInstanceZval,
-				*debugStatus;
+				*useQuickTemplate,
+				*debugStatus,
+				*viewObjectZval,
+				*files,
+				*requestData,
+				*serverData;
 
 	char		*filePath,
-				*tempString;
+				*tempString,
+				*templateUsed,
+				*tempHtml;
 
 	smart_str	html = {0};
 
-	int			i,h,hasFatal = 0;
+	int			i,h,hasFatal = 0,needShow = 0;
+
+	CDebug_checkShowDebugInfo(getThis() TSRMLS_CC);
 
 	errorList = zend_read_property(CDebugCe,getThis(),ZEND_STRL("_errorList"),1 TSRMLS_CC);
 
@@ -519,6 +1211,7 @@ PHP_METHOD(CDebug,getRequestShutdown)
 	//read debug config
 	CConfig_getInstance("main",&cconfigInstanceZval TSRMLS_CC);
 	CConfig_load("DEBUG",cconfigInstanceZval,&debugStatus TSRMLS_CC);
+	CConfig_load("USE_QUICKTEMPLATE",cconfigInstanceZval,&useQuickTemplate TSRMLS_CC);
 	if(IS_BOOL == Z_TYPE_P(debugStatus) && 1 == Z_LVAL_P(debugStatus)){
 	}else{
 		zval_ptr_dtor(&cconfigInstanceZval);
@@ -535,86 +1228,67 @@ PHP_METHOD(CDebug,getRequestShutdown)
 
 	appPath = zend_read_static_property(CWebAppCe,ZEND_STRL("app_path"),0 TSRMLS_CC);
 
-	//header
-	smart_str_appends(&html,"</pre><style>#classTable .maininfo{cursor: pointer;}#classTable .switch{display:inline-block;width:20px; cursor: pointer;}#classTable .none{display:none}#classTable .desc{padding-left:10px}#classTable .desc2{padding-left:60px}#classTable .desc3{padding-left:40px}#classTable{border:solid 1px #ccc; width:100%; border-collapse:collapse; margin-bottom:20px; font-size:14px;}td,th{height:30px; text-align:left; padding-left:8px;border:solid 1px #ccc;}#classTableHead th{background:#F7F7FB}#classTable .name{background:#F7F7FB; width:30%}</style><table id='classTable'><thead id='classTableHead'><tr><th colspan='3'>CQuickFramework Exception Report Page</th></tr></thead>");
-	smart_str_appends(&html,"<script>function showTrace(id){var nowstatus=document.getElementById('switch'+id).innerHTML;if(nowstatus=='+'){document.getElementById('switch'+id).innerHTML='-';var needShow=document.getElementsByClassName('stack'+id);for(var i=0;i<needShow.length;i++){needShow[i].classList.remove('none')}}else{document.getElementById('switch'+id).innerHTML='+';var needShow=document.getElementsByClassName('stack'+id);for(var i=0;i<needShow.length;i++){needShow[i].classList.add('none')}}};</script>");
-	
-
-	//create HTML
-	zend_hash_internal_pointer_end(Z_ARRVAL_P(errorList));
-	h = zend_hash_num_elements(Z_ARRVAL_P(errorList));
-	for(i = 0 ; i < h ; i++){
-		zend_hash_get_current_data(Z_ARRVAL_P(errorList),(void**)&thisVal);
-		if(IS_ARRAY != Z_TYPE_PP(thisVal)){
-			zend_hash_move_forward(Z_ARRVAL_P(errorList));
-			continue;
-		}
-
-		zend_hash_find(Z_ARRVAL_PP(thisVal),"message",strlen("message")+1,(void**)&message);
-		zend_hash_find(Z_ARRVAL_PP(thisVal),"type",strlen("type")+1,(void**)&type);
-		zend_hash_find(Z_ARRVAL_PP(thisVal),"line",strlen("line")+1,(void**)&line);
-		zend_hash_find(Z_ARRVAL_PP(thisVal),"file",strlen("file")+1,(void**)&file);
-		zend_hash_find(Z_ARRVAL_PP(thisVal),"trace",strlen("trace")+1,(void**)&trace);
-
-		str_replace(Z_STRVAL_P(appPath),"APP_PATH",Z_STRVAL_PP(file),&filePath);
-
-
-		spprintf(&tempString,0,"%s%d%s%d%s%s%s%s%s%s%s%d%s%d%s%d%s","<tr><td class='desc maininfo' onclick=\"showTrace('",i,"')\" style='padding-top:10px;padding-bottom:10px;line-height:24px'> <span id='switch",i,"' class=\"switch\">+</span> [",Z_STRVAL_PP(type),"] : ",Z_STRVAL_PP(message),"&nbsp;&nbsp;&nbsp;&nbsp;  - in script ",filePath," - Line : ",Z_LVAL_PP(line),"</td></tr><tr><td id='func",i,"' class='desc3 none stack",i,"'>FunctionStack : </td></tr>");
-		smart_str_appends(&html,tempString);
-		efree(tempString);
-		efree(filePath);
-
-		if(IS_ARRAY == Z_TYPE_PP(trace)){
-			int		k,j;
-			zval	**detailClass,
-					**detailFunction,
-					**detailType,
-					**detailFile,
-					**defaultLine;
-			char	*fileTrue;
-			long	fileLine = 0;
-			zend_hash_internal_pointer_end(Z_ARRVAL_PP(trace));
-			j = zend_hash_num_elements(Z_ARRVAL_PP(trace));
-			for(k = 0 ; k < j ; k++){
-				zend_hash_get_current_data(Z_ARRVAL_PP(trace),(void**)&traceDetail);
-
-				zend_hash_find(Z_ARRVAL_PP(traceDetail),"function",strlen("function")+1,(void**)&detailFunction);
-				zend_hash_find(Z_ARRVAL_PP(traceDetail),"class",strlen("class")+1,(void**)&detailClass);
-				zend_hash_find(Z_ARRVAL_PP(traceDetail),"type",strlen("type")+1,(void**)&detailType);
-
-				if(SUCCESS == zend_hash_find(Z_ARRVAL_PP(traceDetail),"file",strlen("file")+1,(void**)&detailFile) && IS_STRING == Z_TYPE_PP(detailFile)){
-					str_replace(Z_STRVAL_P(appPath),"APP_PATH",Z_STRVAL_PP(detailFile),&fileTrue);
-				}else{
-					fileTrue = estrdup("Unknown script");
-				}
-
-				if(SUCCESS == zend_hash_find(Z_ARRVAL_PP(traceDetail),"line",strlen("line")+1,(void**)&defaultLine) && IS_LONG == Z_TYPE_PP(defaultLine)){
-					fileLine = Z_LVAL_PP(defaultLine);
-				}else{
-					fileLine = 0;
-				}
-
-
-				spprintf(&tempString,0,"%s%d%s%d%s%s%s%s%s%s%s%d%s","<tr class='stack",i," none'><td class='desc2'>",k+1,".",Z_STRVAL_PP(detailClass),Z_STRVAL_PP(detailType),Z_STRVAL_PP(detailFunction),"()&nbsp;&nbsp;&nbsp;&nbsp; in script : ",fileTrue," - Line : ",fileLine,"</td></tr>");
-				smart_str_appends(&html,tempString);
-				efree(fileTrue);
-				efree(tempString);
-
-				zend_hash_move_backwards(Z_ARRVAL_PP(trace));
-			}
-		}
-
-		smart_str_appends(&html,"<tr><td class=\"none\">&nbsp;</td></tr>");
-
-		zend_hash_move_backwards(Z_ARRVAL_P(errorList));
+	//get view object
+	templateUsed = "smarty";
+	if(IS_LONG == Z_TYPE_P(useQuickTemplate) && 1 == Z_LVAL_P(useQuickTemplate)){
+		templateUsed = "CQuickTemplate";
 	}
+	zval_ptr_dtor(&useQuickTemplate);
 
+	//add error code line
+	CDebug_getErrorDetail(errorList TSRMLS_CC);
 
+	//视图对象
+	CView_factory(templateUsed,&viewObjectZval TSRMLS_CC);
 
+	//html
+	base64Decode(templateString,&tempHtml);
 
-	smart_str_0(&html);
-	php_printf("%s",html.c);
-	smart_str_free(&html);
+	//assign
+	CQuickTemplate_assign(viewObjectZval,"allError",errorList TSRMLS_CC);
+
+	//get include files
+	MODULE_BEGIN
+		char	*entry;
+		MAKE_STD_ZVAL(files);
+		array_init(files);
+		zend_hash_internal_pointer_reset(&EG(included_files));
+		while (zend_hash_get_current_key(&EG(included_files), &entry, NULL, 1) == HASH_KEY_IS_STRING) {
+			char *mohu;
+			str_replace(Z_STRVAL_P(appPath),"APP_PATH",entry,&mohu);
+			add_next_index_string(files, mohu, 0);
+			zend_hash_move_forward(&EG(included_files));
+		}
+		CQuickTemplate_assign(viewObjectZval,"includeFile",files TSRMLS_CC);
+	MODULE_END
+
+	//create requestData
+	CDebug_createRequestData(&requestData,1 TSRMLS_CC);
+	CQuickTemplate_assign(viewObjectZval,"request",requestData TSRMLS_CC);
+
+	CDebug_createServerData(&serverData TSRMLS_CC);
+	CQuickTemplate_assign(viewObjectZval,"server",serverData TSRMLS_CC);
+
+	//show HTML
+	MODULE_BEGIN
+		zval	callFunction,
+				callReturn,
+				*params[2];
+		MAKE_STD_ZVAL(params[0]);
+		ZVAL_STRING(params[0],tempHtml,1);
+		MAKE_STD_ZVAL(params[1]);
+		ZVAL_STRING(params[1],"internal/errorTemplate",1);
+		INIT_ZVAL(callFunction);
+		ZVAL_STRING(&callFunction,"displayHTML",0);
+		call_user_function(NULL, &viewObjectZval, &callFunction, &callReturn, 2, params TSRMLS_CC);
+		zval_dtor(&callReturn);
+		zval_ptr_dtor(&params[0]);
+		zval_ptr_dtor(&params[1]);
+	MODULE_END
+
+	//destroy
+	zval_ptr_dtor(&viewObjectZval);
+	efree(tempHtml);
 }
 
 

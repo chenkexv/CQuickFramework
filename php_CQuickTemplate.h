@@ -26,6 +26,7 @@ PHP_METHOD(CQuickTemplate,getInstance);
 PHP_METHOD(CQuickTemplate,__construct);
 PHP_METHOD(CQuickTemplate,assign);
 PHP_METHOD(CQuickTemplate,display);
+PHP_METHOD(CQuickTemplate,displayHTML);
 PHP_METHOD(CQuickTemplate,compileTemplate);
 PHP_METHOD(CQuickTemplate,_parse_include_tags);
 PHP_METHOD(CQuickTemplate,_compile_tag);

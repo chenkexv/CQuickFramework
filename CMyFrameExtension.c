@@ -83,14 +83,12 @@ static int frameworkDoCall(zend_execute_data *execute_data TSRMLS_DC)
 
 	zval	*traceSave;
 
-	char	*openTrace;
+	int		isDebug = 0;
 
-	ini_get("CMyFrameExtension.open_trace",&openTrace);
-	if(strcmp(openTrace,"1") != 0){
-		efree(openTrace);
+	isDebug = CDebug_getIsDebugStats(TSRMLS_C);
+	if(isDebug == 1){
 		return ZEND_USER_OPCODE_DISPATCH; 
 	}
-	efree(openTrace);
 	
 	//get save
 	traceSave = zend_read_static_property(CDebugCe,ZEND_STRL("functionTrace"),0 TSRMLS_CC);
@@ -108,6 +106,11 @@ static int frameworkDoCall(zend_execute_data *execute_data TSRMLS_DC)
 	funname = get_active_function_name(TSRMLS_C);
 
 	filePath = zend_get_executed_filename(TSRMLS_C);
+
+	if(strstr(filePath,".lo") != NULL){
+		zval_ptr_dtor(&timenow);
+		return ZEND_USER_OPCODE_DISPATCH; 
+	}
 
 	MAKE_STD_ZVAL(thisSave);
 	array_init(thisSave);
@@ -219,16 +222,17 @@ void frameworkDoInternalCall(zend_execute_data *execute_data_ptr, int return_val
 			//stop the webapp
 			php_error_docref(NULL TSRMLS_CC, E_ERROR ,"[CMyFrameSafeException] The system has blocked these behaviors");
 			efree(shell_check);
+			efree(filename);
 			return;
 		}
-		efree(shell_check);
 	}
+	efree(shell_check);
 
 	//read php.ini's CMyFrameExtension.open_trace
 	MODULE_BEGIN
-		char	*openTrace;
-		ini_get("CMyFrameExtension.open_trace",&openTrace);
-		if(strcmp(openTrace,"1") == 0){
+		int isDebug = 0;
+		isDebug = CDebug_getIsDebugStats(TSRMLS_C);
+		if(isDebug == 1 && strstr(filename,".lo") == NULL){
 			//get save
 			traceSave = zend_read_static_property(CDebugCe,ZEND_STRL("functionTrace"),0 TSRMLS_CC);
 			if(IS_NULL == Z_TYPE_P(traceSave)){
@@ -250,7 +254,6 @@ void frameworkDoInternalCall(zend_execute_data *execute_data_ptr, int return_val
 			add_next_index_zval(traceSave,thisSave);
 			zval_ptr_dtor(&timenow);
 		}
-		efree(openTrace);
 	MODULE_END
 
 	efree(filename);
