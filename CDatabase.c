@@ -119,8 +119,8 @@ void CDatabase_getInstance(int useMaster,char *dbConf,zval **returnZval TSRMLS_D
 
 	int		existObject;
 
-	MAKE_STD_ZVAL(*returnZval);
 
+	MAKE_STD_ZVAL(*returnZval);
 
 	//获取单例对象保存表
 	instanceZval = zend_read_static_property(CDatabaseCe,ZEND_STRL("instance"),0 TSRMLS_CC);
@@ -214,7 +214,8 @@ void CDatabase_getInstance(int useMaster,char *dbConf,zval **returnZval TSRMLS_D
 //类方法:创建应用对象
 PHP_METHOD(CDatabase,getInstance)
 {
-	char	*dbConf;
+	char	*dbConf,
+			*trueDbConf;
 	int		useMaster = 0,
 			dbConfLen = 0;
 	zval	*returnZval;
@@ -224,14 +225,17 @@ PHP_METHOD(CDatabase,getInstance)
 		return;
 	}
 
+
 	if(dbConfLen == 0){
-		dbConf = "main";
+		trueDbConf = estrdup("main");
+	}else{
+		trueDbConf = estrdup(dbConf);
 	}
 
-
-	CDatabase_getInstance(useMaster,dbConf,&returnZval TSRMLS_CC);
+	CDatabase_getInstance(useMaster,trueDbConf,&returnZval TSRMLS_CC);
 	ZVAL_ZVAL(return_value,returnZval,1,0);
 	zval_ptr_dtor(&returnZval);
+	efree(trueDbConf);
 }
 
 //构造函数

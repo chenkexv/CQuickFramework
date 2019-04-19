@@ -151,6 +151,7 @@ void CRedis_callFunction(char *val,zval *args,zval **returnData TSRMLS_DC){
 	int				i,num;
 
 	CRedis_getInstance(&redisZval,"main" TSRMLS_CC);
+
 	redisObject = zend_read_property(CRedisCe,redisZval,ZEND_STRL("_redisConn"),0 TSRMLS_CC);
 	MAKE_STD_ZVAL(*returnData);
 	if(zend_hash_find(&(Z_OBJCE_P(redisObject)->function_table),val,strlen(val)+1,(void**)&requsetAction) != SUCCESS){
@@ -193,6 +194,7 @@ void CRedis_callFunction(char *val,zval *args,zval **returnData TSRMLS_DC){
 			char errMessage[1024];
 			sprintf(errMessage,"%s%s%s","[CRedisException] Unable to connect to the redis server to CallFunction: ",val,"()");
 			zend_clear_exception(TSRMLS_C);
+			ZVAL_NULL(*returnData);
 			zend_throw_exception(CRedisExceptionCe, errMessage, 1001 TSRMLS_CC);
 			return;
 		}

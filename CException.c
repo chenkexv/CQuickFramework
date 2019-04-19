@@ -347,6 +347,13 @@ void CException_getTopErrors(zval *code,zval *content,zval *file,zval *line TSRM
 	){
 		//∑¢ÀÕ500¥ÌŒÛ
 		sendHttpCode(500 TSRMLS_CC);
+	}else{
+		//check is debug , release will ignore note warn 
+		int isDebugNow = 0;
+		isDebugNow = CDebug_getIsDebugStats(TSRMLS_C);
+		if(isDebugNow != 1){
+			return;
+		}
 	}
 
 	//∂¡»°“—¥Ê¥ÌŒÛ

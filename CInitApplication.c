@@ -204,7 +204,15 @@ void CInitApplication_initHooks(TSRMLS_D)
 
 
 	//load systemPlugin
-	CHooks_loadSystemPlugin(TSRMLS_C);
+	MODULE_BEGIN
+		zval	*closeSystemTrace;
+		CConfig_load("CLOSE_DEBUGER",cconfigInstanceZval,&closeSystemTrace TSRMLS_CC);
+		if(IS_BOOL == Z_TYPE_P(closeSystemTrace) && 1 == Z_LVAL_P(closeSystemTrace)){
+		}else{
+			CHooks_loadSystemPlugin(TSRMLS_C);
+		}
+		zval_ptr_dtor(&closeSystemTrace);
+	MODULE_END
 
 	//¼ÓÔØ²å¼þ
 	if(IS_BOOL == Z_TYPE_P(loadPluginZval) && 1 == Z_LVAL_P(loadPluginZval)){
@@ -475,6 +483,17 @@ PHP_METHOD(CInitApplication,webShutdown)
 	}
 
 	appPath = zend_read_static_property(CWebAppCe, ZEND_STRL("app_path"), 0 TSRMLS_CC);
+
+	//endTime
+	MODULE_BEGIN
+		zval	**startTimeZval,
+				*startTime;
+
+		if(zend_hash_find(&EG(symbol_table),"SYSTEM_INIT",strlen("SYSTEM_INIT")+1,(void**)&startTimeZval) == SUCCESS && IS_ARRAY == Z_TYPE_PP(startTimeZval)){
+			microtimeTrue(&startTime);
+			add_assoc_zval_ex(*startTimeZval,"systemEnd",strlen("systemEnd")+1,startTime);
+		}
+	MODULE_END
 
 	if(IS_ARRAY == Z_TYPE_P(lastError)){
 		zval **errorType;

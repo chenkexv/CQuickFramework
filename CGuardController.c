@@ -1756,11 +1756,31 @@ void CGuardController_getCacheStatus(zval *saveLogs TSRMLS_DC){
 	zval	*fristInfo,
 			*callParams,
 			*redisBack,
-			*redisBack2;
+			*redisBack2,
+			*cconfigInstanceZval,
+			*redisHost;
+
+	CConfig_getInstance("main",&cconfigInstanceZval TSRMLS_CC);
+	CConfig_load("REDIS_HOST",cconfigInstanceZval,&redisHost TSRMLS_CC);
+	if(IS_STRING != Z_TYPE_P(redisHost)){
+		zval_ptr_dtor(&cconfigInstanceZval);
+		zval_ptr_dtor(&redisHost);
+		return;
+	}
+
+	zval_ptr_dtor(&cconfigInstanceZval);
+	zval_ptr_dtor(&redisHost);
 
 	MAKE_STD_ZVAL(callParams);
 	array_init(callParams);
 	CRedis_callFunction("info",callParams,&redisBack TSRMLS_CC);
+
+	if(IS_ARRAY != Z_TYPE_P(redisBack)){
+		zval_ptr_dtor(&redisBack);
+		zval_ptr_dtor(&callParams);
+		return;
+	}
+
 	zval_ptr_dtor(&callParams);
 
 	//get cache hit
@@ -1890,6 +1910,11 @@ void CGuardController_getFpmStatus(zval *saveLogs TSRMLS_DC){
 	//php-fpm num
 	exec_shell_return("ps aux|grep php",&fpmLogs);
 	php_explode("\n",fpmLogs,&returnArray);
+	if(IS_ARRAY != Z_TYPE_P(returnArray)){
+		efree(fpmLogs);
+		zval_ptr_dtor(&returnArray);
+		return;
+	}
 	h = zend_hash_num_elements(Z_ARRVAL_P(returnArray));
 	for(i = 0 ; i < h; i++){
 		zend_hash_get_current_data(Z_ARRVAL_P(returnArray),(void**)&thisVal);
@@ -1921,10 +1946,31 @@ void CGuardController_getMQStatus(zval *saveLogs TSRMLS_DC){
 
 	zval	*rabbitHelper,
 			*queueLenZval,
-			*overviewData;
+			*overviewData,
+			*cconfigInstanceZval,
+			*mqconfig;
+
+	CConfig_getInstance("main",&cconfigInstanceZval TSRMLS_CC);
+	CConfig_load("RABBITMQ.main",cconfigInstanceZval,&mqconfig TSRMLS_CC);
+	if(IS_ARRAY != Z_TYPE_P(mqconfig)){
+		zval_ptr_dtor(&cconfigInstanceZval);
+		zval_ptr_dtor(&mqconfig);
+		return;
+	}
+
 
 	//overview info
 	CRabbitHelper_getInstance(&rabbitHelper,"main" TSRMLS_CC);
+	
+	//check has exception
+	if(EG(exception)){
+		Z_OBJ_HANDLE_P(EG(exception)) = 0;		
+		zend_clear_exception(TSRMLS_C);
+		zval_ptr_dtor(&rabbitHelper);
+		return;
+	}
+
+
 	CRabbitHelper_callApi_overview(rabbitHelper,&overviewData TSRMLS_CC);
 
 	//get rabbit queueLen	
