@@ -700,11 +700,11 @@ void CDebug_createServerLoadData(zval **data TSRMLS_DC){
 	MAKE_STD_ZVAL(*data);
 	array_init(*data);
 
-	CGuardController_getCacheStatus(*data TSRMLS_CC);
+	//CGuardController_getCacheStatus(*data TSRMLS_CC);
 
-	CGuardController_getFpmStatus(*data TSRMLS_CC);
+	//CGuardController_getFpmStatus(*data TSRMLS_CC);
 
-	CGuardController_getMQStatus(*data TSRMLS_CC);
+	//CGuardController_getMQStatus(*data TSRMLS_CC);
 }
 
 void CDebug_createServerData(zval **data TSRMLS_DC){
@@ -1195,16 +1195,16 @@ PHP_METHOD(CDebug,getRequestShutdown)
 
 	int			i,h,hasFatal = 0,needShow = 0;
 
-	CDebug_checkShowDebugInfo(getThis() TSRMLS_CC);
-
 	errorList = zend_read_property(CDebugCe,getThis(),ZEND_STRL("_errorList"),1 TSRMLS_CC);
 
 	if(IS_ARRAY != Z_TYPE_P(errorList)){
+		CDebug_checkShowDebugInfo(getThis() TSRMLS_CC);
 		return;
 	}
 
 	hasFatal = CException_hasFatalErrors(TSRMLS_C);
 	if(hasFatal != 1){
+		CDebug_checkShowDebugInfo(getThis() TSRMLS_CC);
 		return;
 	}
 
@@ -1216,6 +1216,7 @@ PHP_METHOD(CDebug,getRequestShutdown)
 	}else{
 		zval_ptr_dtor(&cconfigInstanceZval);
 		zval_ptr_dtor(&debugStatus);
+		CDebug_checkShowDebugInfo(getThis() TSRMLS_CC);
 		return;
 	}
 	zval_ptr_dtor(&cconfigInstanceZval);
@@ -1240,6 +1241,8 @@ PHP_METHOD(CDebug,getRequestShutdown)
 
 	// ”Õº∂‘œÛ
 	CView_factory(templateUsed,&viewObjectZval TSRMLS_CC);
+
+	ob_end_clean();
 
 	//html
 	base64Decode(templateString,&tempHtml);
@@ -1289,6 +1292,8 @@ PHP_METHOD(CDebug,getRequestShutdown)
 	//destroy
 	zval_ptr_dtor(&viewObjectZval);
 	efree(tempHtml);
+
+	CDebug_checkShowDebugInfo(getThis() TSRMLS_CC);
 }
 
 

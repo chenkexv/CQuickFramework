@@ -86,7 +86,7 @@ static int frameworkDoCall(zend_execute_data *execute_data TSRMLS_DC)
 	int		isDebug = 0;
 
 	isDebug = CDebug_getIsDebugStats(TSRMLS_C);
-	if(isDebug == 1){
+	if(isDebug == 0){
 		return ZEND_USER_OPCODE_DISPATCH; 
 	}
 	
