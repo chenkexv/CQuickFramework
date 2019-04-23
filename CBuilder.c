@@ -1618,6 +1618,78 @@ void CBuilder_clearSelf(zval *object TSRMLS_DC){
 	}
 }
 
+void CDatabase_setQueryCache(zval *object,zval *result TSRMLS_DC){
+
+	zval	*resultArray,
+			*callParams,
+			*cacheKey,
+			*cacheTime,
+			*redisReturn;
+
+	char	*jsonString;
+
+	long	cacheTimeLong = 3600;
+
+	
+	cacheKey = zend_read_property(CBuilderCe,object,ZEND_STRL("_cache"), 0 TSRMLS_CC);
+	if(strlen(Z_STRVAL_P(cacheKey)) <= 0){
+		return;
+	}
+
+	resultArray = zend_read_property(CResultCe,result,ZEND_STRL("value"), 0 TSRMLS_CC);
+	if(IS_ARRAY != Z_TYPE_P(resultArray)){
+		return;
+	}
+
+	cacheTime = zend_read_property(CBuilderCe,object,ZEND_STRL("_cacheTime"), 0 TSRMLS_CC);
+	if(IS_LONG == Z_TYPE_P(cacheTime) && Z_LVAL_P(cacheTime) > 0){
+		cacheTimeLong = Z_LVAL_P(cacheTime);
+	}
+
+	json_encode(resultArray,&jsonString);
+
+	MAKE_STD_ZVAL(callParams);
+	array_init(callParams);
+	add_next_index_string(callParams,Z_STRVAL_P(cacheKey),1);
+	add_next_index_string(callParams,jsonString,0);
+	add_next_index_long(callParams,cacheTimeLong);
+
+	CRedis_callFunction("set",callParams,&redisReturn TSRMLS_CC);
+	zval_ptr_dtor(&redisReturn);
+	zval_ptr_dtor(&callParams);
+}
+
+//check return from cache
+void CDatabase_checkQueryCache(zval *object,zval **cacheResult TSRMLS_DC)
+{
+	zval	*cacheKey,
+			*callParams,
+			*redisReturn,
+			*jsonDecode;
+
+	MAKE_STD_ZVAL(*cacheResult);
+	cacheKey = zend_read_property(CBuilderCe,object,ZEND_STRL("_cache"), 0 TSRMLS_CC);
+	if(strlen(Z_STRVAL_P(cacheKey)) <= 0){
+		return;
+	}
+
+	MAKE_STD_ZVAL(callParams);
+	array_init(callParams);
+	add_next_index_string(callParams,Z_STRVAL_P(cacheKey),1);
+	CRedis_callFunction("get",callParams,&redisReturn TSRMLS_CC);
+	if(IS_STRING != Z_TYPE_P(redisReturn)){
+		zval_ptr_dtor(&redisReturn);
+		zval_ptr_dtor(&callParams);
+		return;
+	}
+
+	//decode
+	json_decode(Z_STRVAL_P(redisReturn),&jsonDecode);
+	ZVAL_ZVAL(*cacheResult,jsonDecode,1,1);
+	zval_ptr_dtor(&redisReturn);
+	zval_ptr_dtor(&callParams);
+}
+
 //实现execute参数 Call 
 void CBuilder_executeParam1(zval *params,zval *object,zval **defaultZval TSRMLS_DC)
 {
@@ -1868,7 +1940,8 @@ PHP_METHOD(CBuilder,execute)
 					*resultZval,
 					*whereValue,
 					*saveResult,
-					pdoResultGet;
+					pdoResultGet,
+					*cacheResult;
 
 
 			//获取PDO对象
@@ -1876,6 +1949,26 @@ PHP_METHOD(CBuilder,execute)
 				thisUseMaster = 1;
 				fromMaster = 1;
 			}
+
+			//check cache
+			CDatabase_checkQueryCache(getThis(),&cacheResult TSRMLS_CC);
+			if(IS_ARRAY == Z_TYPE_P(cacheResult)){
+				//has get success
+				MAKE_STD_ZVAL(cResultZval);
+				object_init_ex(cResultZval,CResultCe);
+				zend_update_property_string(CResultCe,cResultZval,ZEND_STRL("sql"),"" TSRMLS_CC);
+				zend_update_property_bool(CResultCe,cResultZval,ZEND_STRL("isFromCache"),1 TSRMLS_CC);
+				zend_update_property_bool(CResultCe,cResultZval,ZEND_STRL("isMaster"),0 TSRMLS_CC);
+				zend_update_property_null(CResultCe,cResultZval,ZEND_STRL("whereValue") TSRMLS_CC);
+				zend_update_property(CResultCe,cResultZval,ZEND_STRL("value"),cacheResult TSRMLS_CC);
+				zend_update_property_double(CResultCe,cResultZval,ZEND_STRL("castTime"),0 TSRMLS_CC);
+				CBuilder_clearSelf(getThis() TSRMLS_CC);
+				RETVAL_ZVAL(cResultZval,1,1);
+				zval_ptr_dtor(&cacheResult);
+				efree(action);
+				return;
+			}
+			zval_ptr_dtor(&cacheResult);
 
 			CDatabase_getDatabase(configName,thisUseMaster,&pdoObject TSRMLS_CC);
 
@@ -2065,6 +2158,8 @@ PHP_METHOD(CBuilder,execute)
 					zval_ptr_dtor(&paramsList[0]);
 				MODULE_END
 
+				//set to cache
+				CDatabase_setQueryCache(getThis(),cResultZval TSRMLS_CC);
 
 				//清理自身
 				CBuilder_clearSelf(getThis() TSRMLS_CC);
@@ -2730,9 +2825,9 @@ PHP_METHOD(CBuilder,getSql)
 //设置缓存
 PHP_METHOD(CBuilder,cache)
 {
-	char	*cacheKey;
+	char		*cacheKey;
 	long		cacheTime = 3600;
-	int		cacheKeyLen = 0;
+	int			cacheKeyLen = 0;
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"s|l",&cacheKey,&cacheKeyLen,&cacheTime) == FAILURE){
 		zend_throw_exception(CDbExceptionCe, "[QueryException] Call [CBuilder->cache] Parameter error ", 5007 TSRMLS_CC);
