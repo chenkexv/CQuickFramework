@@ -2747,6 +2747,31 @@ void curl_getinfo(zval *object,zval **getZval)
 	return;
 }
 
+void get_file_extname(char *filename,char **filetype TSRMLS_DC){
+
+	zval	*cutEnd,
+			**nowData;
+
+	php_explode(".",filename,&cutEnd);
+	if(IS_ARRAY != Z_TYPE_P(cutEnd)){
+		zval_ptr_dtor(&cutEnd);
+		*filetype = estrdup("txt");
+		return;
+	}
+
+	//get end elem
+	zend_hash_internal_pointer_end(Z_ARRVAL_P(cutEnd));
+	zend_hash_get_current_data(Z_ARRVAL_P(cutEnd),(void**)&nowData);
+
+	if(IS_STRING == Z_TYPE_PP(nowData)){
+		*filetype = estrdup(Z_STRVAL_PP(nowData));
+	}else{
+		*filetype = estrdup("txt");
+	}
+
+	zval_ptr_dtor(&cutEnd);
+}
+
 void curl_error(zval *object,zval **getZval)
 {
 	zval	returnZval,
