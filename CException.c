@@ -87,6 +87,14 @@ CMYFRAME_REGISTER_CLASS_RUN(CRedisException)
 	return SUCCESS;
 }
 
+CMYFRAME_REGISTER_CLASS_RUN(CFtpException)
+{
+	zend_class_entry	funCe;
+	INIT_CLASS_ENTRY(funCe,"CFtpException",COtherException_functions);
+	CFtpExceptionCe = zend_register_internal_class_ex(&funCe,CExceptionCe,NULL TSRMLS_CC);
+	return SUCCESS;
+}
+
 //classNotFound
 CMYFRAME_REGISTER_CLASS_RUN(CClassNotFoundException)
 {
