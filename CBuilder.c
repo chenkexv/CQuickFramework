@@ -1669,7 +1669,9 @@ void CDatabase_checkQueryCache(zval *object,zval **cacheResult TSRMLS_DC)
 
 	MAKE_STD_ZVAL(*cacheResult);
 	cacheKey = zend_read_property(CBuilderCe,object,ZEND_STRL("_cache"), 0 TSRMLS_CC);
+	convert_to_string(cacheKey);
 	if(strlen(Z_STRVAL_P(cacheKey)) <= 0){
+		ZVAL_BOOL(*cacheResult,0);
 		return;
 	}
 
@@ -1680,6 +1682,7 @@ void CDatabase_checkQueryCache(zval *object,zval **cacheResult TSRMLS_DC)
 	if(IS_STRING != Z_TYPE_P(redisReturn)){
 		zval_ptr_dtor(&redisReturn);
 		zval_ptr_dtor(&callParams);
+		ZVAL_BOOL(*cacheResult,0);
 		return;
 	}
 
@@ -1969,6 +1972,7 @@ PHP_METHOD(CBuilder,execute)
 				return;
 			}
 			zval_ptr_dtor(&cacheResult);
+		
 
 			CDatabase_getDatabase(configName,thisUseMaster,&pdoObject TSRMLS_CC);
 
