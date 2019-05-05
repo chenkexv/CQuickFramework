@@ -813,10 +813,10 @@ PHP_METHOD(CController,setLanguage)
 
 	//check lang file is exists
 	appPath = zend_read_static_property(CWebAppCe,ZEND_STRL("app_path"),0 TSRMLS_CC);
-	spprintf(&langFilePath,0,"%s%s%s%s",Z_STRVAL_P(appPath),"/application/configs/",nowRequestLang,".php");
+	spprintf(&langFilePath,0,"%s%s%s%s",Z_STRVAL_P(appPath),"/application/languages/",nowRequestLang,".php");
 	if(SUCCESS != fileExist(langFilePath)){
 		efree(langFilePath);
-		spprintf(&langFilePath,0,"%s%s%s%s",Z_STRVAL_P(appPath),"/application/configs/",defaultLanguage,".php");
+		spprintf(&langFilePath,0,"%s%s%s%s",Z_STRVAL_P(appPath),"/application/languages/",defaultLanguage,".php");
 	}
 
 	if(SUCCESS == fileExist(langFilePath)){

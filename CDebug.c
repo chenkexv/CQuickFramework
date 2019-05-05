@@ -665,7 +665,7 @@ int CDebug_getIsDebugStats(TSRMLS_D){
 				*debugIp;
 
 	//check get params
-	getGetParam("debug",&getDebug);
+	getGetParams("debug",&getDebug);
 	if(getDebug == NULL){
 		return 0;
 	}
@@ -1058,7 +1058,7 @@ void CDebug_checkShowDebugInfo(zval *object TSRMLS_DC){
 			*getDebug = NULL;
 
 	//check get params
-	getGetParam("debug",&getDebug);
+	getGetParams("debug",&getDebug);
 	if(getDebug == NULL){
 		return;
 	}
@@ -1221,7 +1221,6 @@ PHP_METHOD(CDebug,getRequestShutdown)
 	}
 	zval_ptr_dtor(&cconfigInstanceZval);
 	zval_ptr_dtor(&debugStatus);
-
 
 	CException_getInstance(&errorInstance TSRMLS_CC);
 	zend_update_property_long(CExceptionCe,errorInstance, ZEND_STRL("errorOutput"), 0 TSRMLS_CC);
