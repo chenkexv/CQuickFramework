@@ -59,22 +59,6 @@ CMYFRAME_REGISTER_CLASS_RUN(CSecurityCode)
 	return SUCCESS;
 }
 
-void callHeader(char *header,int replace TSRMLS_DC){
-	zval	constructVal,
-			callCreateReturn,
-			*paramsList[2];
-
-	MAKE_STD_ZVAL(paramsList[0]);
-	MAKE_STD_ZVAL(paramsList[1]);
-	ZVAL_STRING(paramsList[0],header,1);
-	ZVAL_LONG(paramsList[1],replace);
-	INIT_ZVAL(constructVal);
-	ZVAL_STRING(&constructVal,"header", 0);
-	call_user_function(EG(function_table), NULL, &constructVal, &callCreateReturn, 2, paramsList TSRMLS_CC);
-	zval_ptr_dtor(&paramsList[0]);
-	zval_ptr_dtor(&paramsList[1]);
-	zval_dtor(&callCreateReturn);
-}
 
 void CSecurityCode_drawCureve(zval *imageSource,int width,int height,int fontSize,zval *color TSRMLS_DC){
 

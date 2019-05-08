@@ -105,6 +105,35 @@ int php_strtotime(char *string){
 	}
 }
 
+int php_strtotime_ex(char *string,int timestamp){
+
+	zval	returnZval,
+			*params[2],
+			function,
+			*sthisReturnZval;
+
+	TSRMLS_FETCH();
+	MAKE_STD_ZVAL(params[0]);
+	ZVAL_STRING(params[0],string,1);
+
+	MAKE_STD_ZVAL(params[1]);
+	ZVAL_LONG(params[1],timestamp);
+	
+	INIT_ZVAL(function);
+	ZVAL_STRING(&function,"strtotime",0);
+	call_user_function(EG(function_table), NULL, &function, &returnZval, 2, params TSRMLS_CC);
+	zval_ptr_dtor(&params[0]);
+	zval_ptr_dtor(&params[1]);
+
+	if(IS_LONG == Z_TYPE(returnZval)){
+		zval_dtor(&returnZval);
+		return Z_LVAL(returnZval);
+	}else{
+		zval_dtor(&returnZval);
+		return 0;
+	}
+}
+
 void htmlspecialchars(char *string,char **val)
 {
 	zval	returnZval,
@@ -2477,6 +2506,53 @@ void base64Encode(char *reg,char **getStr)
 	*getStr = estrdup(reg);
 	zval_dtor(&returnZval);
 	return;
+}
+
+void php_iconv(char *from,char *to,char *string,char **outstring){
+
+	zval	returnZval,
+			*params[3],
+			function;
+	int status = FAILURE;
+	TSRMLS_FETCH();
+
+	MAKE_STD_ZVAL(params[0]);
+	MAKE_STD_ZVAL(params[1]);
+	MAKE_STD_ZVAL(params[2]);
+
+	ZVAL_STRING(params[0],from,1);
+	ZVAL_STRING(params[1],to,1);
+	ZVAL_STRING(params[2],string,1);	
+	INIT_ZVAL(function);
+	ZVAL_STRING(&function,"iconv",0);
+	status = call_user_function(EG(function_table), NULL, &function, &returnZval, 3, params TSRMLS_CC);
+
+	if(IS_STRING == Z_TYPE(returnZval)){
+		*outstring = estrdup(Z_STRVAL(returnZval));
+	}else{
+		*outstring = estrdup(string);
+	}
+	zval_dtor(&returnZval);
+	zval_ptr_dtor(&params[0]);
+	zval_ptr_dtor(&params[1]);
+	zval_ptr_dtor(&params[2]);
+}
+
+void callHeader(char *header,int replace TSRMLS_DC){
+	zval	constructVal,
+			callCreateReturn,
+			*paramsList[2];
+
+	MAKE_STD_ZVAL(paramsList[0]);
+	MAKE_STD_ZVAL(paramsList[1]);
+	ZVAL_STRING(paramsList[0],header,1);
+	ZVAL_LONG(paramsList[1],replace);
+	INIT_ZVAL(constructVal);
+	ZVAL_STRING(&constructVal,"header", 0);
+	call_user_function(EG(function_table), NULL, &constructVal, &callCreateReturn, 2, paramsList TSRMLS_CC);
+	zval_ptr_dtor(&paramsList[0]);
+	zval_ptr_dtor(&paramsList[1]);
+	zval_dtor(&callCreateReturn);
 }
 
 void base64Decode(char *reg,char **getStr)
