@@ -1,6 +1,7 @@
 <h1>框架安装步骤</h1>
-<p>安装方法跟其他扩展一样</p>
+<p>CQuickFramework遵循PHP全部的扩展开发标准,对PHP而言是非侵入式的.其安装方法跟其他扩展一样.可按如下步奏安装.</p>
 
+<p>git clone </p>
 <p>1.PHP_PATH/bin/phpize</p>
 <p>2../configure --with-php-config=PHP_PATH/bin/php-config</p>
 <p>3.make && make install</p>
