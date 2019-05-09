@@ -90,6 +90,7 @@ PHP_MINFO_FUNCTION(CMyFrameExtension);
 //全局函数
 PHP_FUNCTION(CDump);
 PHP_FUNCTION(CGetServiceExpire);
+PHP_FUNCTION(CMyFrameExtension_createProject);
 
 
 //全局变量定义

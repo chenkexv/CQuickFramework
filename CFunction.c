@@ -1859,6 +1859,38 @@ int php_chmod(char *file,int mod){
 	return status;
 }
 
+int php_chown(char *file,char *own){
+
+	zval	returnZval,
+			*params[2],
+			param1,
+			param2,
+			function;
+
+	int status = FAILURE;
+
+	TSRMLS_FETCH();
+	params[0] = &param1;
+	params[1] = &param2;
+	MAKE_STD_ZVAL(params[0]);
+	MAKE_STD_ZVAL(params[1]);
+
+	ZVAL_STRING(params[0],file,1);
+	ZVAL_STRING(params[1],own,1);
+
+	
+	INIT_ZVAL(function);
+	ZVAL_STRING(&function,"chown",0);
+	status = call_user_function(EG(function_table), NULL, &function, &returnZval,2, params TSRMLS_CC);
+
+	zval_ptr_dtor(&params[0]);
+	zval_ptr_dtor(&params[1]);
+	
+	status = Z_LVAL(returnZval);
+	zval_dtor(&returnZval);
+	return status;
+}
+
 int touch(char *file,int time){
 	zval	returnZval,
 			*params[2],
