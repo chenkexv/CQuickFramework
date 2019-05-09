@@ -17,7 +17,7 @@ PS:其中PHP_PATH为php可执行文件所在目录
 安装完成后,进入你的网站目录运行如下命令,将自动生成文件目录
 
 
-php -r "CMyFrameExtension_createProject();";
+<code>php -r "CMyFrameExtension_createProject();";</code>
 
 
 使用浏览器访问 http://localhost/base/index 
