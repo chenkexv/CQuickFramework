@@ -1,6 +1,9 @@
-<h1>框架安装步骤</h1>
-<p>安装方法跟其他扩展一样</p>
+<style>
+.contentTitle{font-size:14px;}
+</style>
 
+<div class="contentTitle">框架安装步骤</div>
+<div class="contentNote">安装方法跟其他扩展一样</div>
 <p>1.PHP_PATH/bin/phpize</p>
 <p>2../configure --with-php-config=PHP_PATH/bin/php-config</p>
 <p>3.make && make install</p>
