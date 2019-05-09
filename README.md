@@ -10,7 +10,7 @@
 <p>安装完成后,进入你的网站目录运行如下命令,将自动生成文件目录</p>
 <code><br>&nbsp;&nbsp;&nbsp;php -r "CMyFrameExtension_createProject();";&nbsp;&nbsp;&nbsp;<br></code>
 
-
+<p>&nbsp;</p>
 <p>使用浏览器访问 http://localhost/base/index 
 
 或使用命令行 php index.php base/index
