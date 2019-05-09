@@ -18,3 +18,10 @@ PS:其中PHP_PATH为php可执行文件所在目录
 
 
 php -r "CMyFrameExtension_createProject();";
+
+
+使用浏览器访问 http://localhost/base/index 
+
+或使用命令行 php index.php base/index
+
+程序将输出 "Hello CQuickFramework" 代表安装成功.
