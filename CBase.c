@@ -377,6 +377,11 @@ void getGetParams(char *key,char **getStr)
           zend_hash_get_current_data(h, (void**)&data);
           zend_hash_get_current_key(h, &skey, &ikey, 0);
          
+		  if(HASH_KEY_IS_LONG == zend_hash_get_current_key_type(h)){
+				*getStr = estrdup("");
+				 return;
+		  }
+
 		  if(strcmp(key,skey) == 0){
 			returnString = estrdup(Z_STRVAL_PP(data));
 			break;
@@ -413,6 +418,11 @@ void getPostParams(char *key,char **getStr)
          zend_hash_get_current_data(h, (void**)&data);
          zend_hash_get_current_key(h, &skey, &ikey, 0);
         
+		 if(HASH_KEY_IS_LONG == zend_hash_get_current_key_type(h)){
+			*getStr = estrdup("");
+			 return;
+		 }
+
 		 if(strcmp(key,skey) == 0  && IS_STRING == Z_TYPE_PP(data)){
 			returnString = estrdup(Z_STRVAL_PP(data));
 			break;
@@ -447,6 +457,12 @@ void getPostParamsZval(char *key,zval **getStr)
 	{
          zend_hash_get_current_data(h, (void**)&data);
          zend_hash_get_current_key(h, &skey, &ikey, 0);
+
+		 if(HASH_KEY_IS_LONG == zend_hash_get_current_key_type(h)){
+				MAKE_STD_ZVAL(*getStr);
+				ZVAL_NULL(*getStr);
+				return;
+		  }
         
 		 if(strcmp(key,skey) == 0){
 			MAKE_STD_ZVAL(returnString);
@@ -487,6 +503,12 @@ void getRequsetParamsZval(char *key,zval **getStr)
          zend_hash_get_current_data(h, (void**)&data);
          zend_hash_get_current_key(h, &skey, &ikey, 0);
         
+		 if(HASH_KEY_IS_LONG == zend_hash_get_current_key_type(h)){
+				MAKE_STD_ZVAL(*getStr);
+				ZVAL_NULL(*getStr);
+				return;
+		  }
+
 		 if(strcmp(key,skey) == 0){
 			MAKE_STD_ZVAL(returnString);
 			ZVAL_ZVAL(returnString,*data,1,0);
@@ -528,6 +550,12 @@ void getFileParams(char *key,zval **getZval)
          zend_hash_get_current_data(h, (void**)&data);
          zend_hash_get_current_key(h, &skey, &ikey, 0);
         
+		 if(HASH_KEY_IS_LONG == zend_hash_get_current_key_type(h)){
+				MAKE_STD_ZVAL(*getZval);
+				ZVAL_NULL(*getZval);
+				return;
+		  }
+
 		 if(strcmp(key,skey) == 0){
 			 MAKE_STD_ZVAL(returnZval);
 			 ZVAL_ZVAL(returnZval,*data,1,0);
@@ -568,6 +596,11 @@ void getCookieParams(char *key,char **getStr)
          zend_hash_get_current_data(h, (void**)&data);
          zend_hash_get_current_key(h, &skey, &ikey, 0);
         
+		 if(HASH_KEY_IS_LONG == zend_hash_get_current_key_type(h)){
+			returnString = "";
+			return;
+		 }
+
 		 if(strcmp(key,skey) == 0){
 			returnString = Z_STRVAL_PP(data);
 		 }
