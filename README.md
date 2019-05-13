@@ -9,11 +9,11 @@
 <p>6.编辑php.ini文件加入一行 extension=CMyFrameExtension.so</p>
 <p>7.重启php-fpm或http服务</p>
 <p>PS:其中PHP_PATH为php可执行文件所在目录</p>
-<p>安装完成后,进入你的网站目录运行如下命令,将自动生成文件目录</p>
+<p>安装完成后,进入你的网站目录运行如下命令,将自动生成工程目录和配置模板</p>
 <code><br>&nbsp;&nbsp;&nbsp;php -r "CMyFrameExtension_createProject();";&nbsp;&nbsp;&nbsp;<br></code>
 
 <p>&nbsp;</p>
-<p>使用浏览器访问 http://localhost/base/index 
+<p>使用浏览器访问 http://localhost
 
 或使用命令行 php index.php base/index
 

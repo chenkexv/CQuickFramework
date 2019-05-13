@@ -142,6 +142,7 @@ PHP_METHOD(CRabbitMessage,__call)
 		if(EG(exception)){
 			char errMessage[1024];
 			sprintf(errMessage,"%s%s%s","[CQueueException] Unable to connect to the CRabbit server to CallFunction: ",val,"()");
+			Z_OBJ_HANDLE_P(EG(exception)) = 0;
 			zend_clear_exception(TSRMLS_C);
 			zend_throw_exception(CRedisExceptionCe, errMessage, 1001 TSRMLS_CC);
 			return;
@@ -183,6 +184,7 @@ PHP_METHOD(CRabbitMessage,ack){
 	CRabbit_getInstance(&rabbitObject,Z_STRVAL_P(mqId) TSRMLS_CC);
 	if(EG(exception)){
 		zval_ptr_dtor(&rabbitObject);
+		Z_OBJ_HANDLE_P(EG(exception)) = 0;
 		zend_clear_exception(TSRMLS_C);
 		return;
 	}
@@ -203,6 +205,7 @@ PHP_METHOD(CRabbitMessage,ack){
 		zval_dtor(&contruReturn);
 		if(EG(exception)){
 			zval_ptr_dtor(&rabbitObject);
+			Z_OBJ_HANDLE_P(EG(exception)) = 0;
 			zend_clear_exception(TSRMLS_C);
 			return;
 		}

@@ -319,6 +319,7 @@ PHP_METHOD(CConsumer,ack)
 	//获取CRabbit对象
 	CRabbit_getInstance(&rabbitObject,Z_STRVAL_P(mqId) TSRMLS_CC);
 	if(EG(exception)){
+		Z_OBJ_HANDLE_P(EG(exception)) = 0;		
 		zval_ptr_dtor(&rabbitObject);
 		zend_clear_exception(TSRMLS_C);
 		return;
@@ -340,6 +341,7 @@ PHP_METHOD(CConsumer,ack)
 		zval_dtor(&contruReturn);
 		if(EG(exception)){
 			zval_ptr_dtor(&rabbitObject);
+			Z_OBJ_HANDLE_P(EG(exception)) = 0;	
 			zend_clear_exception(TSRMLS_C);
 			return;
 		}
@@ -453,6 +455,7 @@ void CConsumer_getMessage(zval *object,zval **returnObject TSRMLS_DC){
 	CRabbit_getInstance(&rabbitObject,Z_STRVAL_P(mqId) TSRMLS_CC);
 	if(EG(exception)){
 		zval_ptr_dtor(&rabbitObject);
+		Z_OBJ_HANDLE_P(EG(exception)) = 0;	
 		zend_clear_exception(TSRMLS_C);
 		return;
 	}
@@ -473,6 +476,7 @@ void CConsumer_getMessage(zval *object,zval **returnObject TSRMLS_DC){
 		zval_dtor(&contruReturn);
 		if(EG(exception)){
 			zval_ptr_dtor(&rabbitObject);
+			Z_OBJ_HANDLE_P(EG(exception)) = 0;	
 			zend_clear_exception(TSRMLS_C);
 			return;
 		}

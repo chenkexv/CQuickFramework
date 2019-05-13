@@ -43,6 +43,8 @@ zend_function_entry CMyFrameExtension_functions[] = {
 	PHP_FE(CDump,	NULL)
 	PHP_FE(CGetServiceExpire,	NULL)
 	PHP_FE(CMyFrameExtension_createProject,NULL) //create a empty project
+	PHP_FE(CMyFrameExtension_createPlugin,NULL) //create a plugin demo
+	PHP_FE(CMyFrameExtension_createConsumer,NULL) //create a consumer demo
 	{NULL, NULL, NULL}
 };
 
@@ -412,6 +414,15 @@ PHP_FUNCTION(CGetServiceExpire)
 
 }
 
+//show all command list
+void CMyFrameExtension_showCommandList(){
+	php_printf("\nother command list:\n");
+	php_printf("\tphp -r \"CMyFrameExtension_createProject();\";\n");
+	php_printf("\tphp -r \"CMyFrameExtension_createConsumer('baseConsumer');\";\n");
+	php_printf("\tphp -r \"CMyFrameExtension_createPlugin('basePlugin');\";\n");
+	php_printf("\n");
+}
+
 //create a emtpy string
 PHP_FUNCTION(CMyFrameExtension_createProject)
 {
@@ -441,7 +452,6 @@ PHP_FUNCTION(CMyFrameExtension_createProject)
 	add_next_index_string(dirList,"application/models",1);
 	add_next_index_string(dirList,"application/views",1);
 	add_next_index_string(dirList,"application/languages",1);
-	add_next_index_string(dirList,"plugins/basePlugin",1);
 	add_next_index_string(dirList,"__runtime",1);
 	add_next_index_string(dirList,"logs",1);
 	add_next_index_string(dirList,"data",1);
@@ -534,26 +544,6 @@ PHP_FUNCTION(CMyFrameExtension_createProject)
 		php_printf("create file [%s] : ignore\n","application/configs/watch.php");
 	}
 
-	//create a plugin template
-	if(SUCCESS != fileExist("plugins/basePlugin/basePlugin.php")){
-		char	*fileContent = (char*)emalloc(sizeof(char)*9200);
-		char	*fileCode;
-
-		//the strlen is 9184
-		strcpy(fileContent,"PD9waHAKLyoqCiAqIENyZWF0ZSBCeSBDUXVpY2tGcmFtZXdyb2sgQnkgQwogKiBAY29weXJpZ2h0IFVuY2xlQ2hlbiAyMDEzCiAqIEB2ZXJzaW9uIENRdWlja0ZyYW1ld3JvayB2IDMuMC4wIDIwMTMvMS83CiAqIOazqOaEjzrkvY3nva7kuLvphY3nva7mlofku7Zjb25maWdzL21haW4ucGhw5Lit55qETE9BRF9QTFVHSU7mjqfliLbmmK/lkKblkK/nlKjmj5Lku7bmnLrliLYg5LiN5Li6dHJ1ZeaXtiDmoYbmnrbkuI3kvJrliqDovb3ku7vkvZXmj5Lku7YKICog5qGG5p625L2/55So55qE5o+S5Lu25YW25py65Yi257G75Ly8SlF1ZXJ555qE5LqL5Lu257uR5a6aCiAqIOahhuaetuWwhuS4u+WKqOiwg+eUqHNldEhvb2tz5pa55rOVLOWcqOatpOaWueazleS4reavj+S4quaPkuS7tuWPr+iwg+eUqHJlZ2lzdGVySG9va3Pms6jlhozliLDpnIDopoFIb29rc+eahOS6i+S7tizlpoJIT09LU19ST1VURV9FTkQKICog6Iul5o+S5Lu25rOo5YaM5LqGSE9PS1NfUk9VVEVfRU5ELOW9k+ahhuaetuaJp+ihjOWIsCLot6/nlLHnu5PmnZ8i6L+Z5Liq5LqL5Lu25pe2LOaMh+WumueahOWHveaVsOWwhuS8muiiq+iwg+eUqOW5tuS8oOWFpeWPguaVsAogKi8KCmNsYXNzIGJhc2VQbHVnaW4gZXh0ZW5kcyBDUGx1Z2luCnsKCS8qKgoJICog5o+S5Lu25ZCN56ewCgkgKi8KCXB1YmxpYyAkcGx1Z2luTmFtZSA9ICdiYXNlUGx1"
-			"Z2luJzsKCQoJLyoqCgkgKiDmj5Lku7bkvZzogIUKCSAqLwoJcHVibGljICRhdXRob3IgPSAnQ1F1aWNrRnJhbWV3cm9rJzsKCQoJLyoqCgkgKiDmj5Lku7bniYjmnKwKCSAqLwoJcHVibGljICR2ZXJzaW9uID0gJzAuMSc7CgkKCS8qKgoJICog5o+S5Lu254mI5pysCgkgKi8KCXB1YmxpYyAkY29weXJpZ2h0ID0gJ0J5IENRdWlja0ZyYW1ld3Jvayc7CgkKCS8qKgoJICog5pel5pyfCgkgKi8KCXB1YmxpYyAkZGF0ZSA9ICcyMDEzLzEyLzcnOwoJCgkvKioKCSAqIOaPkuS7tuaPj+i/sAoJICovCglwdWJsaWMgJGRlc2NyaXB0aW9uID0gJ+aPkuS7tuaooeadvyc7CQoJCgkvKioKCSAqIOaJgOacieeahOaPkuS7tumDveW6lOWunueOsOatpOaWueazlQoJICog5q2k5pa55rOV55Sx5qGG5p626LCD55SoIAoJICog5byA5Y+R6ICF5Zyo5q2k5pa55rOV5Lit5Y+v5rOo5YaM5pys5o+S5Lu26ZyA6KaB55qE5LqL5Lu2CgkgKi8KCXB1YmxpYyBmdW5jdGlvbiBzZXRIb29rcygpewoJCQoJCS8v5qGG5p625pS25Yiw6K+35rGCIOino+aekOi3r+eUseWJjeinpuWPkeatpOS6i+S7tgoJCUNIb29rczo6cmVnaXN0ZXJIb29rKEhPT0tTX1JPVVRFX1NUQVJULCdvblJvdXRlU3RhcnQnLCR0aGlzKTsKCQkKCQkvL+i3r+eUsee7k+adn+WQjuinpuWPkSDlubbkvKDlhaXot6/nlLHlr7nosaEKCQlDSG9va3M6OnJlZ2lzdGVySG9vayhIT09LU19ST1VURV9FTkQsJ29uUm91dGVFbmQnLCR0aGlzKTsKCQkKCQkvL+i3r+eUseWksei0peWQjiDlnK"
-			"jmipvlh7pDUm91dGVFeGNlcHRpb27liY3op6blj5EKCQlDSG9va3M6OnJlZ2lzdGVySG9vayhIT09LU19ST1VURV9FUlJPUiwnb25Sb3V0ZUVycm9yJywkdGhpcyk7CgkJCgkJLy/mr4/mrKHmiafooYxEQuaTjeS9nOWQjuinpuWPkQoJCUNIb29rczo6cmVnaXN0ZXJIb29rKEhPT0tTX0VYRUNVVEVfRU5ELCdvbkRCRXhlY3V0ZScsJHRoaXMpOwoJCQoJCS8v5YW25LuW5pu05aSaSG9va3Pkuovku7bor7flj4Lop4Hmlofku7bmiJbogIV3aWtpCgl9CgkKCS8qKgoJICog5qGG5p625Lyg5YWlQ1JvdXRlcuWvueixoQoJICovCglwdWJsaWMgZnVuY3Rpb24gb25Sb3V0ZVN0YXJ0KCRjUm91dGVyKXsKCQkKCX0KCQoJLyoqCgkgKiDmoYbmnrbkvKDlhaVDUm91dGVy5a+56LGhIOWPr+iOt+WPlui3r+eUseeahOe7k+aenCDlpoLmjqfliLblmagg5pa55rOVIOaooeWdl+etiSDlpoI6IENSb3V0ZXItPmdldENvbnRyb2xsZXIoKQoJICog5Lqm5Y+v6KaG55uW5qGG5p625omn6KGM55qE6Lev55Sx57uT5p6cIOaMieeJueWumuinhOWImeS9v+eUqOiHquWumueahOi3r+eUsee7k+aenCAgQ1JvdXRlci0+c2V0Q29udHJvbGxlcignYmFzZScpCgkgKi8KCXB1YmxpYyBmdW5jd"
-			"GlvbiBvblJvdXRlRW5kKCRjUm91dGVyKXsKCQkkdGhpc1JlcXVlc3RDb250cm9sbGVyID0gJGNSb3V0ZXItPmdldENvbnRyb2xsZXIoKTsKCQkkdGhpc1JlcXVlc3RBY3Rpb24gPSAkY1JvdXRlci0+Z2V0QWN0aW9uKCk7CgkJCgkJLy/mjIflrprot6/nlLEKCQlpZihDUmVxdWVzdDo6Z2V0VXJpKCkgPT0gJ2luZGV4UGFnZScpewoJCQkkY1JvdXRlci0+c2V0Q29udHJvbGxlcignYmFzZScpOwoJCQkkY1JvdXRlci0+c2V0QWN0aW9uKCdBY3Rpb25fbG9naW4nKTsKCQl9Cgl9CgkKCS8qKgoJICog6Lev55Sx5aSx6LSl5ZCOIOWcqOaKm+WHukNSb3V0ZUV4Y2VwdGlvbuWJjeinpuWPkSDmsqHmnInlj4LmlbDkvKDlhaUKCSAqLwoJcHVibGljIGZ1bmN0aW9uIG9uUm91dGVFcnJvcigpewoJCS8v5Y+v5bGV56S6NDA0UGFnZQoJCWV4aXQoJzQwNCBQYWdlIE5vdCBGb3VuZCAtIFJlcG9ydCBCeSBCYXNlUGx1Z2luJyk7CQkKCX0KCQoJLyoqCgkgKiDmoYbmnrbkvKDlhaVDRXhlY+WvueixoQoJICovCglwdWJsaWMgZnVuY3Rpb24gb25EQkV4ZWN1dGUoJGNFeGVjKXsKCQkkY0V4ZWMtPmdldFNxbCgpOwoJCSRjRXhlYy0+Z2V0V2hlcmUoKTsKCX0KfQ==");
-
-		base64Decode(fileContent,&fileCode);
-		file_put_contents("plugins/basePlugin/basePlugin.php",fileCode);
-		efree(fileCode);
-		efree(fileContent);
-		php_printf("create file [%s] : success\n","plugins/basePlugin/basePlugin.php");
-	}else{
-		php_printf("create file [%s] : ignore\n","plugins/basePlugin/basePlugin.php");
-	}
-
 	//create a language template
 	if(SUCCESS != fileExist("application/languages/zh-cn.php")){
 		char	*fileContent = (char*)emalloc(sizeof(char)*2048);
@@ -571,7 +561,191 @@ PHP_FUNCTION(CMyFrameExtension_createProject)
 		php_printf("create file [%s] : ignore\n","application/languages/zh-cn.php");
 	}
 
+	//create a validate template
+	if(SUCCESS != fileExist("application/configs/validate.php")){
+		char	*fileContent = (char*)emalloc(sizeof(char)*2048*3);
+		char	*fileCode;
+
+		//1 rows not big than 2048
+		strcpy(fileContent,"PD9waHAKLyoqCiAqIENyZWF0ZSBCeSBDUXVpY2tGcmFtZXdyb2sgQnkgQwogKiBAY29weXJpZ2h0IFVuY2xlQ2hlbiAyMDEzCiAqIEB2ZXJzaW9uIENRdWlja0ZyYW1ld3JvayB2IDMuMC4wIDIwMTMvMS83CiAqIOmqjOivgeWZqOmFjee9ruaWh+S7tgogKiDpgJrov4cgIENWYWxpZGF0ZTo6Z2V0SW5zdGFuY2UoJ2RlZmF1bHQnKSDlj6/ojrflj5bphY3nva7kuK3nmoTpqozor4HlmagKICog6LCD55SoICRpc0NoZWNrZWQgPSBDVmFsaWRhdGU6OmdldEluc3RhbmNlKCdkZWZhdWx0JyktPmNoZWNrKGFycmF5KCd1c2VybmFtZSc9PidhYmMxMjMnKSk7IOWwhui/lOWbnumqjOivgee7k+aenAogKiDpqozor4HlpLHotKXml7YgQ1ZhbGlkYXRlOjpnZXRJbnN0YW5jZSgnZGVmYXVsdCcpLT5nZXRMYXN0RXJyb3IoKSDlsIbov5Tlm57pqozor4HphY3nva7kuK3nmoR0aXBzCiAqIENWYWxpZGF0ZTo6Z2V0SW5zdGFuY2UoJ2RlZmF1bHQnKS0+Z2V0TGFzdEVycm9yQ29kZSgpIOWwhui/lOWbnuaemuS4viAidHlwZSIgImxlbmd0aCIgInZhbCIgIm1hdGNoIiAibXVzdCIKICog57u85ZCIZXJyb3Llj4plcnJvckNvZGXlj6/nn6UgIOafkOmhueinhOWImeWboOS7gOS5iOWOn+WboOiAjOWksei0pSAKICovCgpyZXR1cm4gYXJyYXkoCgoJLyoqCgkgKiDpqozor4HlmajlkI3lrZcKCSAqIHR5cGXl"
+			"jIXlkKsgdXNlcm5hbWXjgIFwYXNzd29yZOOAgXBob25l44CBbWFpbOOAgXNpbXBsZVN0cmluZ+OAgWlkY2FyZOOAgXVybOOAgWpzb27jgIFkYXRl44CBZmxvYXTjgIFzdHJpbmfjgIFudW1iZXLjgIF0aW1lc3RhbXAKCSAqIOWFtuS4rXVzZXJuYW1l5Li6566A5Y2V5a2X56ym5LiyIOWtl+avjeaJk+WktOWMheWQq+aVsOWtl+Wtl+avjeS4i+WIkue6vwoJICogbWF0Y2jmjIflrprmraPliJkg5LiN5Li656m65pe25LyY5YWI6aqM6K+B5piv5ZCm56ym5ZCI5q2j5YiZCgkgKiBtaW5MZW5ndGggbWF4TGVuZ3RoIOmqjOivgeWFtumVv+W6piDlr7l1c2VybmFtZeOAgXBhc3N3b3Jk44CBbWFpbOOAgXNpbXBsZVN0cmluZ+OAgWZsb2F044CBc3RyaW5n44CBbnVtYmVy44CBdGltZXN0YW1w5pyJCgkgKiBtaW5WYWwgbWF4VmFsIOmqjOivgeaVsOWAvOWkp+WwjyDku4Xlr7lmbG9hdOOAgW51bWVy44CBdGltZXN0YW1wIOacieaViAoJICogbXVzdCDpqozor4HmmK/lkKblrZjlnKgg5b2T5p+Q6KeE5YiZ5Li6dHJ1ZeaXtiDoi6XkvKDlhaXnmoTmlbDmja7kuI3ljIXlkKvmraTplK4g5YiZ6aqM6K+B5LiN6YCa6L+HCgkgKiB0aXBzIOiuvuWumumUmeivr+aPkOekuiDlv"
+			"ZPpqozor4HlpLHotKUgZ2V0TGFzdEVycm9y5bCG6L+U5Zue5aSx6LSl6KeE5YiZ55qEIHRpcHMKCSAqLwoJJ2RlZmF1bHQnID0+IGFycmF5KAoJCSd1c2VybmFtZScgPT4gYXJyYXkoJ3R5cGUnPT4ndXNlcm5hbWUnLCdtYXRjaCc9PicnLCdtaW5MZW5ndGgnPT40LCdtYXhMZW5ndGgnPT4xMiwndGlwcyc9Pid1c2VybmFtZScpLAoJCSdwYXNzd29yZCcgPT4gYXJyYXkoJ3R5cGUnPT4ncGFzc3dvcmQnLCdtYXRjaCc9PicnLCdtaW5MZW5ndGgnPT42LCdtYXhMZW5ndGgnPT4yMiwndGlwcyc9PidwYXNzd29yZCcpLAoJCSdwaG9uZScgPT4gYXJyYXkoJ3R5cGUnPT4ncGhvbmUnLCdtYXRjaCc9PicnLCdtaW5MZW5ndGgnPT4xMSwnbWF4TGVuZ3RoJz0+MTEsJ3RpcHMnPT4ncGhvbmUnKSwKCQknYW1vdW50JyA9PiBhcnJheSgndHlwZSc9PidmbG9hdCcsJ21pblZhbCc9PjAuMDEsJ21heFZhbCc9PjE1LCd0aXBzJz0+J2Ftb3VudCcpLAoJCSduaWNrTmFtZScgPT4gYXJyYXkoJ3R5cGUnPT4nc3RyaW5nJywnbXVzdCc9PnRydWUsJ3RpcHMnPT4nbmlja05hbWUnKSwKCSksCik7Cg==");
+
+		base64Decode(fileContent,&fileCode);
+		file_put_contents("application/configs/validate.php",fileCode);
+		efree(fileCode);
+		efree(fileContent);
+		php_printf("create file [%s] : success\n","application/configs/validate.php");
+	}else{
+		php_printf("create file [%s] : ignore\n","application/configs/validate.php");
+	}
+
 	php_printf("createSuccess\n");
+	
+	CMyFrameExtension_showCommandList();
+	
+	efree(workPath);
+	zval_ptr_dtor(&dirList);
+}
+
+PHP_FUNCTION(CMyFrameExtension_createPlugin)
+{
+	zval	*sapiZval,
+			*dirList,
+			**nowDir;
+
+	char	*workPath,
+			*pluginName,
+			pluginPath[60],
+			pluginFile[90];
+
+	long	pluginNameLen = 0;
+
+	int		i,h;
+
+	if(zend_hash_find(EG(zend_constants),"PHP_SAPI",strlen("PHP_SAPI")+1,(void**)&sapiZval) == SUCCESS && strcmp(Z_STRVAL_P(sapiZval),"cli") == 0){
+	}else{
+		return;
+	}
+
+	//plugin name
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"s",&pluginName,&pluginNameLen) == FAILURE){
+		php_printf("please set a plugin name");
+		return;
+	}
+
+
+	//get now work dir , use pwd
+	exec_shell_return("pwd",&workPath);
+
+	//dir list
+	MAKE_STD_ZVAL(dirList);
+	array_init(dirList);
+	sprintf(pluginPath,"plugins/%s",pluginName);
+	add_next_index_string(dirList,pluginPath,1);
+	
+	zend_hash_internal_pointer_reset(Z_ARRVAL_P(dirList));
+	h = zend_hash_num_elements(Z_ARRVAL_P(dirList));
+	for(i = 0 ; i < h; i++){
+		zend_hash_get_current_data(Z_ARRVAL_P(dirList),(void**)&nowDir);
+		if(SUCCESS == fileExist(Z_STRVAL_PP(nowDir))){
+			php_printf("create dir [%s] : ignore\n",Z_STRVAL_PP(nowDir));
+		}else{
+			php_mkdir(Z_STRVAL_PP(nowDir));
+			php_printf("create dir [%s] : success\n",Z_STRVAL_PP(nowDir));
+		}
+		zend_hash_move_forward(Z_ARRVAL_P(dirList));
+	}
+
+	//create a plugin template
+	sprintf(pluginFile,"plugins/%s/%s.php",pluginName,pluginName);
+	if(SUCCESS != fileExist(pluginFile)){
+		char	*fileContent = (char*)emalloc(sizeof(char)*9200);
+		char	*fileCode,
+				*replaceString;
+
+		strcpy(fileContent,"PD9waHAKLyoqCiAqIENyZWF0ZSBCeSBDUXVpY2tGcmFtZXdyb2sgQnkgQwogKiBAY29weXJpZ2h0IFVuY2xlQ2hlbiAyMDEzCiAqIEB2ZXJzaW9uIENRdWlja0ZyYW1ld3JvayB2IDMuMC4wIDIwMTMvMS83CiAqIOazqOaEjzrkvY3nva7kuLvphY3nva7mlofku7Zjb25maWdzL21haW4ucGhw5Lit55qETE9BRF9QTFVHSU7mjqfliLbmmK/lkKblkK/nlKjmj5Lku7bmnLrliLYg5LiN5Li6dHJ1ZeaXtiDmoYbmnrbkuI3kvJrliqDovb3ku7vkvZXmj5Lku7YKICog5qGG5p625L2/55So55qE5o+S5Lu25YW25py65Yi257G75Ly8SlF1ZXJ555qE5LqL5Lu257uR5a6aCiAqIOahhuaetuWwhuS4u+WKqOiwg+eUqHNldEhvb2tz5pa55rOVLOWcqOatpOaWueazleS4reavj+S4quaPkuS7tuWPr+iwg+eUqHJlZ2lzdGVySG9va3Pms6jlhozliLDpnIDopoFIb29rc+eahOS6i+S7tizlpoJIT09LU19ST1VURV9FTkQKICog6Iul5o+S5Lu25rOo5YaM5LqGSE9PS1NfUk9VVEVfRU5ELOW9k+ahhuaetuaJp+ihjOWIsCLot6/nlLHnu5PmnZ8i6L+Z5Liq5LqL5Lu25pe2LOaMh+WumueahOWHveaVsOWwhuS8muiiq+iwg+eUqOW5tuS8oOWFpeWPguaVsAogKi8KCmNsYXNzIHtwbHVnaW5OYW1lfSBleHRlbmRzIENQbHVnaW4KewoJLyoqCgkgKiDmj5Lku7blkI3np7AKCSAqLwoJcHVibGljICRwbHVnaW5OYW1lID0gJ3twb"
+			"HVnaW5OYW1lfSc7CgkKCS8qKgoJICog5o+S5Lu25L2c6ICFCgkgKi8KCXB1YmxpYyAkYXV0aG9yID0gJ0NRdWlja0ZyYW1ld3Jvayc7CgkKCS8qKgoJICog5o+S5Lu254mI5pysCgkgKi8KCXB1YmxpYyAkdmVyc2lvbiA9ICcwLjEnOwoJCgkvKioKCSAqIOaPkuS7tueJiOacrAoJICovCglwdWJsaWMgJGNvcHlyaWdodCA9ICdCeSBDUXVpY2tGcmFtZXdyb2snOwoJCgkvKioKCSAqIOaXpeacnwoJICovCglwdWJsaWMgJGRhdGUgPSAnMjAxMy8xMi83JzsKCQoJLyoqCgkgKiDmj5Lku7bmj4/ov7AKCSAqLwoJcHVibGljICRkZXNjcmlwdGlvbiA9ICfmj5Lku7bmqKHmnb8nOwkKCQoJLyoqCgkgKiDmiYDmnInnmoTmj5Lku7bpg73lupTlrp7njrDmraTmlrnms5UKCSAqIOatpOaWueazleeUseahhuaetuiwg+eUqCAKCSAqIOW8gOWPkeiAheWcqOatpOaWueazleS4reWPr+azqOWGjOacrOaPkuS7tumcgOimgeeahOS6i+S7tgoJICovCglwdWJsaWMgZnVuY3Rpb24gc2V0SG9va3MoKXsKCQkKCQkvL+ahhuaetuaUtuWIsOivt+axgiDop6PmnpDot6/nlLHliY3op6blj5HmraTkuovku7YKCQlDSG9va3M6OnJlZ2lzdGVySG9vayhIT09LU19ST1VURV9TVEFSVCwnb25Sb"
+			"3V0ZVN0YXJ0JywkdGhpcyk7CgkJCgkJLy/ot6/nlLHnu5PmnZ/lkI7op6blj5Eg5bm25Lyg5YWl6Lev55Sx5a+56LGhCgkJQ0hvb2tzOjpyZWdpc3Rlckhvb2soSE9PS1NfUk9VVEVfRU5ELCdvblJvdXRlRW5kJywkdGhpcyk7CgkJCgkJLy/ot6/nlLHlpLHotKXlkI4g5Zyo5oqb5Ye6Q1JvdXRlRXhjZXB0aW9u5YmN6Kem5Y+RCgkJQ0hvb2tzOjpyZWdpc3Rlckhvb2soSE9PS1NfUk9VVEVfRVJST1IsJ29uUm91dGVFcnJvcicsJHRoaXMpOwoJCQoJCS8v5q+P5qyh5omn6KGMRELmk43kvZzlkI7op6blj5EKCQlDSG9va3M6OnJlZ2lzdGVySG9vayhIT09LU19FWEVDVVRFX0VORCwnb25EQkV4ZWN1dGUnLCR0aGlzKTsKCQkKCQkvL+ajgOa1i+WIsOmhueebruebruW9leS4i+eWkeS8vHdlYnNoZWxs6KKr5omn6KGMCgkJQ0hvb2tzOjpyZWdpc3Rlckhvb2soSE9PS1NfU0FGRV9TVE9QICwnb25TaGVsbFJpc2snLCR0aGlzKTsKCQkKCQkvL+abtOWkmkhvb2tz5YiX6KGo6K+35Y+C6KeB5paH5qGj5oiW6ICFd2lraQoJfQoJCgkvKioKCSAqIOahhuaetuS8oOWFpUNSb3V0ZXLlr7nosaEKCSAqLwoJcHVibGljIGZ1bmN0aW9uIG9uUm91dGVTdGFydCgkY1JvdXRlcil"
+			"7CgkJCgl9CgkKCS8qKgoJICog5qGG5p625Lyg5YWlQ1JvdXRlcuWvueixoSDlj6/ojrflj5bot6/nlLHnmoTnu5Pmnpwg5aaC5o6n5Yi25ZmoIOaWueazlSDmqKHlnZfnrYkg5aaCOiBDUm91dGVyLT5nZXRDb250cm9sbGVyKCkKCSAqIOS6puWPr+imhuebluahhuaetuaJp+ihjOeahOi3r+eUsee7k+aenCDmjInnibnlrprop4TliJnkvb/nlKjoh6rlrprnmoTot6/nlLHnu5PmnpwgIENSb3V0ZXItPnNldENvbnRyb2xsZXIoJ2Jhc2UnKQoJICovCglwdWJsaWMgZnVuY3Rpb24gb25Sb3V0ZUVuZCgkY1JvdXRlcil7CgkJJHRoaXNSZXF1ZXN0Q29udHJvbGxlciA9ICRjUm91dGVyLT5nZXRDb250cm9sbGVyKCk7CgkJJHRoaXNSZXF1ZXN0QWN0aW9uID0gJGNSb3V0ZXItPmdldEFjdGlvbigpOwoJCQoJCS8v5oyH5a6a6Lev55SxCgkJaWYoQ1JlcXVlc3Q6OmdldFVyaSgpID09ICdpbmRleFBhZ2UnKXsKCQkJJGNSb3V0ZXItPnNldENvbnRyb2xsZXIoJ2Jhc2UnKTsKCQkJJGNSb3V0ZXItPnNldEFjdGlvbignQWN0aW9uX2xvZ2luJyk7CgkJfQoJfQoJCgkvKioKCSAqIOi3r+eUseWksei0peWQjiDlnKjmipvlh7pDUm91dGVFeGNlcHRpb27liY3op6blj5Eg5rKh5pyJ"
+			"5Y+C5pWw5Lyg5YWlCgkgKi8KCXB1YmxpYyBmdW5jdGlvbiBvblJvdXRlRXJyb3IoKXsKCQkvL+WPr+WxleekujQwNFBhZ2UKCQlleGl0KCc0MDQgUGFnZSBOb3QgRm91bmQgLSBSZXBvcnQgQnkgQmFzZVBsdWdpbicpOwkJCgl9CgkKCS8qKgoJICog5qGG5p625Lyg5YWlQ0V4ZWPlr7nosaEKCSAqLwoJcHVibGljIGZ1bmN0aW9uIG9uREJFeGVjdXRlKCRjRXhlYyl7CgkJJGNFeGVjLT5nZXRTcWwoKTsKCQkkY0V4ZWMtPmdldFdoZXJlKCk7Cgl9CgkKCS8qKgoJICog6auY5Y2x5Ye95pWw6KKr5omn6KGM5pe2CgkgKi8KCXB1YmxpYyBmdW5jdGlvbiBvblNoZWxsUmlzaygkZnVuYyl7CgkJQ0xvZzo6d3JpdGUoJ3NhZmVXYXJuJywkZnVuYyk7Cgl9Cn0=");
+
+		base64Decode(fileContent,&fileCode);
+
+		str_replace("{pluginName}",pluginName,fileCode,&replaceString);
+
+		file_put_contents(pluginFile,replaceString);
+		efree(fileCode);
+		efree(fileContent);
+		efree(replaceString);
+		php_printf("create file [%s] : success\n",pluginFile);
+	}else{
+		php_printf("create file [%s] : ignore\n",pluginFile);
+	}
+
+	php_printf("createSuccess\n");
+	
+	CMyFrameExtension_showCommandList();
+	
+	efree(workPath);
+	zval_ptr_dtor(&dirList);
+}
+
+PHP_FUNCTION(CMyFrameExtension_createConsumer)
+{
+	zval	*sapiZval,
+			*dirList,
+			**nowDir;
+
+	char	*workPath,
+			*controllerName,
+			controllerFile[190];
+
+	long	controllerNameLen = 0;
+
+	int		i,h;
+
+	if(zend_hash_find(EG(zend_constants),"PHP_SAPI",strlen("PHP_SAPI")+1,(void**)&sapiZval) == SUCCESS && strcmp(Z_STRVAL_P(sapiZval),"cli") == 0){
+	}else{
+		return;
+	}
+
+	//plugin name
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"s",&controllerName,&controllerNameLen) == FAILURE){
+		php_printf("please set a plugin name");
+		return;
+	}
+
+
+	//get now work dir , use pwd
+	exec_shell_return("pwd",&workPath);
+
+	//dir list
+	MAKE_STD_ZVAL(dirList);
+	array_init(dirList);
+	add_next_index_string(dirList,"application/controllers",1);
+	
+	zend_hash_internal_pointer_reset(Z_ARRVAL_P(dirList));
+	h = zend_hash_num_elements(Z_ARRVAL_P(dirList));
+	for(i = 0 ; i < h; i++){
+		zend_hash_get_current_data(Z_ARRVAL_P(dirList),(void**)&nowDir);
+		if(SUCCESS == fileExist(Z_STRVAL_PP(nowDir))){
+			php_printf("create dir [%s] : ignore\n",Z_STRVAL_PP(nowDir));
+		}else{
+			php_mkdir(Z_STRVAL_PP(nowDir));
+			php_printf("create dir [%s] : success\n",Z_STRVAL_PP(nowDir));
+		}
+		zend_hash_move_forward(Z_ARRVAL_P(dirList));
+	}
+
+	//create a cconsumer controller
+	sprintf(controllerFile,"application/controllers/%s.php",controllerName);
+	if(SUCCESS != fileExist(controllerFile)){
+		char	*fileContent = (char*)emalloc(sizeof(char)*9200);
+		char	*fileCode,
+				*replaceString;
+
+		strcpy(fileContent,"PD9waHAKLyoqCiAqIENyZWF0ZSBCeSBDUXVpY2tGcmFtZXdyb2sgQnkgQwogKiBAY29weXJpZ2h0IFVuY2xlQ2hlbiAyMDEzCiAqIEB2ZXJzaW9uIENRdWlja0ZyYW1ld3JvayB2IDMuMC4wIDIwMTMvMS83CiAqIOatpOS4uua2iOi0ueiAheaOp+WItuWZqOaooeadvwogKiDmraTmjqfliLblmajlj6rnlKjkuo5jbGnmqKHlvI/lkK/liqgKICog5omn6KGMcnVuKCnmlrnms5XlkI4g56iL5bqP5bCG5Lya6Zi75aGeCiAqLwoKCmNsYXNzIHtjb250cm9sbGVyTmFtZX0gZXh0ZW5kcyBDQ29udHJvbGxlcnsgCgoJLyoqCgkgKiDpgJrov4flkb3ku6TooYxwaHAgUEFUSC9pbmRleC5waHAge2NvbnRyb2xsZXJOYW1lfS9ydW4g5ZCv5Yqo5q2k5o6n5Yi25Zmo55qE5raI6LS55qOA5rWLCgkgKiDlvZPmtojmga/liLDovr7ml7Yg5bCG6Kem5Y+RbWVzc2FnZUNhbGxCYWNrKCnlm57osIPlh73mlbAg5Zyo5Ye95pWw5Lit5aSE55CG5raI5oGvIOW5tuWujOaIkOa2iOi0ueehruiupAoJICog5rOo5YaMaGVhcnRDbGxiYWNr5b+D6Lez5Ye95pWwIOahhuaetuWwhuS7peaMh+WumumXtOmalOWbnuiwg+W/g+i3s+WHveaVsCDlv4Pot7Plh73mlbDkuK3lj6/nlKjkuo7mo4DmtYtNeVNRTOOAgVJlZGlz55qE6ZO+5o6l5L+d5oyBCgkgKi8KCXB1YmxpYyBmdW5jdGlvbiBBY3Rpb25fcnVuKCl7IAoJIAoJCS8v6I635Y+W5LiA5Liq5raI6LS55a+56LGhIAoJCSRjb25zdW1lciA9IG5ldyBDQ29uc3VtZXIoKTsgCgkJJGNvbnN1bWVyLT5zZXRFbXB0eVNsZWVwVGltZSg1KTsgICAgLy/orr7nva7pmJ/liJfnqbrpl7Lml7bmsonnnaHml7bpl7Qx56eSIAoJCSRjb25zdW1lci0+c2V0TVFJZCgn"
+			"bWFpbicpOyAgICAgICAgLy/orr7nva7pk77mjqXnmoRSYWJiaXTlr7nosaHkuLptYWluIAoJCSRjb25zdW1lci0+c2V0UHJvY2Vzc01heE51bSgxMDAwMDApOyAgICAvL+iuvue9rueoi+W6j+acgOWkp+WkhOeQhuasoeaVsCDotoXov4fmrKHmlbAg56iL5bqP5Lit5q2iIOS8oDDliJnkuI3pmZDliLYgCgkJJGNvbnN1bWVyLT5zZXRNZW1vcnlMaW1pdCgnODA0OE0nKTsgICAgLy/orr7nva7nqIvluo/miafooYzmiYDog73kvb/nlKjnmoTmnIDlpKflhoXlrZgg6LaF6L+H5pe256iL5bqP5Lit5q2iIAoJCSRjb25zdW1lci0+c2V0VGltZUxpbWl0KDApOyAgICAgICAgLy/orr7nva7nqIvluo/miafooYznmoTmnIDlpKfml7bpl7Qg6LaF6L+H5pe256iL5bqP5Lit5q2iIAoJCSRjb25zdW1lci0+c2V0TG9nTmFtZSgnY29uc3VlckxvZycpOyAgICAvL+iuvue9ruaXpeW/l+WQjeensCAKCQkkY29uc3VtZXItPnNldFByb2R1Y2VyKCdkZWZhdWx0RXhjaGFuZ2UnLCdkZWZhdWx0Um91dGUnLCdtYWluUXVldWUnKTsgICAgICAgIC8v6K6+572u55Sf5Lqn6ICF55qE5Lqk5o2i6Lev55Sx5L+h5oGvIAoJCSRjb25zdW1lci0+cmVnaXN0ZXJIZWFydGJlYXRDYWxsYmFjaygkdGhpcywnaGVhcnRiZWF0Jyw2MCk7ICAgICAgICAvL+azqOWGjOW/g+i3s+WbnuiwgyDnqbrpl7Lml7bmr482MOenkuaIluavj+asoea2iOaBr+WkhOeQhuWJjeinpuWPkeW/g+i3s+WHveaVsCAKCQkkY29uc3VtZXItPnJlZ2lzdGVyTWVzc2FnZUNhbGxiYWNrKCR0aGlzLCdtZXNzYWdlUHJvY2VzcycpOyAgICAgICAgLy/ms6jlhozmtojmga/lm57osIMgCgkJJGNvbnN1bWVyLT5ydW4oKTsgICAgLy/lvIDlp4vmiafooYwg5omn6KGM5ZCOIOeoi+W6j+WwhuWkhOS6jumYu+WhnueKtuaAgSDmnInmtojmga/ml7blgJnliJnkvJrop6"
+			"blj5Hmtojmga/lm57osIMgIAoJfSAKCSAKCS8qKgoJICog5b+D6Lez5Ye95pWwIOeUqOS6juajgOafpeaIluS/neaMgeaVsOaNruW6k+i/nuaOpeOAgVJlZGlz6ZO+5o6l562JIAoJICog5b2T5qOA5p+l5Yiw5pWw5o2u5bqT6ZO+5o6l5pat5o6J5pe2IOWPr+mHjei/nuaVsOaNruW6kyDkuZ/lj6/kuK3mraLohJrmnKwg562J5b6F5a6I5oqk6L+b56iL5bCG5LmL6YeN5ZCvIAoJICovCglwdWJsaWMgZnVuY3Rpb24gaGVhcnRiZWF0KCl7IAoJCS8v5qOA5p+lTXlTUWwgCgkJdHJ5ewoKCQkJLy/mr4/mrKHlv4Pot7Pml7Yg5omn6KGM5LiA5qyhc2VsZWN0L3VwZGF0ZeaTjeS9nCDliLfmlrBNeVNRTOi/nuaOpeeahOepuumXsuaXtumXtAoJCQlDRGF0YWJhc2U6OmdldEluc3RhbmNlKCktPnNlbGVjdCgpLT5mcm9tKCdxdWV1ZV9zdGF0ZScpLT5leGVjdXRlKCktPmN1cnJlbnQoKTsKCQkJQ0RhdGFiYXNlOjpnZXRJbnN0YW5jZSgpLT51cGRhdGUoKS0+ZnJvbSgncXVldWVfc3RhdGUnKS0+d2hlcmUoJ3F1ZXVlSWQnLCc9JywxKS0+dmFsdWUoYXJyYXkoJ2xhc3RBY3RpdmVUaW1lJz0+dGltZSgpKSktPmV4ZWN1dGUoKTsKCQkJCgkJfWNhdGNoKENEYkV4Y2VwdGlvbiAkZSl7IAoJCQkKCQkJLy/mo4DmtYvliLBNeVNRTOmTvuaOpei2heaXtuWQjgoJCQlpZihmYWxzZSAhPT0gc3RyaXBvcygkZS0+Z2V0TWVzc2FnZSgpLCdnb25lIGF3YXknKSl7IAoJCQkJCSAgIAoJCQkJLy/lpITnkIbmlrnms5UxLk15U1FM6ZO+5o6l5bey5pat5"
+			"byAIOWPr+WinuWKoE15U1FM55qEd2FpdF90aW1l6YWN572uIAoJCQkJCQkJCQkgICAJCQkJICAgCgkJCQkvL+WkhOeQhuaWueazlTIu6ZSA5q+B5q2k6ZO+5o6lIOetieW+heS4i+asoURC5pON5L2c5pe26YeN5paw5Yib5bu6IAoJCQkJQ0RhdGFiYXNlOjpnZXRJbnNhdG5jZSgpLT5kZXRvcnkoKTsgCgkJCQkKCQkJCS8v5aSE55CG5pa55rOVMy7mnYDmrbvoh6rlt7Eg562J5b6F6YeN5ZCvIAoJCQkJZXhpdCgpOyAKCQkJfSAKCQl9IAoJfSAKCSAgIAoJLyoqCgkgKiDlvZPmnInmtojmga/ovr7liLDml7Yg5q2k5Ye95pWw5Lya6KKr5omn6KGMIAoJICovCglwdWJsaWMgZnVuY3Rpb24gbWVzc2FnZVByb2Nlc3MoJG1lc3NhZ2UpeyAKCQkgICAKCQkvL+a2iOaBr+WGheWuuSAKCQkkbWVzc2FnZUNvbnRlbnQgPSAkbWVzc2FnZS0+Z2V0Qm9keSgpOyAKCQkJICAgCgkJLy/lpITnkIbmtojmga8gIOS7o+eggemAu+i+kQoJCQkgICAKCQkvL+WPkeWHuuWkhOeQhuehruiupCAKCQkkbWVzc2FnZS0+YWNrKCk7IAoJfSAKfQ==");
+
+		base64Decode(fileContent,&fileCode);
+
+		str_replace("{controllerName}",controllerName,fileCode,&replaceString);
+
+		file_put_contents(controllerFile,replaceString);
+		efree(fileCode);
+		efree(fileContent);
+		efree(replaceString);
+		php_printf("create file [%s] : success\n",controllerFile);
+	}else{
+		php_printf("create file [%s] : ignore\n",controllerFile);
+	}
+
+	php_printf("createSuccess\n");
+	
+	CMyFrameExtension_showCommandList();
 	
 	efree(workPath);
 	zval_ptr_dtor(&dirList);

@@ -243,6 +243,7 @@ void CRabbit_geConnection(zval *object,char *groupName TSRMLS_DC)
 		if(EG(exception)){
 			char errMessage[1024];
 			sprintf(errMessage,"%s%s","[CQueueException] Unable to connect to the Rabbit server : ",thisConfigKey);
+			Z_OBJ_HANDLE_P(EG(exception)) = 0;
 			zend_clear_exception(TSRMLS_C);
 			zval_ptr_dtor(&cconfigInstanceZval);
 			zval_ptr_dtor(&connectParamsZval);

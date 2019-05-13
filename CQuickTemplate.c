@@ -3883,6 +3883,7 @@ PHP_METHOD(CQuickTemplate,__call){
 				if(EG(exception)){
 					char errMessage[1024];
 					sprintf(errMessage,"%s%s%s","[CViewException] CQuickTempate call function error: ",trueFunName,"()");
+					Z_OBJ_HANDLE_P(EG(exception)) = 0;
 					zend_clear_exception(TSRMLS_C);
 					php_error_docref(NULL TSRMLS_CC, E_ERROR ,errMessage);
 					return;

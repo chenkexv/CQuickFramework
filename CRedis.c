@@ -193,6 +193,7 @@ void CRedis_callFunction(char *val,zval *args,zval **returnData TSRMLS_DC){
 		if(EG(exception)){
 			char errMessage[1024];
 			sprintf(errMessage,"%s%s%s","[CRedisException] Unable to connect to the redis server to CallFunction: ",val,"()");
+			Z_OBJ_HANDLE_P(EG(exception)) = 0;
 			zend_clear_exception(TSRMLS_C);
 			ZVAL_NULL(*returnData);
 			zend_throw_exception(CRedisExceptionCe, errMessage, 1001 TSRMLS_CC);
@@ -377,6 +378,7 @@ void CRedis_getRedisConnection(zval *object,char *groupName TSRMLS_DC)
 		if(EG(exception)){
 			char errMessage[1024];
 			sprintf(errMessage,"%s%s%s%d","[CRedisException] Unable to connect to the redis server : ",defaultHost,":",defaultPort);
+			Z_OBJ_HANDLE_P(EG(exception)) = 0;
 			zend_clear_exception(TSRMLS_C);
 			zval_ptr_dtor(&configHost);
 			zend_throw_exception(CRedisExceptionCe, errMessage, 1001 TSRMLS_CC);
@@ -406,6 +408,7 @@ void CRedis_getRedisConnection(zval *object,char *groupName TSRMLS_DC)
 			if(EG(exception)){
 				char errMessage[1024];
 				sprintf(errMessage,"%s%s%s%d","[CRedisException] auth fail to redis server : ",defaultHost,":",defaultPort);
+				Z_OBJ_HANDLE_P(EG(exception)) = 0;
 				zend_clear_exception(TSRMLS_C);
 				zval_ptr_dtor(&configHost);
 				zend_throw_exception(CRedisExceptionCe, errMessage, 1001 TSRMLS_CC);
@@ -505,6 +508,7 @@ PHP_METHOD(CRedis,__call)
 		if(EG(exception)){
 			char errMessage[1024];
 			sprintf(errMessage,"%s%s%s","[CRedisException] Unable to connect to the redis server to CallFunction: ",val,"()");
+			Z_OBJ_HANDLE_P(EG(exception)) = 0;
 			zend_clear_exception(TSRMLS_C);
 			zend_throw_exception(CRedisExceptionCe, errMessage, 1001 TSRMLS_CC);
 			return;

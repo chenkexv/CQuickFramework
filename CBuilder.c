@@ -1812,6 +1812,7 @@ void CBuilder_executeParam1(zval *params,zval *object,zval **defaultZval TSRMLS_
 
 				exceptionMessage = zend_read_property(exceptionCe,EG(exception), "message",strlen("message"),0 TSRMLS_CC);
 				strcat2(&errMessage,"[QueryException]",Z_STRVAL_P(exceptionMessage)," - SQL[",sql,"]",NULL);
+				Z_OBJ_HANDLE_P(EG(exception)) = 0;
 				zend_clear_exception(TSRMLS_C);
 				zend_throw_exception(CDbExceptionCe, errMessage, 1001 TSRMLS_CC);
 				efree(errMessage);
@@ -3122,6 +3123,7 @@ PHP_METHOD(CBuilder,beginTransaction)
 				char errMessage[10240];
 				exceptionMessage = zend_read_property(exceptionCe,EG(exception), "message",strlen("message"),0 TSRMLS_CC);
 				sprintf(errMessage,"%s%s","[TransactionException] There was an error begin transaction:",Z_STRVAL_P(exceptionMessage));
+				Z_OBJ_HANDLE_P(EG(exception)) = 0;
 				zend_clear_exception(TSRMLS_C);
 				zend_throw_exception(CDbExceptionCe, errMessage, 5021 TSRMLS_CC);
 				return;
@@ -3209,6 +3211,7 @@ PHP_METHOD(CBuilder,commit)
 				char errMessage[10240];
 				exceptionMessage = zend_read_property(exceptionCe,EG(exception), "message",strlen("message"),0 TSRMLS_CC);
 				sprintf(errMessage,"%s%s","[TransactionException] An error occurred while trying to commit the transaction:",Z_STRVAL_P(exceptionMessage));
+				Z_OBJ_HANDLE_P(EG(exception)) = 0;
 				zend_clear_exception(TSRMLS_C);
 				zend_throw_exception(CDbExceptionCe, errMessage, 5021 TSRMLS_CC);
 				return;
@@ -3298,6 +3301,7 @@ PHP_METHOD(CBuilder,rollback)
 				char errMessage[10240];
 				exceptionMessage = zend_read_property(exceptionCe,EG(exception), "message",strlen("message"),0 TSRMLS_CC);
 				sprintf(errMessage,"%s%s","[TransactionException] An error occurred while trying to roll back the transaction:",Z_STRVAL_P(exceptionMessage));
+				Z_OBJ_HANDLE_P(EG(exception)) = 0;
 				zend_clear_exception(TSRMLS_C);
 				zend_throw_exception(CDbExceptionCe, errMessage, 5021 TSRMLS_CC);
 				return;

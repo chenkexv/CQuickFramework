@@ -530,6 +530,7 @@ void CDatabase_getDatabase(char *configName,int useMaster,zval **returnZval TSRM
 							char *pdoErrStr;
 							exceptionMessage = zend_read_property(exceptionCe,EG(exception), "message",strlen("message"),0 TSRMLS_CC);
 							strcat2(&pdoErrStr,"[CDbException] ",Z_STRVAL_P(exceptionMessage),", Unable to connect to the database using the specified configuration",NULL);
+							Z_OBJ_HANDLE_P(EG(exception)) = 0;
 							zend_clear_exception(TSRMLS_C);
 
 							zval_ptr_dtor(&cconfigInstanceZval);

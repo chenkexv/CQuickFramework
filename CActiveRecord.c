@@ -1176,6 +1176,7 @@ PHP_METHOD(CActiveRecord,save)
 
 			//记录最后发生的错误
 			zend_update_property_string(CActiveRecordCe,getThis(), ZEND_STRL("_lastError"),Z_STRVAL_P(exceptionMessage) TSRMLS_CC);
+			Z_OBJ_HANDLE_P(EG(exception)) = 0;
 			zend_clear_exception(TSRMLS_C);
 			zval_ptr_dtor(&cconfigInstanceZval);
 			zval_ptr_dtor(&CDatabase);
@@ -1296,6 +1297,7 @@ PHP_METHOD(CActiveRecord,add)
 
 		//记录最后发生的错误
 		zend_update_property_string(CActiveRecordCe,getThis(), ZEND_STRL("_lastError"),Z_STRVAL_P(exceptionMessage) TSRMLS_CC);
+		Z_OBJ_HANDLE_P(EG(exception)) = 0;
 		zend_clear_exception(TSRMLS_C);
 		zval_ptr_dtor(&cconfigInstanceZval);
 		zval_ptr_dtor(&CDatabase);
@@ -1406,6 +1408,7 @@ PHP_METHOD(CActiveRecord,count)
 
 		//记录最后发生的错误
 		zend_update_property_string(CActiveRecordCe,getThis(), ZEND_STRL("_lastError"),Z_STRVAL_P(exceptionMessage) TSRMLS_CC);
+		Z_OBJ_HANDLE_P(EG(exception)) = 0;
 		zend_clear_exception(TSRMLS_C);
 
 		zval_ptr_dtor(&CDatabase);
@@ -1536,6 +1539,7 @@ PHP_METHOD(CActiveRecord,update)
 
 		//记录最后发生的错误
 		zend_update_property_string(CActiveRecordCe,getThis(), ZEND_STRL("_lastError"),Z_STRVAL_P(exceptionMessage) TSRMLS_CC);
+		Z_OBJ_HANDLE_P(EG(exception)) = 0;
 		zend_clear_exception(TSRMLS_C);
 		RETURN_FALSE;
 	}
