@@ -62,6 +62,7 @@ CMYFRAME_REGISTER_CLASS_RUN(CConsumer)
 
 	//定义变量
 	zend_declare_property_string(CConsumerCe, ZEND_STRL("listKey"),"",ZEND_ACC_PUBLIC TSRMLS_CC);
+	zend_declare_property_string(CConsumerCe, ZEND_STRL("listCommand"),"lpop",ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_long(CConsumerCe, ZEND_STRL("mqType"),1,ZEND_ACC_PUBLIC TSRMLS_CC); //MQ Type 1.rabbitmq 2.redis->list
 	zend_declare_property_long(CConsumerCe, ZEND_STRL("emptySleepTime"),3,ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_long(CConsumerCe, ZEND_STRL("processMaxNum"),1000000,ZEND_ACC_PUBLIC TSRMLS_CC);
@@ -192,11 +193,21 @@ PHP_METHOD(CConsumer,registerHeartbeatCallback)
 
 PHP_METHOD(CConsumer,setListKey)
 {
-	char	*id;
-	int		idLen = 0;
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"s",&id,&idLen) == FAILURE){
+	char	*id,
+			*command;
+	int		idLen = 0,
+			commandLen = 0;
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"s|s",&id,&idLen,&command,&commandLen) == FAILURE){
 		zend_throw_exception(CQueueExceptionCe, "[CQueueException] Call [CConsumer->setListKey] the 1 parameter type error , must be string ", 1 TSRMLS_CC);
 		return;
+	}
+
+	//listCommand
+	if(commandLen > 0){
+		php_strtolower(command,strlen(command)+1);
+		if(strcmp(command,"rpop") == 0){
+			zend_update_property_string(CConsumerCe,getThis(),ZEND_STRL("listCommand"),"rpop" TSRMLS_CC);
+		}
 	}
 
 	zend_update_property_string(CConsumerCe,getThis(),ZEND_STRL("listKey"),id TSRMLS_CC);
@@ -473,7 +484,8 @@ void CConsumer_getRedisMessage(zval *object,zval **returnObject TSRMLS_DC){
 			*redisInstance,
 			*callParams,
 			*redisReturnData,
-			*redisMessageObject;
+			*redisMessageObject,
+			*redisCommand;
 
 
 	MAKE_STD_ZVAL(*returnObject);
@@ -486,12 +498,15 @@ void CConsumer_getRedisMessage(zval *object,zval **returnObject TSRMLS_DC){
 		zend_throw_exception(CQueueExceptionCe, "[CQueueException] Call [CConsumer->run] when set MQ type is Redis must call [CConsumer->setListKey] to set which list will use", 1 TSRMLS_CC);
 		return;
 	}
+
+	//listCommand
+	redisCommand = zend_read_property(CConsumerCe,object,ZEND_STRL("listCommand"), 0 TSRMLS_CC);
 	
 	//get Redis Object
 	MAKE_STD_ZVAL(callParams);
 	array_init(callParams);
 	add_next_index_string(callParams,Z_STRVAL_P(listKey),1);
-	CRedis_callFunction(Z_STRVAL_P(mqId),"lpop",callParams,&redisReturnData TSRMLS_CC);
+	CRedis_callFunction(Z_STRVAL_P(mqId),Z_STRVAL_P(redisCommand),callParams,&redisReturnData TSRMLS_CC);
 	zval_ptr_dtor(&callParams);
 
 	//find exception
