@@ -17,7 +17,8 @@
 */
 
 //zend类对象
-zend_class_entry	*CRedisCe;
+zend_class_entry	*CRedisCe,
+					*CRedisMessageCe;
 
 
 //类方法:创建应用
@@ -26,4 +27,8 @@ PHP_METHOD(CRedis,__construct);
 PHP_METHOD(CRedis,__call);
 PHP_METHOD(CRedis,getObject);
 PHP_METHOD(CRedis,set);
+
+PHP_METHOD(CRedisMessage,getBody);
+PHP_METHOD(CRedisMessage,ack);
+PHP_METHOD(CRedisMessage,__call);
 

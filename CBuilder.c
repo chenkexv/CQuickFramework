@@ -1654,7 +1654,7 @@ void CDatabase_setQueryCache(zval *object,zval *result TSRMLS_DC){
 	add_next_index_string(callParams,jsonString,0);
 	add_next_index_long(callParams,cacheTimeLong);
 
-	CRedis_callFunction("set",callParams,&redisReturn TSRMLS_CC);
+	CRedis_callFunction("main","set",callParams,&redisReturn TSRMLS_CC);
 	zval_ptr_dtor(&redisReturn);
 	zval_ptr_dtor(&callParams);
 }
@@ -1678,7 +1678,7 @@ void CDatabase_checkQueryCache(zval *object,zval **cacheResult TSRMLS_DC)
 	MAKE_STD_ZVAL(callParams);
 	array_init(callParams);
 	add_next_index_string(callParams,Z_STRVAL_P(cacheKey),1);
-	CRedis_callFunction("get",callParams,&redisReturn TSRMLS_CC);
+	CRedis_callFunction("main","get",callParams,&redisReturn TSRMLS_CC);
 	if(IS_STRING != Z_TYPE_P(redisReturn)){
 		zval_ptr_dtor(&redisReturn);
 		zval_ptr_dtor(&callParams);

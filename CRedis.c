@@ -59,6 +59,41 @@ CMYFRAME_REGISTER_CLASS_RUN(CRedis)
 	return SUCCESS;
 }
 
+ZEND_BEGIN_ARG_INFO_EX(CRedisMessage_call_arginfo, 0, 0, 2)
+	ZEND_ARG_INFO(0, name)
+	ZEND_ARG_INFO(0, value)
+ZEND_END_ARG_INFO()
+zend_function_entry CRedisMessage_functions[] = {
+	PHP_ME(CRedisMessage,getBody,NULL,ZEND_ACC_PUBLIC)
+	PHP_ME(CRedisMessage,ack,NULL,ZEND_ACC_PUBLIC)
+	PHP_ME(CRedisMessage,__call,CRedisMessage_call_arginfo,ZEND_ACC_PUBLIC)
+	{NULL, NULL, NULL}
+};
+
+//模块被加载时
+CMYFRAME_REGISTER_CLASS_RUN(CRedisMessage)
+{
+	zend_class_entry funCe;
+	INIT_CLASS_ENTRY(funCe,"CRedisMessage",CRedisMessage_functions);
+	CRedisMessageCe = zend_register_internal_class(&funCe TSRMLS_CC);
+	zend_declare_property_null(CRedisMessageCe, ZEND_STRL("bodyContent"),ZEND_ACC_PUBLIC TSRMLS_CC);
+	return SUCCESS;
+}
+
+PHP_METHOD(CRedisMessage,getBody)
+{
+	zval	*returnZval;
+	returnZval = zend_read_property(CRedisMessageCe,getThis(),ZEND_STRL("bodyContent"), 0 TSRMLS_CC);
+	RETVAL_ZVAL(returnZval,1,0);
+}
+
+PHP_METHOD(CRedisMessage,ack){
+	RETVAL_TRUE;
+}
+
+PHP_METHOD(CRedisMessage,__call){
+	RETVAL_FALSE;
+}
 
 //获取CRedis单例对象
 void CRedis_getInstance(zval **returnZval,char *groupName TSRMLS_DC)
@@ -137,7 +172,7 @@ void CRedis_getInstance(zval **returnZval,char *groupName TSRMLS_DC)
 }
 
 //fast function
-void CRedis_callFunction(char *val,zval *args,zval **returnData TSRMLS_DC){
+void CRedis_callFunction(char *config,char *val,zval *args,zval **returnData TSRMLS_DC){
 
 	zval			*redisZval,
 					*redisObject,
@@ -150,7 +185,7 @@ void CRedis_callFunction(char *val,zval *args,zval **returnData TSRMLS_DC){
 
 	int				i,num;
 
-	CRedis_getInstance(&redisZval,"main" TSRMLS_CC);
+	CRedis_getInstance(&redisZval,config TSRMLS_CC);
 
 	redisObject = zend_read_property(CRedisCe,redisZval,ZEND_STRL("_redisConn"),0 TSRMLS_CC);
 	MAKE_STD_ZVAL(*returnData);
@@ -209,7 +244,8 @@ void CRedis_callFunction(char *val,zval *args,zval **returnData TSRMLS_DC){
 PHP_METHOD(CRedis,getInstance)
 {
 	zval *instanceZval;
-	char *groupName = "default";
+	char *groupName = NULL,
+		 *trueGroupName;
 	int groupNameLen = 0;
 
 	//判断是否制定redis序列
@@ -218,9 +254,17 @@ PHP_METHOD(CRedis,getInstance)
 		return;
 	}
 
-	CRedis_getInstance(&instanceZval,groupName TSRMLS_CC);
+	if(groupNameLen == 0){
+		trueGroupName = estrdup("main");
+	}else{
+		trueGroupName = estrdup(groupName);
+	}
+
+
+	CRedis_getInstance(&instanceZval,trueGroupName TSRMLS_CC);
 	ZVAL_ZVAL(return_value,instanceZval,1,0);
 	zval_ptr_dtor(&instanceZval);
+	efree(trueGroupName);
 }
 
 PHP_METHOD(CRedis,getObject)
@@ -258,6 +302,7 @@ void CRedis_getRedisConnection(zval *object,char *groupName TSRMLS_DC)
 	defaultHost = "127.0.0.1";
 	redisGroup = estrdup(groupName);
 
+
 	//获取配置参数
 	CConfig_getInstance("main",&cconfigInstanceZval TSRMLS_CC);
 
@@ -289,7 +334,7 @@ void CRedis_getRedisConnection(zval *object,char *groupName TSRMLS_DC)
 	zval_ptr_dtor(&configPassword);
 
 	//使用指定RedisGroup时
-	if(strcmp(redisGroup,"default") != 0){
+	if(strcmp(redisGroup,"main") != 0){
 
 
 		//读取配置中REDIS_SERVER键

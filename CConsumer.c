@@ -29,6 +29,7 @@
 #include "php_CConsumer.h"
 #include "php_CLog.h"
 #include "php_CRabbit.h"
+#include "php_CRedis.h"
 #include "php_CRabbitMessage.h"
 #include "php_CException.h"
 
@@ -47,6 +48,8 @@ zend_function_entry CConsumer_functions[] = {
 	PHP_ME(CConsumer,ack,NULL,ZEND_ACC_PUBLIC)
 	PHP_ME(CConsumer,run,NULL,ZEND_ACC_PUBLIC)
 	PHP_ME(CConsumer,setMQId,NULL,ZEND_ACC_PUBLIC)
+	PHP_ME(CConsumer,setMQType,NULL,ZEND_ACC_PUBLIC)
+	PHP_ME(CConsumer,setListKey,NULL,ZEND_ACC_PUBLIC)
 	{NULL, NULL, NULL}
 };
 
@@ -58,8 +61,10 @@ CMYFRAME_REGISTER_CLASS_RUN(CConsumer)
 	CConsumerCe = zend_register_internal_class(&funCe TSRMLS_CC);
 
 	//定义变量
+	zend_declare_property_string(CConsumerCe, ZEND_STRL("listKey"),"",ZEND_ACC_PUBLIC TSRMLS_CC);
+	zend_declare_property_long(CConsumerCe, ZEND_STRL("mqType"),1,ZEND_ACC_PUBLIC TSRMLS_CC); //MQ Type 1.rabbitmq 2.redis->list
 	zend_declare_property_long(CConsumerCe, ZEND_STRL("emptySleepTime"),3,ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_long(CConsumerCe, ZEND_STRL("processMaxNum"),100000,ZEND_ACC_PUBLIC TSRMLS_CC);
+	zend_declare_property_long(CConsumerCe, ZEND_STRL("processMaxNum"),1000000,ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_long(CConsumerCe, ZEND_STRL("processNum"),0,ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_string(CConsumerCe, ZEND_STRL("memoryLimit"),"8048M",ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_long(CConsumerCe, ZEND_STRL("timeLimit"),0,ZEND_ACC_PUBLIC TSRMLS_CC);
@@ -185,6 +190,19 @@ PHP_METHOD(CConsumer,registerHeartbeatCallback)
 	RETVAL_ZVAL(getThis(),1,0);
 }
 
+PHP_METHOD(CConsumer,setListKey)
+{
+	char	*id;
+	int		idLen = 0;
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"s",&id,&idLen) == FAILURE){
+		zend_throw_exception(CQueueExceptionCe, "[CQueueException] Call [CConsumer->setListKey] the 1 parameter type error , must be string ", 1 TSRMLS_CC);
+		return;
+	}
+
+	zend_update_property_string(CConsumerCe,getThis(),ZEND_STRL("listKey"),id TSRMLS_CC);
+	RETVAL_ZVAL(getThis(),1,0);
+}
+
 PHP_METHOD(CConsumer,setProducer)
 {
 
@@ -229,6 +247,26 @@ PHP_METHOD(CConsumer,setMQId)
 	}
 
 	zend_update_property_string(CConsumerCe,getThis(),ZEND_STRL("mqId"),id TSRMLS_CC);
+	RETVAL_ZVAL(getThis(),1,0);
+}
+
+PHP_METHOD(CConsumer,setMQType)
+{
+	char	*id;
+	int		idLen = 0;
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"s",&id,&idLen) == FAILURE){
+		zend_throw_exception(CQueueExceptionCe, "[CQueueException] Call [CConsumer->setMQType] the 1 parameter type error , must be string ", 1 TSRMLS_CC);
+		return;
+	}
+	
+	php_strtolower(id,strlen(id)+1);
+	if(strcmp(id,"redis") == 0){
+		zend_update_property_long(CConsumerCe,getThis(),ZEND_STRL("mqType"),2 TSRMLS_CC);
+	}else{
+		zend_update_property_long(CConsumerCe,getThis(),ZEND_STRL("mqType"),1 TSRMLS_CC);
+	}
+
+
 	RETVAL_ZVAL(getThis(),1,0);
 }
 
@@ -427,7 +465,58 @@ void setLog(zval *object,char *message TSRMLS_DC){
 	efree(messageSave);
 }
 
-void CConsumer_getMessage(zval *object,zval **returnObject TSRMLS_DC){
+
+void CConsumer_getRedisMessage(zval *object,zval **returnObject TSRMLS_DC){
+
+	zval	*listKey,
+			*mqId,
+			*redisInstance,
+			*callParams,
+			*redisReturnData,
+			*redisMessageObject;
+
+
+	MAKE_STD_ZVAL(*returnObject);
+	ZVAL_NULL(*returnObject);
+
+	listKey = zend_read_property(CConsumerCe,object,ZEND_STRL("listKey"), 0 TSRMLS_CC);
+	mqId = zend_read_property(CConsumerCe,object,ZEND_STRL("mqId"), 0 TSRMLS_CC);
+
+	if(strlen(Z_STRVAL_P(listKey)) == 0){
+		zend_throw_exception(CQueueExceptionCe, "[CQueueException] Call [CConsumer->run] when set MQ type is Redis must call [CConsumer->setListKey] to set which list will use", 1 TSRMLS_CC);
+		return;
+	}
+	
+	//get Redis Object
+	MAKE_STD_ZVAL(callParams);
+	array_init(callParams);
+	add_next_index_string(callParams,Z_STRVAL_P(listKey),1);
+	CRedis_callFunction(Z_STRVAL_P(mqId),"lpop",callParams,&redisReturnData TSRMLS_CC);
+	zval_ptr_dtor(&callParams);
+
+	//find exception
+	if(EG(exception)){
+		Z_OBJ_HANDLE_P(EG(exception)) = 0;	
+		zend_clear_exception(TSRMLS_C);
+		return;
+	}
+
+	//no message
+	if(IS_NULL == Z_TYPE_P(redisReturnData) || (IS_BOOL == Z_TYPE_P(redisReturnData) && 0 == Z_LVAL_P(redisReturnData) ) || (IS_ARRAY == Z_TYPE_P(redisReturnData) && 0 == zend_hash_num_elements(Z_ARRVAL_P(redisReturnData)))){
+		zval_ptr_dtor(&redisReturnData);
+		return;
+	}
+
+	//create a redisMessage
+	MAKE_STD_ZVAL(redisMessageObject);
+	object_init_ex(redisMessageObject,CRedisMessageCe);
+	zend_update_property(CRedisMessageCe,redisMessageObject,ZEND_STRL("bodyContent"),redisReturnData TSRMLS_CC);
+	zval_ptr_dtor(&redisReturnData);
+
+	ZVAL_ZVAL(*returnObject,redisMessageObject,1,1);
+}
+
+void CConsumer_getRabbitMessage(zval *object,zval **returnObject TSRMLS_DC){
 
 	zval	*rabbitObject,
 			*messageObject,
@@ -567,7 +656,7 @@ void CConsumer_checkHeartbeat(zval *object TSRMLS_DC){
 		needHeart = 1;
 	}
 
-	php_printf("checkHeart--%d-%d",Z_LVAL_P(emptySec),Z_LVAL_P(emptySec) % Z_LVAL_P(heartBeatTime));
+	php_printf("checkHeart--%d-%d\n",Z_LVAL_P(emptySec),Z_LVAL_P(emptySec) % Z_LVAL_P(heartBeatTime));
 
 	//触发心跳回调
 	if(1 == needHeart){
@@ -643,38 +732,47 @@ void CConsumer_checkProcessMax(zval *object TSRMLS_DC){
 	}
 }
 
-PHP_METHOD(CConsumer,run)
-{
-	setLog(getThis(),"The script is staring .." TSRMLS_CC);
+
+
+//zhixing  RabbitMQ
+void CConsumer_run(int mqType,zval *object TSRMLS_DC){
 
 	while(1){
 
 		zval	*message = NULL;
 
-		CConsumer_getMessage(getThis(),&message TSRMLS_CC);
-
+		//get diff mq message
+		if(mqType == 1){
+			CConsumer_getRabbitMessage(object,&message TSRMLS_CC);
+		}else if(mqType == 2){
+			CConsumer_getRedisMessage(object,&message TSRMLS_CC);
+		}else{
+			setLog(object,"The CConsumer cant not support this MQ Type .." TSRMLS_CC);
+			break;
+		}
+	
 		//消息为空时沉睡
 		if(IS_NULL == Z_TYPE_P(message)){
 
 			//输出日志
-			setLog(getThis(),"No Task , System sleep .." TSRMLS_CC);
+			setLog(object,"No Task , System sleep .." TSRMLS_CC);
 			zval_ptr_dtor(&message);
 
 			//沉睡N秒
-			CConsumer_sleep(getThis() TSRMLS_CC);
+			CConsumer_sleep(object TSRMLS_CC);
 
 			//判断是否触发心跳函数
-			CConsumer_checkHeartbeat(getThis() TSRMLS_CC);
+			CConsumer_checkHeartbeat(object TSRMLS_CC);
 
 			//持续空闲的时间+1
 			MODULE_BEGIN
 				zval *emptySec;
 				int		nowSec = 0;
-				emptySec = zend_read_property(CConsumerCe,getThis(),ZEND_STRL("emptySec"), 0 TSRMLS_CC);
+				emptySec = zend_read_property(CConsumerCe,object,ZEND_STRL("emptySec"), 0 TSRMLS_CC);
 				if(IS_LONG == Z_TYPE_P(emptySec)){
 					nowSec = Z_LVAL_P(emptySec) + 1;
 				}
-				zend_update_property_long(CConsumerCe,getThis(),ZEND_STRL("emptySec"),nowSec TSRMLS_CC);
+				zend_update_property_long(CConsumerCe,object,ZEND_STRL("emptySec"),nowSec TSRMLS_CC);
 			MODULE_END
 
 			//继续阻塞等待
@@ -683,16 +781,30 @@ PHP_METHOD(CConsumer,run)
 
 
 		//重置等待秒数
-		zend_update_property_long(CConsumerCe,getThis(),ZEND_STRL("emptySec"),1 TSRMLS_CC);
+		zend_update_property_long(CConsumerCe,object,ZEND_STRL("emptySec"),1 TSRMLS_CC);
 
 
 		//触发消息回调
-		CConsumer_parseMessage(getThis(),message TSRMLS_CC);
+		CConsumer_parseMessage(object,message TSRMLS_CC);
 
 		//判断处理消息次数
-		CConsumer_checkProcessMax(getThis() TSRMLS_CC);
+		CConsumer_checkProcessMax(object TSRMLS_CC);
 
 		//销毁资源
 		zval_ptr_dtor(&message);
 	}
+}
+
+
+
+PHP_METHOD(CConsumer,run)
+{
+	zval *mqType;
+
+	//read mqType
+	mqType = zend_read_property(CConsumerCe,getThis(),ZEND_STRL("mqType"), 0 TSRMLS_CC);
+
+
+	CConsumer_run(Z_LVAL_P(mqType),getThis() TSRMLS_CC);
+
 }

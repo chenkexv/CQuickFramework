@@ -31,3 +31,5 @@ PHP_METHOD(CConsumer,setLogName);
 PHP_METHOD(CConsumer,ack);
 PHP_METHOD(CConsumer,run);
 PHP_METHOD(CConsumer,setMQId);
+PHP_METHOD(CConsumer,setMQType);
+PHP_METHOD(CConsumer,setListKey);

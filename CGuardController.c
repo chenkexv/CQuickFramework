@@ -1773,7 +1773,7 @@ void CGuardController_getCacheStatus(zval *saveLogs TSRMLS_DC){
 
 	MAKE_STD_ZVAL(callParams);
 	array_init(callParams);
-	CRedis_callFunction("info",callParams,&redisBack TSRMLS_CC);
+	CRedis_callFunction("main","info",callParams,&redisBack TSRMLS_CC);
 
 	if(IS_ARRAY != Z_TYPE_P(redisBack)){
 		zval_ptr_dtor(&redisBack);
@@ -1864,7 +1864,7 @@ void CGuardController_getCacheStatus(zval *saveLogs TSRMLS_DC){
 
 	MAKE_STD_ZVAL(callParams);
 	array_init(callParams);
-	CRedis_callFunction("info",callParams,&redisBack2 TSRMLS_CC);
+	CRedis_callFunction("main","info",callParams,&redisBack2 TSRMLS_CC);
 	zval_ptr_dtor(&callParams);
 
 	//cache QPS
@@ -2106,7 +2106,7 @@ void CGuardController_checkClearLogs(char *dbConfig TSRMLS_DC){
 	MAKE_STD_ZVAL(callParams);
 	array_init(callParams);
 	add_next_index_string(callParams,"monitor",1);
-	CRedis_callFunction("get",callParams,&redisBack TSRMLS_CC);
+	CRedis_callFunction("main","get",callParams,&redisBack TSRMLS_CC);
 	zval_ptr_dtor(&callParams);
 	if(IS_STRING == Z_TYPE_P(redisBack)){
 		zval_ptr_dtor(&redisBack);
@@ -2137,7 +2137,7 @@ void CGuardController_checkClearLogs(char *dbConfig TSRMLS_DC){
 	add_next_index_string(callParams,"monitor",1);
 	add_next_index_string(callParams,"1",1);
 	add_next_index_long(callParams,86400);
-	CRedis_callFunction("set",callParams,&redisBack TSRMLS_CC);
+	CRedis_callFunction("main","set",callParams,&redisBack TSRMLS_CC);
 	zval_ptr_dtor(&callParams);
 	zval_ptr_dtor(&redisBack);
 
@@ -2565,7 +2565,7 @@ void CGuardController_checkWarnMail(zval *logs,zval *object TSRMLS_DC){
 		MAKE_STD_ZVAL(callParams);
 		array_init(callParams);
 		add_next_index_string(callParams,"sendMonitorWarnMail",1);
-		CRedis_callFunction("get",callParams,&redisBack TSRMLS_CC);
+		CRedis_callFunction("main","get",callParams,&redisBack TSRMLS_CC);
 		zval_ptr_dtor(&callParams);
 
 		if(IS_STRING == Z_TYPE_P(redisBack)){
@@ -2684,7 +2684,7 @@ void CGuardController_checkWarnMail(zval *logs,zval *object TSRMLS_DC){
 				add_next_index_string(callParams,"sendMonitorWarnMail",1);
 				add_next_index_string(callParams,"1",1);
 				add_next_index_long(callParams,delay);
-				CRedis_callFunction("set",callParams,&redisBack TSRMLS_CC);
+				CRedis_callFunction("main","set",callParams,&redisBack TSRMLS_CC);
 				zval_ptr_dtor(&callParams);
 				zval_ptr_dtor(&redisBack);
 
