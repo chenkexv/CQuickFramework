@@ -17,9 +17,16 @@
 */
 
 //zend类对象
-zend_class_entry	*CShareArrayCe;
+zend_class_entry	*CShareCacheCe;
 
 
 //类方法:创建应用
-PHP_METHOD(CShareArray,getInstance);
+PHP_METHOD(CShareCache,getInstance);
+PHP_METHOD(CShareCache,set);
+PHP_METHOD(CShareCache,get);
+PHP_METHOD(CShareCache,del);
+PHP_METHOD(CShareCache,delId);
+PHP_METHOD(CShareCache,__construct);
+PHP_METHOD(CShareCache,info);
+
 
