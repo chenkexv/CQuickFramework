@@ -425,7 +425,7 @@ PHP_METHOD(CConfig,load)
 	zval	*returnZval,
 			*defaultZval = NULL;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"s|z",&key,&keyLen) == FAILURE){
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"s|z",&key,&keyLen,&defaultZval) == FAILURE){
 		zend_throw_exception(CExceptionCe,"Call CConfig->load (), key must be a string", 10000 TSRMLS_CC);
 		return;
 	}
