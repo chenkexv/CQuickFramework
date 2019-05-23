@@ -93,6 +93,7 @@ PHP_FUNCTION(CGetServiceExpire);
 PHP_FUNCTION(CMyFrameExtension_createProject);
 PHP_FUNCTION(CMyFrameExtension_createPlugin);
 PHP_FUNCTION(CMyFrameExtension_createConsumer);
+PHP_FUNCTION(CMyFrameExtension_dumpClassMapForIDE);
 
 
 //全局变量定义

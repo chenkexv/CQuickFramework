@@ -45,6 +45,7 @@ zend_function_entry CMyFrameExtension_functions[] = {
 	PHP_FE(CMyFrameExtension_createProject,NULL) //create a empty project
 	PHP_FE(CMyFrameExtension_createPlugin,NULL) //create a plugin demo
 	PHP_FE(CMyFrameExtension_createConsumer,NULL) //create a consumer demo
+	PHP_FE(CMyFrameExtension_dumpClassMapForIDE,NULL)
 	{NULL, NULL, NULL}
 };
 
@@ -424,6 +425,7 @@ void CMyFrameExtension_showCommandList(){
 	php_printf("\tphp -r \"CMyFrameExtension_createProject();\";\n");
 	php_printf("\tphp -r \"CMyFrameExtension_createConsumer('baseConsumer');\";\n");
 	php_printf("\tphp -r \"CMyFrameExtension_createPlugin('basePlugin');\";\n");
+	php_printf("\tphp -r \"CMyFrameExtension_dumpClassMapForIDE();\";\n");
 	php_printf("\n");
 }
 
@@ -753,4 +755,17 @@ PHP_FUNCTION(CMyFrameExtension_createConsumer)
 	
 	efree(workPath);
 	zval_ptr_dtor(&dirList);
+}
+
+//dump a class Map file , put it in IDE will complete function auto padding;
+PHP_FUNCTION(CMyFrameExtension_dumpClassMapForIDE)
+{
+	zval	*sapiZval;
+
+	if(zend_hash_find(EG(zend_constants),"PHP_SAPI",strlen("PHP_SAPI")+1,(void**)&sapiZval) == SUCCESS && strcmp(Z_STRVAL_P(sapiZval),"cli") == 0){
+	}else{
+		return;
+	}
+
+	CDebug_dumpClassMapForIDE(TSRMLS_C);
 }

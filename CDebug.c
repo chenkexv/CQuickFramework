@@ -1754,6 +1754,142 @@ PHP_METHOD(CDebug,dumpClass)
 	RETVAL_ZVAL(saveData,1,1);
 }
 
+void CDebug_dumpClassList(zval **returnArray TSRMLS_DC){
+
+	zval				*classList;
+
+	zend_class_entry	**thisVal;
+
+	char				*key,
+						*className;
+
+	int					i,h;
+
+	ulong				ukey;
+
+	MAKE_STD_ZVAL(classList);
+	array_init(classList);
+
+	zend_hash_internal_pointer_reset(EG(class_table));
+	h = zend_hash_num_elements(EG(class_table));
+	for(i = 0 ; i < h ; i ++){
+		zend_hash_get_current_data(EG(class_table),(void**)&thisVal);
+		zend_hash_get_current_key(EG(class_table),&key,&ukey,0);
+
+#if ( PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION <= 3 )
+		if ((*thisVal)->module && !strcasecmp((*thisVal)->module->name, CMyFrameExtension_module_entry.name)) {
+			className = estrdup((*thisVal)->name);
+			add_next_index_string(classList,className,0);
+		}
+#else
+		if (((*thisVal)->type == ZEND_INTERNAL_CLASS) && (*thisVal)->info.internal.module && !strcasecmp((*thisVal)->info.internal.module->name, CMyFrameExtension_module_entry.name)) {
+			className = estrdup((*thisVal)->name);
+			add_next_index_string(classList,className,0);
+		}
+#endif
+		
+		zend_hash_move_forward(EG(class_table));
+	}
+	
+	MAKE_STD_ZVAL(*returnArray);
+	ZVAL_ZVAL(*returnArray,classList,1,1);
+}
+
+void CDebug_dumpClassOneForIDE(char *className,char **returnString TSRMLS_DC){
+
+	smart_str  classContent = {0};
+	zval	*returnData,
+			**propertiesZval,
+			**properNameZval,
+			**functionZval,
+			**functionName,
+			**parentNameZval;
+	int		i,h;
+	char	*key;
+	ulong	ukey;
+
+	CDebug_dumpClass(className,&returnData TSRMLS_CC);
+
+	smart_str_appends(&classContent,"\r\nclass ");
+	smart_str_appends(&classContent,className);
+
+	if(SUCCESS == zend_hash_find(Z_ARRVAL_P(returnData),"parentName",strlen("parentName")+1,(void**)&parentNameZval) && IS_STRING == Z_TYPE_PP(parentNameZval) && Z_STRLEN_PP(parentNameZval) > 0){
+		smart_str_appends(&classContent," extends ");
+		smart_str_appends(&classContent,Z_STRVAL_PP(parentNameZval));
+	}
+
+	smart_str_appends(&classContent,"{\r\n");
+
+	if(SUCCESS == zend_hash_find(Z_ARRVAL_P(returnData),"properties",strlen("properties")+1,(void**)&propertiesZval) && IS_ARRAY == Z_TYPE_PP(propertiesZval)){
+		h = zend_hash_num_elements(Z_ARRVAL_PP(propertiesZval));
+		zend_hash_internal_pointer_reset(Z_ARRVAL_PP(propertiesZval));
+		for(i = 0 ; i < h; i++){
+			zend_hash_get_current_data(Z_ARRVAL_PP(propertiesZval),(void**)&properNameZval);
+			zend_hash_get_current_key(Z_ARRVAL_PP(propertiesZval),&key,&ukey,0);
+
+			smart_str_appends(&classContent,"    ");
+			smart_str_appends(&classContent,Z_STRVAL_PP(properNameZval));
+			smart_str_appends(&classContent," $");
+			smart_str_appends(&classContent,key);
+			smart_str_appends(&classContent,";\r\n");
+			zend_hash_move_forward(Z_ARRVAL_PP(propertiesZval));
+		}
+	}
+
+	//classTable
+	if(SUCCESS == zend_hash_find(Z_ARRVAL_P(returnData),"function_table",strlen("function_table")+1,(void**)&functionZval) && IS_ARRAY == Z_TYPE_PP(functionZval)){
+		h = zend_hash_num_elements(Z_ARRVAL_PP(functionZval));
+		zend_hash_internal_pointer_reset(Z_ARRVAL_PP(functionZval));
+		for(i = 0 ; i < h; i++){
+			zend_hash_get_current_data(Z_ARRVAL_PP(functionZval),(void**)&functionName);
+			zend_hash_get_current_key(Z_ARRVAL_PP(functionZval),&key,&ukey,0);
+			
+			smart_str_appends(&classContent,"    ");
+			smart_str_appends(&classContent,Z_STRVAL_PP(functionName));
+			smart_str_appends(&classContent," function ");
+			smart_str_appends(&classContent,key);
+			smart_str_appends(&classContent,"(){}\r\n");
+		
+			zend_hash_move_forward(Z_ARRVAL_PP(functionZval));
+		}
+	}
+
+	smart_str_appends(&classContent,"}");
+	smart_str_0(&classContent);
+	*returnString = estrdup(classContent.c);
+	smart_str_free(&classContent);
+	zval_ptr_dtor(&returnData);
+}
+
+void CDebug_dumpClassMapForIDE(TSRMLS_D){
+
+	zval		*classList,
+				**thisVal;
+	int			i,h;
+	smart_str	fileContent = {0};
+	char		*thisClassFile;
+
+	CDebug_dumpClassList(&classList TSRMLS_CC);
+
+	smart_str_appends(&fileContent,"<?php\r\nexit();\r\n");
+
+	h = zend_hash_num_elements(Z_ARRVAL_P(classList));
+	for(i = 0 ; i < h ; i++){
+		zend_hash_get_current_data(Z_ARRVAL_P(classList),(void**)&thisVal);
+
+		CDebug_dumpClassOneForIDE(Z_STRVAL_PP(thisVal),&thisClassFile TSRMLS_CC);
+		smart_str_appends(&fileContent,thisClassFile);
+		efree(thisClassFile);
+		zend_hash_move_forward(Z_ARRVAL_P(classList));
+	}
+
+	smart_str_appends(&fileContent,"\r\n?>");
+	smart_str_0(&fileContent);
+	file_put_contents("CQuickFramework.php",fileContent.c);
+	smart_str_free(&fileContent);
+	zval_ptr_dtor(&classList);
+}
+
 PHP_METHOD(CDebug,dumpInternalClass)
 {
 	int		i,h,

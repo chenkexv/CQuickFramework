@@ -18,3 +18,9 @@
 或使用命令行 php index.php base/index
 
 程序将输出 "Hello CQuickFramework" 代表安装成功.
+
+由于框架代码及类定义均已封装在so库或dll库中,IDE通常无法对内建类进行自动补全.
+
+执行如下命令,框架将在当前目录创建CQuickFramework.php类库文件,将此文件放入IDE项目中,即可自动补全函数.
+
+<code><br>&nbsp;&nbsp;&nbsp;php -r "CMyFrameExtension_dumpClassMapForIDE();";&nbsp;&nbsp;&nbsp;<br></code>
