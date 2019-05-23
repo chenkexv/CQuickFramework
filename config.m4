@@ -60,7 +60,7 @@ if test "$PHP_CMYFRAMEEXTENSION" != "no"; then
   dnl PHP_SUBST(CMYFRAMEEXTENSION_SHARED_LIBADD)
 
 
-PHP_NEW_EXTENSION(CMyFrameExtension,Cache.c CActiveRecord.c CApplication.c CArraySort.c CBase.c CBuilder.c CConfigs.c CController.c CDatabase.c CDbError.c CException.c CExec.c CFunction.c CHooks.c CInitApplication.c CLoader.c CMemcache.c CModel.c CMyFrameExtension.c CPlugin.c CRedis.c CRequest.c CResponse.c CResult.c CRoute.c CRouteParse.c CSession.c CSmarty.c CView.c CWebApp.c CServer.c CDiContainer.c CLog.c CThread.c CPagination.c CWatcher.c CRabbit.c CRabbitMessage.c CEncrypt.c CCookie.c CSmtp.c CConsumer.c CMonitor.c CArrayHelper.c CValidate.c CQuickTemplate.c CGuardController.c CRabbitHelper.c CHash.c CSecurityCode.c CDebug.c CCrontabController.c CFtp.c CTime.c CWord.c CImage.c CTree.c,$ext_shared)
+PHP_NEW_EXTENSION(CMyFrameExtension,Cache.c CActiveRecord.c CApplication.c CArraySort.c CBase.c CBuilder.c CConfigs.c CController.c CDatabase.c CDbError.c CException.c CExec.c CFunction.c CHooks.c CInitApplication.c CLoader.c CMemcache.c CModel.c CMyFrameExtension.c CPlugin.c CRedis.c CRequest.c CResponse.c CResult.c CRoute.c CRouteParse.c CSession.c CSmarty.c CView.c CWebApp.c CServer.c CDiContainer.c CLog.c CThread.c CPagination.c CWatcher.c CRabbit.c CRabbitMessage.c CEncrypt.c CCookie.c CSmtp.c CConsumer.c CMonitor.c CArrayHelper.c CValidate.c CQuickTemplate.c CGuardController.c CRabbitHelper.c CHash.c CSecurityCode.c CDebug.c CCrontabController.c CFtp.c CTime.c CWord.c CImage.c CTree.c CHashTable.c CString.c ,$ext_shared)
 
 fi
 

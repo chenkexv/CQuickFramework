@@ -422,16 +422,22 @@ PHP_METHOD(CConfig,load)
 	char	*key;
 	int		keyLen;
 
-	zval	*returnZval;
+	zval	*returnZval,
+			*defaultZval = NULL;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"s",&key,&keyLen) == FAILURE){
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"s|z",&key,&keyLen) == FAILURE){
 		zend_throw_exception(CExceptionCe,"Call CConfig->load (), key must be a string", 10000 TSRMLS_CC);
 		return;
 	}
 
 	//ªÒ»°≈‰÷√œÓ
 	CConfig_load(key,getThis(),&returnZval TSRMLS_CC);
-	ZVAL_ZVAL(return_value,returnZval,1,1);
+	if(IS_NULL == Z_TYPE_P(returnZval) && defaultZval != NULL){
+		ZVAL_ZVAL(return_value,defaultZval,1,0);
+	}else{
+		ZVAL_ZVAL(return_value,returnZval,1,0);
+	}
+	zval_ptr_dtor(&returnZval);
 }
 
 PHP_METHOD(CConfig,get)

@@ -1149,6 +1149,66 @@ int date_default_timezone_set(char *param1Str)
 	return status;
 }
 
+int mb_strlen(char *string,char *charst)
+{
+	zval	returnZval,
+			*params[2],
+			function;
+
+	int status = 0;
+
+	TSRMLS_FETCH();
+	MAKE_STD_ZVAL(params[0]);
+	ZVAL_STRING(params[0],string,1);
+	MAKE_STD_ZVAL(params[1]);
+	ZVAL_STRING(params[1],charst,1);
+	INIT_ZVAL(function);
+	ZVAL_STRING(&function,"mb_strlen",0);
+	status = call_user_function(EG(function_table), NULL, &function, &returnZval,2, params TSRMLS_CC);
+	zval_ptr_dtor(&params[0]);
+	zval_ptr_dtor(&params[1]);
+	status = Z_LVAL(returnZval);
+	zval_dtor(&returnZval);
+	return status;
+}
+
+int mb_substr(char *string,long offset,long len,char *charst,char **returnString)
+{
+	zval	returnZval,
+			*params[4],
+			function;
+
+	int status = 0;
+
+	TSRMLS_FETCH();
+	MAKE_STD_ZVAL(params[0]);
+	ZVAL_STRING(params[0],string,1);
+	MAKE_STD_ZVAL(params[1]);
+	ZVAL_LONG(params[1],offset);
+	MAKE_STD_ZVAL(params[2]);
+	ZVAL_LONG(params[2],len);
+	MAKE_STD_ZVAL(params[3]);
+	ZVAL_STRING(params[3],charst,1);
+
+	INIT_ZVAL(function);
+	ZVAL_STRING(&function,"mb_substr",0);
+	status = call_user_function(EG(function_table), NULL, &function, &returnZval,4, params TSRMLS_CC);
+	zval_ptr_dtor(&params[0]);
+	zval_ptr_dtor(&params[1]);
+	zval_ptr_dtor(&params[2]);
+	zval_ptr_dtor(&params[3]);
+
+	if(IS_STRING == Z_TYPE(returnZval)){
+		status = 1;
+		*returnString = estrdup(Z_STRVAL(returnZval));
+	}else{
+		status = 0;
+		*returnString = estrdup("");
+	}
+	zval_dtor(&returnZval);
+	return status;
+}
+
 int error_reporting(int param1Str)
 {
 	zval	returnZval,
@@ -2982,4 +3042,126 @@ void parse_str(char *str,zval **backZval)
 
 	zval_ptr_dtor(&params[0]);
 	zval_dtor(&returnZval);
+}
+
+int CArrayHelper_load(char *key,zval *configsData,zval **returnZval TSRMLS_DC)
+{
+	MAKE_STD_ZVAL(*returnZval);
+
+	//如果不是数据返回null
+	if(IS_ARRAY != Z_TYPE_P(configsData)){
+
+		ZVAL_NULL(*returnZval);
+		return FAILURE;
+	}
+
+	//有key则直接返回
+	if(zend_hash_exists(Z_ARRVAL_P(configsData),key,strlen(key)+1)){
+		zval **keyVal;
+		if(SUCCESS == zend_hash_find(Z_ARRVAL_P(configsData),key,strlen(key)+1,(void**)&keyVal)){
+			ZVAL_ZVAL(*returnZval,*keyVal,1,0);
+			return SUCCESS;
+		}
+	}
+
+	//判断是否存在分割号.
+	if(strstr(key,".") != NULL){
+
+		//将key按照.分割
+		zval *cutArr;
+		php_explode(".",key,&cutArr);
+
+		if(IS_ARRAY == Z_TYPE_P(cutArr) && zend_hash_num_elements(Z_ARRVAL_P(cutArr)) > 1){
+			
+			//对configsData保存的Hashtable进行遍历
+			int configTableNum,
+				n;
+
+			zval *currentData,
+				 **nData,
+				 **resetData;
+
+			//当前值
+			MAKE_STD_ZVAL(currentData);
+			ZVAL_ZVAL(currentData,configsData,1,0);
+
+			configTableNum = zend_hash_num_elements(Z_ARRVAL_P(cutArr));
+			zend_hash_internal_pointer_reset(Z_ARRVAL_P(cutArr));
+
+			for( n = 0 ; n < configTableNum ; n++){
+
+				zend_hash_get_current_data(Z_ARRVAL_P(cutArr),(void**)&nData);
+				
+				if(IS_ARRAY != Z_TYPE_P(currentData)){
+					ZVAL_NULL(*returnZval);
+					zval_ptr_dtor(&cutArr);
+					zval_ptr_dtor(&currentData);
+					return FAILURE;
+				}
+
+				if(isdigitstr(Z_STRVAL_PP(nData))){
+				
+					int keyInt = toInt(Z_STRVAL_PP(nData));
+
+					//不存在该层键则返回null
+					if(!zend_hash_index_exists(Z_ARRVAL_P(currentData),keyInt)){
+						ZVAL_NULL(*returnZval);
+						zval_ptr_dtor(&cutArr);
+						zval_ptr_dtor(&currentData);
+						return FAILURE;
+					}
+
+					//重置cutArr的值
+					if(SUCCESS == zend_hash_index_find(Z_ARRVAL_P(currentData),keyInt,(void**)&resetData)){
+						zval *tempZval;
+
+						MAKE_STD_ZVAL(tempZval);
+						ZVAL_ZVAL(tempZval,*resetData,1,0);
+						zval_ptr_dtor(&currentData);
+
+						MAKE_STD_ZVAL(currentData);
+						ZVAL_ZVAL(currentData,tempZval,1,0);
+						zval_ptr_dtor(&tempZval);
+					}
+					zend_hash_move_forward(Z_ARRVAL_P(cutArr));
+
+				}else{
+
+					//不存在该层键则返回null
+					if(!zend_hash_exists(Z_ARRVAL_P(currentData),Z_STRVAL_PP(nData),strlen(Z_STRVAL_PP(nData)) + 1)){
+						ZVAL_NULL(*returnZval);
+						zval_ptr_dtor(&cutArr);
+						zval_ptr_dtor(&currentData);
+						return FAILURE;
+					}
+
+					//重置cutArr的值
+					if(SUCCESS == zend_hash_find(Z_ARRVAL_P(currentData),Z_STRVAL_PP(nData),Z_STRLEN_PP(nData) + 1,(void**)&resetData)){
+						zval *tempZval;
+
+						MAKE_STD_ZVAL(tempZval);
+						ZVAL_ZVAL(tempZval,*resetData,1,0);
+						zval_ptr_dtor(&currentData);
+
+						MAKE_STD_ZVAL(currentData);
+						ZVAL_ZVAL(currentData,tempZval,1,0);
+						zval_ptr_dtor(&tempZval);
+					}
+					zend_hash_move_forward(Z_ARRVAL_P(cutArr));
+				}
+			}
+
+			ZVAL_ZVAL(*returnZval,currentData,1,0);
+			zval_ptr_dtor(&currentData);
+			zval_ptr_dtor(&cutArr);
+			return SUCCESS;
+		}else{
+			zval_ptr_dtor(&cutArr);
+			return FAILURE;
+		}
+	}
+
+	ZVAL_NULL(*returnZval);
+	return FAILURE;
+
 }

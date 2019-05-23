@@ -22,3 +22,11 @@ zend_class_entry	*CWordCe;
 
 //类方法:创建应用
 PHP_METHOD(CWord,getStringFirstChar);
+PHP_METHOD(CWord,getInstance);
+PHP_METHOD(CWord,setDictionary);
+PHP_METHOD(CWord,getHitWord);
+PHP_METHOD(CWord,check);
+PHP_METHOD(CWord,replace);
+PHP_METHOD(CWord,mark);
+PHP_METHOD(CWord,cache);
+PHP_METHOD(CWord,clearCache);
