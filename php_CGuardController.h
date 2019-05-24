@@ -20,6 +20,7 @@
 zend_class_entry	*CGuardControllerCe;
 
 //类方法:创建应用
+PHP_METHOD(CGuardController,__before);
 PHP_METHOD(CGuardController,Action_run);
 PHP_METHOD(CGuardController,Action_monitor);
 PHP_METHOD(CGuardController,Action_watchTelnet);

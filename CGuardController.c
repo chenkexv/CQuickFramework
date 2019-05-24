@@ -40,6 +40,7 @@
 
 //zend¿‡∑Ω∑®
 zend_function_entry CGuardController_functions[] = {
+	PHP_ME(CGuardController,__before,NULL,ZEND_ACC_PUBLIC)
 	PHP_ME(CGuardController,Action_run,NULL,ZEND_ACC_PUBLIC)
 	PHP_ME(CGuardController,Action_monitor,NULL,ZEND_ACC_PUBLIC)
 	PHP_ME(CGuardController,Action_watchTelnet,NULL,ZEND_ACC_PUBLIC)
@@ -1967,11 +1968,14 @@ void CGuardController_getMQStatus(zval *saveLogs TSRMLS_DC){
 		Z_OBJ_HANDLE_P(EG(exception)) = 0;		
 		zend_clear_exception(TSRMLS_C);
 		zval_ptr_dtor(&rabbitHelper);
+		zval_ptr_dtor(&cconfigInstanceZval);
+		zval_ptr_dtor(&mqconfig);
 		return;
 	}
 
 
 	CRabbitHelper_callApi_overview(rabbitHelper,&overviewData TSRMLS_CC);
+
 
 	//get rabbit queueLen	
 	MODULE_BEGIN
@@ -2055,6 +2059,8 @@ void CGuardController_getMQStatus(zval *saveLogs TSRMLS_DC){
 
 	zval_ptr_dtor(&rabbitHelper);
 	zval_ptr_dtor(&overviewData);
+	zval_ptr_dtor(&cconfigInstanceZval);
+	zval_ptr_dtor(&mqconfig);
 }
 
 void CGuardController_createSaveTable(char *dbConfig TSRMLS_DC){
@@ -3011,4 +3017,15 @@ PHP_METHOD(CGuardController,Action_monitor)
 	//destory
 	zval_ptr_dtor(&cconfigInstanceZval);
 	zval_ptr_dtor(&saveLogs);
+}
+
+PHP_METHOD(CGuardController,__before){
+
+	zval	*sapiZval;
+
+	//cli not use
+	if(zend_hash_find(EG(zend_constants),"PHP_SAPI",strlen("PHP_SAPI")+1,(void**)&sapiZval) == SUCCESS && strcmp(Z_STRVAL_P(sapiZval),"cli") == 0){
+	}else{
+		php_error_docref(NULL TSRMLS_CC, E_ERROR, "The script must run in cli");
+	}
 }
