@@ -42,6 +42,7 @@ static int le_CMyFrameExtension;
 zend_function_entry CMyFrameExtension_functions[] = {
 	PHP_FE(CDump,	NULL)
 	PHP_FE(CGetServiceExpire,	NULL)
+	PHP_FE(CMyFrameExtension_help,NULL)
 	PHP_FE(CMyFrameExtension_createProject,NULL) //create a empty project
 	PHP_FE(CMyFrameExtension_createPlugin,NULL) //create a plugin demo
 	PHP_FE(CMyFrameExtension_createConsumer,NULL) //create a consumer demo
@@ -328,6 +329,7 @@ PHP_MINIT_FUNCTION(CMyFrameExtension)
 	CMYFRAME_REGISTER_CLASS(CWord);
 	CMYFRAME_REGISTER_CLASS(CImage);
 	CMYFRAME_REGISTER_CLASS(CTree);
+	CMYFRAME_REGISTER_CLASS(CFile);
 
 	//◊¢≤·“Ï≥£¿‡
 	CMYFRAME_REGISTER_CLASS(CException);
@@ -675,6 +677,17 @@ PHP_FUNCTION(CMyFrameExtension_createPlugin)
 	
 	efree(workPath);
 	zval_ptr_dtor(&dirList);
+}
+
+PHP_FUNCTION(CMyFrameExtension_help)
+{
+	zval	*sapiZval;
+
+	if(zend_hash_find(EG(zend_constants),"PHP_SAPI",strlen("PHP_SAPI")+1,(void**)&sapiZval) == SUCCESS && strcmp(Z_STRVAL_P(sapiZval),"cli") == 0){
+	}else{
+		return;
+	}
+	CMyFrameExtension_showCommandList();
 }
 
 PHP_FUNCTION(CMyFrameExtension_createConsumer)

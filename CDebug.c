@@ -1873,6 +1873,12 @@ void CDebug_dumpClassMapForIDE(TSRMLS_D){
 
 	smart_str_appends(&fileContent,"<?php\r\nexit();\r\n");
 
+	smart_str_appends(&fileContent,"function CDump();\r\n");
+	smart_str_appends(&fileContent,"function CMyFrameExtension_createProject();\r\n");
+	smart_str_appends(&fileContent,"function CMyFrameExtension_createPlugin();\r\n");
+	smart_str_appends(&fileContent,"function CMyFrameExtension_createConsumer();\r\n");
+	smart_str_appends(&fileContent,"function CMyFrameExtension_dumpClassMapForIDE();\r\n");
+
 	h = zend_hash_num_elements(Z_ARRVAL_P(classList));
 	for(i = 0 ; i < h ; i++){
 		zend_hash_get_current_data(Z_ARRVAL_P(classList),(void**)&thisVal);
