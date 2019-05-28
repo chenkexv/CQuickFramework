@@ -43,9 +43,6 @@ CMYFRAME_REGISTER_CLASS_RUN(CCrontabController)
 	INIT_CLASS_ENTRY(funCe,"CCrontabController",CCrontabController_functions);
 	CCrontabControllerCe = zend_register_internal_class_ex(&funCe,CControllerCe,NULL TSRMLS_CC);
 
-	//定义变量
-	zend_declare_property_null(CControllerCe, ZEND_STRL("viewObject"),ZEND_ACC_PROTECTED TSRMLS_CC);
-	zend_declare_property_null(CControllerCe, ZEND_STRL("pageInfo"),ZEND_ACC_PROTECTED TSRMLS_CC);
 
 	return SUCCESS;
 }

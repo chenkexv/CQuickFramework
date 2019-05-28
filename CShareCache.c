@@ -334,6 +334,11 @@ int CShareCache_delKey(char *key,int mode TSRMLS_DC){
 	getFlags = mode|IPC_CREAT;
 	tryShmid = shmget(keyId, 10, getFlags);
 	if(tryShmid != -1){
+
+		char *addr = 	
+
+shmdt(addr);
+
 		if (shmctl(tryShmid, IPC_RMID, NULL) == -1) {
 			return 0;
 		}else{
