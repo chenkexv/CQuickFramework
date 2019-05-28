@@ -68,6 +68,7 @@ PHP_METHOD(CQuickTemplate,smarty_make_timestamp);
 PHP_METHOD(CQuickTemplate,_modifier_string_format);
 PHP_METHOD(CQuickTemplate,_modifier_default);
 PHP_METHOD(CQuickTemplate,_modifier_replace);
+PHP_METHOD(CQuickTemplate,_modifier_isWeekend);
 PHP_METHOD(CQuickTemplate,_run_mod_handler);
 PHP_METHOD(CQuickTemplate,_modifier_cat);
 PHP_METHOD(CQuickTemplate,__call);

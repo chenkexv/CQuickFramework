@@ -89,6 +89,7 @@ zend_function_entry CQuickTemplate_functions[] = {
 	PHP_ME(CQuickTemplate,_modifier_string_format,NULL,ZEND_ACC_PRIVATE)
 	PHP_ME(CQuickTemplate,_modifier_default,NULL,ZEND_ACC_PRIVATE)
 	PHP_ME(CQuickTemplate,_modifier_replace,NULL,ZEND_ACC_PRIVATE)
+	PHP_ME(CQuickTemplate,_modifier_isWeekend,NULL,ZEND_ACC_PRIVATE)
 	PHP_ME(CQuickTemplate,_run_mod_handler,NULL,ZEND_ACC_PRIVATE)
 	PHP_ME(CQuickTemplate,_modifier_cat,NULL,ZEND_ACC_PRIVATE)
 	PHP_ME(CQuickTemplate,__call,CQuickTemplate_call_arginfo,ZEND_ACC_PUBLIC)
@@ -3784,6 +3785,36 @@ PHP_METHOD(CQuickTemplate,_modifier_replace){
 
 	RETVAL_STRING(returnString,1);
 	efree(returnString);
+}
+
+PHP_METHOD(CQuickTemplate,_modifier_isWeekend){
+
+	char	*string1,
+			*string2,
+			*string3,
+			*returnString,
+			*nowDateString;
+
+	int		stringLen1 = 0,
+			stringLen2 = 0,
+			stringLen3 = 0,
+			nowTimestamp;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"s",&string1,&stringLen1) == FAILURE){
+		return;
+	}
+
+	nowTimestamp = php_strtotime(string1);
+
+	php_date_ex("w",nowTimestamp,&nowDateString);
+
+	if(strcmp(nowDateString,"6") == 0 || strcmp(nowDateString,"0") == 0){
+		RETVAL_TRUE;
+	}else{
+		RETVAL_FALSE;
+	}
+
+	efree(nowDateString);
 }
 
 PHP_METHOD(CQuickTemplate,_run_mod_handler){
