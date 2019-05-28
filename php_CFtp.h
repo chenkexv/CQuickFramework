@@ -32,7 +32,7 @@ PHP_METHOD(CFtp,getConnection);
 PHP_METHOD(CFtp,deleteFile);
 PHP_METHOD(CFtp,deleteDir);
 PHP_METHOD(CFtp,chmod);
-PHP_METHOD(CFtp,list);
+PHP_METHOD(CFtp,lists);
 PHP_METHOD(CFtp,close);
 
 

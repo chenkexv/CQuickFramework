@@ -43,7 +43,7 @@ zend_function_entry CFtp_functions[] = {
 	PHP_ME(CFtp,deleteFile,NULL,ZEND_ACC_PUBLIC)
 	PHP_ME(CFtp,deleteDir,NULL,ZEND_ACC_PUBLIC)
 	PHP_ME(CFtp,chmod,NULL,ZEND_ACC_PUBLIC)
-	PHP_ME(CFtp,list,NULL,ZEND_ACC_PUBLIC)
+	PHP_ME(CFtp,lists,NULL,ZEND_ACC_PUBLIC)
 	PHP_ME(CFtp,close,NULL,ZEND_ACC_PUBLIC)
 	{NULL, NULL, NULL}
 };
@@ -722,7 +722,7 @@ PHP_METHOD(CFtp,chmod)
 }
 
 
-PHP_METHOD(CFtp,list)
+PHP_METHOD(CFtp,lists)
 {
 	zval	*conn,
 			*returnData;
