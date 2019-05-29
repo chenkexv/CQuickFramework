@@ -102,10 +102,8 @@ void CPagination_getPrevString(int nowPage,zval *configZval,zval *object,char **
 	zval	**firstConfigs;
 	char	*firstSay;
 
-	//读取首页配置
 	zend_hash_find(Z_ARRVAL_P(configZval),"prev",strlen("prev")+1,(void**)&firstConfigs);
 
-	//当前为第一页
 	if(nowPage == 1){
 		strcat2(returnString,"<a href=\"javascript:void(0)\">",Z_STRVAL_PP(firstConfigs),"</a>",NULL);
 	}else{
@@ -165,10 +163,9 @@ void CPagination_getLastPageString(int nowPage,int totalPage,zval *configZval,zv
 	zval	**firstConfigs;
 	char	*firstSay;
 
-	//读取首页配置
+
 	zend_hash_find(Z_ARRVAL_P(configZval),"last",strlen("last")+1,(void**)&firstConfigs);
 
-	//当前为第一页
 	if(nowPage >= totalPage){
 		strcat2(returnString,"<a href=\"javascript:void(0)\">",Z_STRVAL_PP(firstConfigs),"</a>",NULL);
 	}else{
@@ -194,7 +191,6 @@ void CPagination_getLastPageString(int nowPage,int totalPage,zval *configZval,zv
 
 void CPagination_getPageListString(int nowPage,zval *configZval,zval *object,char **returnString TSRMLS_DC){
 
-	//前后各取4个
 	char	*before1 = "",
 			*before2 = "",
 			*before3 = "",

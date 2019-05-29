@@ -41,7 +41,6 @@ static int le_CMyFrameExtension;
 
 zend_function_entry CMyFrameExtension_functions[] = {
 	PHP_FE(CDump,	NULL)
-	PHP_FE(CGetServiceExpire,	NULL)
 	PHP_FE(CMyFrameExtension_help,NULL)
 	PHP_FE(CMyFrameExtension_createProject,NULL) //create a empty project
 	PHP_FE(CMyFrameExtension_createPlugin,NULL) //create a plugin demo
@@ -413,13 +412,9 @@ PHP_FUNCTION(CDump)
 
 	php_printf("<pre>");
 	php_var_dump(&arg, 1 TSRMLS_CC);
+	php_printf("</pre>");
 }
 
-//ªÒ»°CPUID
-PHP_FUNCTION(CGetServiceExpire)
-{
-
-}
 
 //show all command list
 void CMyFrameExtension_showCommandList(){

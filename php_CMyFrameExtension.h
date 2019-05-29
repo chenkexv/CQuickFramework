@@ -89,7 +89,6 @@ PHP_MINFO_FUNCTION(CMyFrameExtension);
 
 //È«¾Öº¯Êý
 PHP_FUNCTION(CDump);
-PHP_FUNCTION(CGetServiceExpire);
 PHP_FUNCTION(CMyFrameExtension_createProject);
 PHP_FUNCTION(CMyFrameExtension_createPlugin);
 PHP_FUNCTION(CMyFrameExtension_createConsumer);
