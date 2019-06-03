@@ -25,7 +25,7 @@
 #include "ext/standard/info.h"
 
 
-#include "php_CMyFrameExtension.h"
+#include "php_CQuickFramework.h"
 #include "php_CMemcache.h"
 #include "php_CException.h"
 
@@ -77,7 +77,7 @@ void CMemache_addServer(char *thishost,zval *object TSRMLS_DC)
 	cacheObject = zend_read_property(CMemcacheCe,object,ZEND_STRL("_cacheObject"),0 TSRMLS_CC);
 
 	if(IS_OBJECT != Z_TYPE_P(cacheObject)){
-		zend_throw_exception(CacheExceptionCe, "[CacheException] Internal error CMyFrame program", 10010 TSRMLS_CC);
+		zend_throw_exception(CacheExceptionCe, "[CacheException] Internal error CQuickFramework program", 10010 TSRMLS_CC);
 		return;
 	}
 

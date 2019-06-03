@@ -25,7 +25,7 @@
 #include "ext/standard/info.h"
 
 
-#include "php_CMyFrameExtension.h"
+#include "php_CQuickFramework.h"
 #include "php_CRabbit.h"
 #include "php_CRabbitHelper.h"
 #include "php_CException.h"
@@ -160,7 +160,7 @@ void CRabbitHelper_getInstance(zval **returnZval,char *groupName TSRMLS_DC)
 		return;
 	}
 
-	zend_throw_exception(CQueueExceptionCe, "[CQueueException] An internal error occurred while CMyFrameExtension was acquired by AMQP ", 1 TSRMLS_CC);
+	zend_throw_exception(CQueueExceptionCe, "[CQueueException] An internal error occurred while CQuickFramework was acquired by AMQP ", 1 TSRMLS_CC);
 }
 
 

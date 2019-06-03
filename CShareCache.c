@@ -25,7 +25,7 @@
 #include "ext/standard/info.h"
 
 
-#include "php_CMyFrameExtension.h"
+#include "php_CQuickFramework.h"
 #include "php_CShareCache.h"
 #include "php_CException.h"
 #include "php_CWebApp.h"
@@ -142,7 +142,7 @@ void CShareCache_getInstance(zval **returnZval,char *groupName TSRMLS_DC){
 		return;
 	}
 
-	zend_throw_exception(CacheExceptionCe, "[CShareCacheException] An internal error occurred while CMyFrameExtension was acquired by Linux Share Memory ", 1 TSRMLS_CC);
+	zend_throw_exception(CacheExceptionCe, "[CShareCacheException] An internal error occurred while CQuickFramework was acquired by Linux Share Memory ", 1 TSRMLS_CC);
 }
 
 PHP_METHOD(CShareCache,getInstance){

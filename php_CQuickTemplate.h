@@ -72,4 +72,10 @@ PHP_METHOD(CQuickTemplate,_modifier_isWeekend);
 PHP_METHOD(CQuickTemplate,_run_mod_handler);
 PHP_METHOD(CQuickTemplate,_modifier_cat);
 PHP_METHOD(CQuickTemplate,__call);
+PHP_METHOD(CQuickTemplate,_modifier_isPhone);
+PHP_METHOD(CQuickTemplate,_modifier_isEmail);
+PHP_METHOD(CQuickTemplate,_modifier_isIDCard);
+PHP_METHOD(CQuickTemplate,_modifier_isUrl);
+PHP_METHOD(CQuickTemplate,_modifier_isEmpty);
+PHP_METHOD(CQuickTemplate,_modifier_isLeapYear);
 

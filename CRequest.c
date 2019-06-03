@@ -25,7 +25,7 @@
 #include "ext/standard/info.h"
 
 
-#include "php_CMyFrameExtension.h"
+#include "php_CQuickFramework.h"
 #include "php_CRequest.h"
 #include "php_CRouteParse.h"
 #include "php_CRoute.h"
@@ -750,7 +750,7 @@ void CRequest_execAction(zval *routeObject,zval *object TSRMLS_DC)
 	if(IS_OBJECT != Z_TYPE_P(controllerObject)){
 		efree(requsetController);
 		efree(requsetAction);
-		zend_throw_exception(CExceptionCe, "[CMyFrameFatal]CMyFrame fatal error:CMyRoute structure reference object is missing", 100000 TSRMLS_CC);	
+		zend_throw_exception(CExceptionCe, "[CQuickFrameworkFatal] CQuickFramework fatal error:CMyRoute structure reference object is missing", 100000 TSRMLS_CC);	
 		return;
 	}
 
@@ -782,7 +782,7 @@ void CRequest_execAction(zval *routeObject,zval *object TSRMLS_DC)
 			call_user_function(NULL, &controllerObject, &fnName, &fnReturn, 0, NULL TSRMLS_CC);
 			zval_dtor(&fnReturn);
 		}else{
-			php_error_docref(NULL TSRMLS_CC, E_WARNING ,"[RuntimeWarnning]The controller[%s] Define a magic methods __before but access is not enough to provide CMyFrame calls",requsetController);
+			php_error_docref(NULL TSRMLS_CC, E_WARNING ,"[RuntimeWarnning]The controller[%s] Define a magic methods __before but access is not enough to provide CQuickFramework calls",requsetController);
 		}
 	}
 
@@ -819,7 +819,7 @@ void CRequest_execAction(zval *routeObject,zval *object TSRMLS_DC)
 
 				return;
 			}else{
-				php_error_docref(NULL TSRMLS_CC, E_WARNING ,"[RuntimeWarnning]The controller[%s] Define a magic methods __error but access is not enough to provide CMyFrame calls",estrdup(requsetController));
+				php_error_docref(NULL TSRMLS_CC, E_WARNING ,"[RuntimeWarnning]The controller[%s] Define a magic methods __error but access is not enough to provide CQuickFramework calls",estrdup(requsetController));
 				return;
 			}
 		}else{
@@ -1502,8 +1502,14 @@ void CRquest_fixWebServerRewriteParams(TSRMLS_D){
 			zend_hash_internal_pointer_reset(Z_ARRVAL_PP(getDataZval));
 			paramsNum = zend_hash_num_elements(Z_ARRVAL_PP(getDataZval));
 			for(i = 0 ; i < paramsNum ; i++){
-				zend_hash_get_current_key(Z_ARRVAL_PP(getDataZval),&key,&ikey,0);
-				zend_hash_del(Z_ARRVAL_PP(getDataZval),key,strlen(key)+1);
+
+				if(HASH_KEY_IS_STRING == zend_hash_get_current_key_type(Z_ARRVAL_PP(getDataZval))){
+					zend_hash_get_current_key(Z_ARRVAL_PP(getDataZval),&key,&ikey,0);
+					zend_hash_del(Z_ARRVAL_PP(getDataZval),key,strlen(key)+1);
+				}else if(HASH_KEY_IS_LONG == zend_hash_get_current_key_type(Z_ARRVAL_PP(getDataZval))){
+					zend_hash_get_current_key(Z_ARRVAL_PP(getDataZval),&key,&ikey,0);
+					zend_hash_index_del(Z_ARRVAL_PP(getDataZval),ikey);
+				}
 			}
 		}
 	}

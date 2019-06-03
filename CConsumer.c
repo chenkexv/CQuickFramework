@@ -25,7 +25,7 @@
 #include "ext/standard/info.h"
 
 
-#include "php_CMyFrameExtension.h"
+#include "php_CQuickFramework.h"
 #include "php_CConsumer.h"
 #include "php_CLog.h"
 #include "php_CRabbit.h"
@@ -743,7 +743,7 @@ void CConsumer_checkProcessMax(zval *object TSRMLS_DC){
 		char tips[1024];
 		sprintf(tips,"%s%d%s%d%s","process has run (",Z_LVAL_P(processNum),"/",Z_LVAL_P(maxProcessNum),") kill myself ...");
 		setLog(object,tips TSRMLS_CC);
-		php_error_docref(NULL TSRMLS_CC,E_ERROR,"[CMyFrameSystem] Framework kill self");
+		php_error_docref(NULL TSRMLS_CC,E_ERROR,"[CQuickFameworkSystem] Framework kill self");
 	}
 }
 

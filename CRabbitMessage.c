@@ -25,7 +25,7 @@
 #include "ext/standard/info.h"
 
 
-#include "php_CMyFrameExtension.h"
+#include "php_CQuickFramework.h"
 #include "php_CRabbitMessage.h"
 #include "php_CConsumer.h"
 #include "php_CException.h"
@@ -97,7 +97,7 @@ PHP_METHOD(CRabbitMessage,__call)
 	callObject = zend_read_property(CRabbitMessageCe,getThis(),ZEND_STRL("amqpObject"),0 TSRMLS_CC);
 
 	if(IS_NULL == Z_TYPE_P(callObject)){
-		zend_throw_exception(CQueueExceptionCe, "[CQueueException] CMyFrame internal error, CRabbitMessage connection object is lost", 12013 TSRMLS_CC);
+		zend_throw_exception(CQueueExceptionCe, "[CQueueException] CQuickFramework internal error, CRabbitMessage connection object is lost", 12013 TSRMLS_CC);
 		return;
 	}
 

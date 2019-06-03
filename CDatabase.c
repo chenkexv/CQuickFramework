@@ -25,7 +25,7 @@
 #include "ext/standard/info.h"
 
 
-#include "php_CMyFrameExtension.h"
+#include "php_CQuickFramework.h"
 #include "php_CDatabase.h"
 #include "php_CBuilder.h"
 #include "php_CException.h"
@@ -191,7 +191,7 @@ void CDatabase_getInstance(int useMaster,char *dbConf,zval **returnZval TSRMLS_D
 
 	//取当前静态变量中的对象
 	if(zend_hash_find(Z_ARRVAL_P(instanceZval),thisConKey,strlen(thisConKey)+1,(void**)&thisKeyZval) != SUCCESS || IS_OBJECT != Z_TYPE_PP(thisKeyZval) ){
-		zend_throw_exception(CDbExceptionCe, "[CMyFrameFatal]A fatal error CMyFrame extension to obtain CDatabase data object", 1007 TSRMLS_CC);
+		zend_throw_exception(CDbExceptionCe, "[CQuickFrameworkFatal]A fatal error CQuickFramework extension to obtain CDatabase data object", 1007 TSRMLS_CC);
 		return;
 	}
 
@@ -208,7 +208,7 @@ void CDatabase_getInstance(int useMaster,char *dbConf,zval **returnZval TSRMLS_D
 		return;
 	}
 
-	zend_throw_exception(CDbExceptionCe, "[CMyFrameFatal]A fatal error CMyFrame extension to obtain CDatabase data object", 1007 TSRMLS_CC);
+	zend_throw_exception(CDbExceptionCe, "[CQuickFrameworkFatal]A fatal error CQuickFramework extension to obtain CDatabase data object", 1007 TSRMLS_CC);
 }
 
 //类方法:创建应用对象
@@ -444,7 +444,7 @@ void CDatabase_getDatabase(char *configName,int useMaster,zval **returnZval TSRM
 			if(zend_hash_find(EG(class_table),"pdo",strlen("pdo")+1,(void**)&pdoPP) == FAILURE){
 				zval_ptr_dtor(&cconfigInstanceZval);
 				zval_ptr_dtor(&dbConfigZval);
-				zend_throw_exception(CDbExceptionCe, "[MainConfigError] CMyFrame couldn't find the PDO object, please make sure the PDO extension is installed", 1001 TSRMLS_CC);
+				zend_throw_exception(CDbExceptionCe, "[MainConfigError] CQuickFramework couldn't find the PDO object, please make sure the PDO extension is installed", 1001 TSRMLS_CC);
 				return;
 			}
 

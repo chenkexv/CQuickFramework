@@ -25,7 +25,7 @@
 #include "ext/standard/info.h"
 
 
-#include "php_CMyFrameExtension.h"
+#include "php_CQuickFramework.h"
 #include "php_CWebApp.h"
 #include <string.h>
 
@@ -65,13 +65,13 @@ size_t strcat2(char **dst_out, ...)
 
 	if(sizeof(char) * (len + 1) > 65535){
 		TSRMLS_FETCH();
-		php_error_docref(NULL TSRMLS_CC, E_ERROR ,"[CMyFrameFatalError] Can not malloc more memory by %d",sizeof(char) * (len + 1));
+		php_error_docref(NULL TSRMLS_CC, E_ERROR ,"[CQuickFrameworkFatalError] Can not malloc more memory by %d",sizeof(char) * (len + 1));
 		return 0;
 	}
 
     if (dst == NULL){
 		TSRMLS_FETCH();
-		php_error_docref(NULL TSRMLS_CC, E_ERROR ,"[CMyFrameFatalError] Can not malloc more memory");
+		php_error_docref(NULL TSRMLS_CC, E_ERROR ,"[CQuickFrameworkFatalError] Can not malloc more memory");
 		return 0;
 	}
     dst_p = dst;
@@ -108,7 +108,7 @@ void getClassObject(char *thisClassName,zval **returnZval TSRMLS_DC)
 
 	//查询类
 	if(zend_hash_find(EG(class_table),className,strlen(className)+1,(void**)&thisClassEpp) == FAILURE){
-		php_error_docref(NULL TSRMLS_CC, E_ERROR ,"[CMyFrameFatalError] Class CApplication not Found");
+		php_error_docref(NULL TSRMLS_CC, E_ERROR ,"[CQuickFrameworkFatalError] Class CApplication not Found");
 	}
 
 	//实例化至Zval结构体
@@ -644,7 +644,7 @@ void setMethodNote(zend_class_entry *ce,char *function,char *note){
 }
 
 //获取基础异常类
-zend_class_entry *CMyFrameGetExceptionBase(int root) {
+zend_class_entry *CQuickFrameworkGetExceptionBase(int root) {
 #if can_handle_soft_dependency_on_SPL && defined(HAVE_SPL) && ((PHP_MAJOR_VERSION > 5) || (PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION >= 1))
 	if (!root) {
 		if (!spl_ce_RuntimeException) {

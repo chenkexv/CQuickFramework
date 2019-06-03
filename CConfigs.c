@@ -24,7 +24,7 @@
 #include "php_ini.h"
 #include "ext/standard/info.h"
 
-#include "php_CMyFrameExtension.h"
+#include "php_CQuickFramework.h"
 #include "php_CConfig.h"
 #include "php_CWebApp.h"
 #include "php_CException.h"
@@ -123,7 +123,7 @@ int CConfig_getInstance(char *configFileName,zval **returnZval TSRMLS_DC)
 		zend_hash_find(EG(class_table),"cconfig",strlen("cconfig")+1,(void**)&configClassCepp);
 		
 		if(configClassCepp == NULL){
-			php_error_docref(NULL TSRMLS_CC,E_ERROR,"[CMyFrameFatalError] Framework can not get a pointer from zend_hash_find");
+			php_error_docref(NULL TSRMLS_CC,E_ERROR,"[CQuickFrameworkFatalError] Framework can not get a pointer from zend_hash_find");
 			return;
 		}
 
@@ -403,7 +403,7 @@ int CConfig_load(char *key,zval *object,zval **returnZval TSRMLS_DC)
 			return SUCCESS;
 		}else{
 			char *errMessage;
-			strcat2(&errMessage,"[CMyFrameException] Unable to configure key CMyFrame decomposition of configuration items when loading:",key,NULL);
+			strcat2(&errMessage,"[CQuickFrameworkException] Unable to configure key CMyFrame decomposition of configuration items when loading:",key,NULL);
 			zend_throw_exception(CExceptionCe,errMessage, 10000 TSRMLS_CC);
 			efree(errMessage);
 			zval_ptr_dtor(&cutArr);

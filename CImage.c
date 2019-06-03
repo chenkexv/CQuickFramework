@@ -27,7 +27,7 @@
 #include "ext/standard/php_smart_str.h"
 
 
-#include "php_CMyFrameExtension.h"
+#include "php_CQuickFramework.h"
 #include "php_CImage.h"
 #include "php_CException.h"
 

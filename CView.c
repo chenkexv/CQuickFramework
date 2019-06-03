@@ -25,7 +25,7 @@
 #include "ext/standard/info.h"
 
 
-#include "php_CMyFrameExtension.h"
+#include "php_CQuickFramework.h"
 #include "php_CView.h"
 #include "php_CRoute.h"
 #include "php_CRequest.h"
@@ -278,9 +278,9 @@ void CView_init_CTemplate(zval *viewObject TSRMLS_DC){
 		if(FAILURE == fileExist(Z_STRVAL_PP(conf_compileDir))){
 			char *thisMothTime;
 			php_date("Y-m-d h:i:s",&thisMothTime);
-			php_printf("#LogTime:%s%s[ServerError] CMyFrame unable to create the __runtime directory, please make sure the server permissions%s-File:%s%s-Line:%s",thisMothTime,"<br>","<br>","CViews.c","<br>","573");
+			php_printf("#LogTime:%s%s[ServerError] CQuickFramework unable to create the __runtime directory, please make sure the server permissions%s-File:%s%s-Line:%s",thisMothTime,"<br>","<br>","CViews.c","<br>","573");
 			efree(thisMothTime);
-			php_error_docref(NULL TSRMLS_CC, E_ERROR ,"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />[ServerError] CMyFrame unable to create the cache directory, please make sure the server permissions");
+			php_error_docref(NULL TSRMLS_CC, E_ERROR ,"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />[ServerError] CQuickFramework unable to create the cache directory, please make sure the server permissions");
 		}
 	}
 
@@ -291,8 +291,8 @@ void CView_init_CTemplate(zval *viewObject TSRMLS_DC){
 
 		//创建失败
 		if(FAILURE == fileExist(Z_STRVAL_PP(conf_cacheDir))){
-			php_printf("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />[ServerError] CMyFrame unable to create the cache directory, please make sure the server permissions");
-			php_error_docref(NULL TSRMLS_CC, E_ERROR ,"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />[ServerError] CMyFrame unable to create the cache directory, please make sure the server permissions");
+			php_printf("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />[ServerError] CQuickFramework unable to create the cache directory, please make sure the server permissions");
+			php_error_docref(NULL TSRMLS_CC, E_ERROR ,"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />[ServerError] CQuickFramework unable to create the cache directory, please make sure the server permissions");
 		}
 	}
 
@@ -746,7 +746,7 @@ PHP_METHOD(CView,__construct)
 
 
 	if(strcmp(templateName,"smarty") != 0){
-		php_error_docref(NULL TSRMLS_CC, E_ERROR ,"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />[ViewException]CMyFrame by C Extenstion v1.0 Does not support the view technology");
+		php_error_docref(NULL TSRMLS_CC, E_ERROR ,"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />[ViewException] CQuickFramework by C Extenstion v1.0 Does not support the view technology");
 		return;
 	}
 
@@ -774,7 +774,7 @@ PHP_METHOD(CView,__construct)
 
 	//引入文件
 	if(SUCCESS != CLoader_loadFile(Z_STRVAL_P(conf_coreFile))){
-		php_error_docref(NULL TSRMLS_CC, E_ERROR ,"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />[ViewException] CMyFrame can not init Smarty engine : %s",Z_STRVAL_P(conf_coreFile));
+		php_error_docref(NULL TSRMLS_CC, E_ERROR ,"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />[ViewException] CQuickFramework can not init Smarty engine : %s",Z_STRVAL_P(conf_coreFile));
 		return;
 	}
 
@@ -883,9 +883,9 @@ PHP_METHOD(CView,__construct)
 		if(FAILURE == fileExist(Z_STRVAL_PP(conf_compileDir))){
 			char *thisMothTime;
 			php_date("Y-m-d h:i:s",&thisMothTime);
-			php_printf("#LogTime:%s%s[ServerError] CMyFrame unable to create the __runtime directory, please make sure the server permissions%s-File:%s%s-Line:%s",thisMothTime,"<br>","<br>","CViews.c","<br>","573");
+			php_printf("#LogTime:%s%s[ServerError] CQuickFramework unable to create the __runtime directory, please make sure the server permissions%s-File:%s%s-Line:%s",thisMothTime,"<br>","<br>","CViews.c","<br>","573");
 			efree(thisMothTime);
-			php_error_docref(NULL TSRMLS_CC, E_ERROR ,"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />[ServerError] CMyFrame unable to create the cache directory, please make sure the server permissions");
+			php_error_docref(NULL TSRMLS_CC, E_ERROR ,"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />[ServerError] CQuickFramework unable to create the cache directory, please make sure the server permissions");
 		}
 	}
 
@@ -896,8 +896,8 @@ PHP_METHOD(CView,__construct)
 
 		//创建失败
 		if(FAILURE == fileExist(Z_STRVAL_PP(conf_cacheDir))){
-			php_printf("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />[ServerError] CMyFrame unable to create the cache directory, please make sure the server permissions");
-			php_error_docref(NULL TSRMLS_CC, E_ERROR ,"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />[ServerError] CMyFrame unable to create the cache directory, please make sure the server permissions");
+			php_printf("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />[ServerError] CQuickFramework unable to create the cache directory, please make sure the server permissions");
+			php_error_docref(NULL TSRMLS_CC, E_ERROR ,"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />[ServerError] CQuickFramework unable to create the cache directory, please make sure the server permissions");
 		}
 	}
 

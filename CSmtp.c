@@ -25,7 +25,7 @@
 #include "ext/standard/info.h"
 
 
-#include "php_CMyFrameExtension.h"
+#include "php_CQuickFramework.h"
 #include "php_CSmtp.h"
 #include "php_CException.h"
 #include "ext/standard/php_smart_str_public.h"

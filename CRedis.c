@@ -25,7 +25,7 @@
 #include "ext/standard/info.h"
 
 
-#include "php_CMyFrameExtension.h"
+#include "php_CQuickFramework.h"
 #include "php_CRedis.h"
 #include "php_CException.h"
 
@@ -168,7 +168,7 @@ void CRedis_getInstance(zval **returnZval,char *groupName TSRMLS_DC)
 		return;
 	}
 
-	zend_throw_exception(CRedisExceptionCe, "[CRedisException] An internal error occurred while CMyFrameExtension was acquired by Redis ", 12011 TSRMLS_CC);
+	zend_throw_exception(CRedisExceptionCe, "[CRedisException] An internal error occurred while CQuickFramework was acquired by Redis ", 12011 TSRMLS_CC);
 }
 
 //fast function
@@ -509,7 +509,7 @@ PHP_METHOD(CRedis,__call)
 	redisZval = zend_read_property(CRedisCe,getThis(),ZEND_STRL("_redisConn"),0 TSRMLS_CC);
 
 	if(IS_NULL == Z_TYPE_P(redisZval)){
-		zend_throw_exception(CRedisExceptionCe, "[CRedisException]CMyFrame internal error, CRedis connection object is lost", 12013 TSRMLS_CC);
+		zend_throw_exception(CRedisExceptionCe, "[CRedisException] CQuickFramework internal error, CRedis connection object is lost", 12013 TSRMLS_CC);
 		return;
 	}
 
@@ -586,7 +586,7 @@ PHP_METHOD(CRedis,set)
 	redisZval = zend_read_property(CRedisCe,getThis(),ZEND_STRL("_redisConn"),0 TSRMLS_CC);
 
 	if(IS_NULL == Z_TYPE_P(redisZval)){
-		zend_throw_exception(CRedisExceptionCe, "[CRedisException]CMyFrame internal error, CRedis connection object is lost", 12013 TSRMLS_CC);
+		zend_throw_exception(CRedisExceptionCe, "[CRedisException] CQuickFramework internal error, CRedis connection object is lost", 12013 TSRMLS_CC);
 		return;
 	}
 

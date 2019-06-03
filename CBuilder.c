@@ -27,7 +27,7 @@
 #include "ext/standard/php_smart_str.h"
 
 
-#include "php_CMyFrameExtension.h"
+#include "php_CQuickFramework.h"
 #include "php_CBuilder.h"
 #include "php_CException.h"
 #include "php_CDatabase.h"
@@ -1922,7 +1922,7 @@ PHP_METHOD(CBuilder,execute)
 		//¶¯×÷Ãû³Æ
 		runActionZval = zend_read_property(CBuilderCe,getThis(),ZEND_STRL("action"), 0 TSRMLS_CC);
 		if(IS_STRING != Z_TYPE_P(runActionZval)){
-			zend_throw_exception(CDbExceptionCe, "[QueryException] Object [CBuilder] parameter is flawed, CMyFrame cannot execute the DB operation", 5008 TSRMLS_CC);
+			zend_throw_exception(CDbExceptionCe, "[QueryException] Object [CBuilder] parameter is flawed, CQuickFramework cannot execute the DB operation", 5008 TSRMLS_CC);
 			return;
 		}
 		php_trim(Z_STRVAL_P(runActionZval)," ",&action);
@@ -1989,7 +1989,7 @@ PHP_METHOD(CBuilder,execute)
 			if(sql == NULL){
 				efree(action);
 				zval_ptr_dtor(&pdoObject);
-				zend_throw_exception(CDbExceptionCe, "[QueryException] CMyFrame can not complete the analysis of the SQL statement ", 5008 TSRMLS_CC);
+				zend_throw_exception(CDbExceptionCe, "[QueryException] CQuickFramework can not complete the analysis of the SQL statement ", 5008 TSRMLS_CC);
 				return;
 			}
 
@@ -2224,7 +2224,7 @@ PHP_METHOD(CBuilder,execute)
 			if(sql == NULL){
 				efree(action);
 				zval_ptr_dtor(&pdoObject);
-				zend_throw_exception(CDbExceptionCe, "[QueryException] CMyFrame can not complete the analysis of the SQL statement ", 5008 TSRMLS_CC);
+				zend_throw_exception(CDbExceptionCe, "[QueryException] CQuickFramework can not complete the analysis of the SQL statement ", 5008 TSRMLS_CC);
 				return;
 			}
 
@@ -2428,7 +2428,7 @@ PHP_METHOD(CBuilder,execute)
 			if(pdoObject == NULL || Z_TYPE_P(pdoObject) != IS_OBJECT){
 				zval_ptr_dtor(&pdoObject);
 				efree(action);
-				zend_throw_exception(CDbExceptionCe, "[QueryException] CMyFrame can not get database driver ", 5008 TSRMLS_CC);
+				zend_throw_exception(CDbExceptionCe, "[QueryException] CQuickFramework can not get database driver ", 5008 TSRMLS_CC);
 				return;
 			}
 
@@ -2438,7 +2438,7 @@ PHP_METHOD(CBuilder,execute)
 			if(sql == NULL){
 				efree(action);
 				zval_ptr_dtor(&pdoObject);
-				zend_throw_exception(CDbExceptionCe, "[QueryException] CMyFrame can not complete the analysis of the SQL statement ", 5008 TSRMLS_CC);
+				zend_throw_exception(CDbExceptionCe, "[QueryException] CQuickFramework can not complete the analysis of the SQL statement ", 5008 TSRMLS_CC);
 				return;
 			}
 
@@ -2649,7 +2649,7 @@ PHP_METHOD(CBuilder,execute)
 			if(sql == NULL){
 				efree(action);
 				zval_ptr_dtor(&pdoObject);
-				zend_throw_exception(CDbExceptionCe, "[QueryException] CMyFrame can not complete the analysis of the SQL statement ", 5008 TSRMLS_CC);
+				zend_throw_exception(CDbExceptionCe, "[QueryException] CQuickFramework can not complete the analysis of the SQL statement ", 5008 TSRMLS_CC);
 				return;
 			}
 
@@ -2983,7 +2983,7 @@ PHP_METHOD(CBuilder,query)
 				return;
 			}else{
 				char errMessage[10240];
-				sprintf(errMessage,"%s%s","[ModelException] CMyFrame execute SQL [%s] there was an error, CMyFrame couldn't get the reason for the error from the PDO object",sql);
+				sprintf(errMessage,"%s%s","[ModelException] CQuickFramework execute SQL [%s] there was an error, CQuickFramework couldn't get the reason for the error from the PDO object",sql);
 				zval_dtor(&errorMessage);
 				zval_ptr_dtor(&beginTime);
 				zval_ptr_dtor(&pdoObject);

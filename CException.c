@@ -25,11 +25,10 @@
 #include "ext/standard/info.h"
 
 
-#include "php_CMyFrameExtension.h"
+#include "php_CQuickFramework.h"
 #include "php_CException.h"
 #include "php_CConfig.h"
 #include "php_CWebApp.h"
-#include "php_CThread.h"
 
 //zend类方法
 zend_function_entry CException_functions[] = {
@@ -60,7 +59,7 @@ CMYFRAME_REGISTER_CLASS_RUN(CException)
 
 	//查找Exception异常
 	INIT_CLASS_ENTRY(funCe,"CException",CException_functions);
-	CExceptionCe = zend_register_internal_class_ex(&funCe,CMyFrameGetExceptionBase(0),NULL TSRMLS_CC);
+	CExceptionCe = zend_register_internal_class_ex(&funCe,CQuickFrameworkGetExceptionBase(0),NULL TSRMLS_CC);
 
 	//注册变量
 	zend_declare_property_null(CExceptionCe, ZEND_STRL("instance"),ZEND_ACC_PUBLIC | ZEND_ACC_STATIC TSRMLS_CC);

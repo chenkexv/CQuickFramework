@@ -25,7 +25,7 @@
 #include "ext/standard/info.h"
 
 
-#include "php_CMyFrameExtension.h"
+#include "php_CQuickFramework.h"
 #include "php_CLoader.h"
 #include "php_CWebApp.h"
 #include "php_CRoute.h"
@@ -161,7 +161,7 @@ PHP_METHOD(CLoader,importFile)
 	int filePathLen;
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"s",&filePath,&filePathLen) == FAILURE){
-		php_error_docref(NULL TSRMLS_CC, E_ERROR ,"[CMyFrameException] CMyFrame call CLoader::import() method, parameter error");
+		php_error_docref(NULL TSRMLS_CC, E_ERROR ,"[CQuickFrameworkException] CQuickFramework call CLoader::import() method, parameter error");
 		return;
 	}
 
@@ -182,7 +182,7 @@ PHP_METHOD(CLoader,import)
 
 	//获取配置参数
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"ss",&className,&classNameLen,&classPath,&classPathLen) == FAILURE){
-		php_error_docref(NULL TSRMLS_CC, E_ERROR ,"[CMyFrameException] CMyFrame call CLoader::import() method, parameter error");
+		php_error_docref(NULL TSRMLS_CC, E_ERROR ,"[CQuickFrameworkException] CQuickFramework call CLoader::import() method, parameter error");
 		return;
 	}
 }
@@ -334,7 +334,7 @@ void CLoader_load(char *className,zval **returnZval TSRMLS_DC)
 		zval **classPathSaved;
 		zend_hash_find(Z_ARRVAL_P(classMapZval),className,strlen(className)+1,(void**)&classPathSaved);
 		if(IS_STRING != Z_TYPE_PP(classPathSaved)){
-			php_error_docref(NULL TSRMLS_CC, E_ERROR ,"[CMyFrameFatal]CMyFrame try to Call CLoader::load() method, loss of HashTable references");
+			php_error_docref(NULL TSRMLS_CC, E_ERROR ,"[CQuickFrameworkFatal] CQuickFramework try to Call CLoader::load() method, loss of HashTable references");
 			ZVAL_BOOL(*returnZval,0);
 			return;
 		}

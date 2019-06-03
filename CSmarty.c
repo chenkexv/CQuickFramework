@@ -27,7 +27,7 @@
 #include "ext/standard/php_smart_str.h"
 
 
-#include "php_CMyFrameExtension.h"
+#include "php_CQuickFramework.h"
 #include "php_CSmarty.h"
 #include "php_CWebApp.h"
 #include "php_CRequest.h"
@@ -367,11 +367,10 @@ PHP_METHOD(CSmarty,showHTML)
 		return;
 	}
 
-	if(SUCCESS == zend_hash_find(Z_ARRVAL_P(params),"c",2,(void**)&content)  ){
+	if(SUCCESS == zend_hash_find(Z_ARRVAL_P(params),"c",2,(void**)&content) && IS_STRING == Z_TYPE_PP(content)  ){
 
 		//run htmlspecialchars_decode
 		char	*returnString;
-		convert_to_string(*content);
 		htmlspecialchars_decode(Z_STRVAL_PP(content),&returnString);
 		RETVAL_STRING(returnString,1);
 		efree(returnString);

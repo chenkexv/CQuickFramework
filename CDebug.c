@@ -25,7 +25,7 @@
 #include "ext/standard/info.h"
 
 
-#include "php_CMyFrameExtension.h"
+#include "php_CQuickFramework.h"
 #include "php_CDebug.h"
 #include "php_CHooks.h"
 #include "php_CWebApp.h"
@@ -957,14 +957,14 @@ void CDebug_createRequestData(zval **data,int type TSRMLS_DC){
 	MODULE_BEGIN
 		char	*openTrace,
 				*keyName;
-		ini_get("CMyFrameExtension.open_trace",&openTrace);
+		ini_get("CQuickFramework.open_trace",&openTrace);
 		add_assoc_string(*data,"TraceMonitor",strcmp(openTrace,"1") == 0 ? "On" : "Off",0);
 	MODULE_END
 
 	//shell check
 	MODULE_BEGIN
 		char	*openTrace;
-		ini_get("CMyFrameExtension.open_shell_check",&openTrace);
+		ini_get("CQuickFramework.open_shell_check",&openTrace);
 		add_assoc_string(*data,"ShellListener",strcmp(openTrace,"1") == 0 ? "On" : "Off",0);
 	MODULE_END
 
@@ -1383,7 +1383,7 @@ void CDebug_dumpTraceHtml(zval *classObject TSRMLS_DC){
 			castTimeRate = 0;
 
 	if(IS_ARRAY != Z_TYPE_P(classObject)){
-		php_printf("No SQL trace to print,please check the php.ini->[CMyFrameExtension.open_trace] is \"1\"");
+		php_printf("No SQL trace to print,please check the php.ini->[CQuickFramework.open_trace] is \"1\"");
 		return;
 	}
 
@@ -1777,12 +1777,12 @@ void CDebug_dumpClassList(zval **returnArray TSRMLS_DC){
 		zend_hash_get_current_key(EG(class_table),&key,&ukey,0);
 
 #if ( PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION <= 3 )
-		if ((*thisVal)->module && !strcasecmp((*thisVal)->module->name, CMyFrameExtension_module_entry.name)) {
+		if ((*thisVal)->module && !strcasecmp((*thisVal)->module->name, CQuickFramework_module_entry.name)) {
 			className = estrdup((*thisVal)->name);
 			add_next_index_string(classList,className,0);
 		}
 #else
-		if (((*thisVal)->type == ZEND_INTERNAL_CLASS) && (*thisVal)->info.internal.module && !strcasecmp((*thisVal)->info.internal.module->name, CMyFrameExtension_module_entry.name)) {
+		if (((*thisVal)->type == ZEND_INTERNAL_CLASS) && (*thisVal)->info.internal.module && !strcasecmp((*thisVal)->info.internal.module->name, CQuickFramework_module_entry.name)) {
 			className = estrdup((*thisVal)->name);
 			add_next_index_string(classList,className,0);
 		}
@@ -1874,10 +1874,10 @@ void CDebug_dumpClassMapForIDE(TSRMLS_D){
 	smart_str_appends(&fileContent,"<?php\r\nexit();\r\n");
 
 	smart_str_appends(&fileContent,"function CDump(){};\r\n");
-	smart_str_appends(&fileContent,"function CMyFrameExtension_createProject(){};\r\n");
-	smart_str_appends(&fileContent,"function CMyFrameExtension_createPlugin(){};\r\n");
-	smart_str_appends(&fileContent,"function CMyFrameExtension_createConsumer(){};\r\n");
-	smart_str_appends(&fileContent,"function CMyFrameExtension_dumpClassMapForIDE(){};\r\n");
+	smart_str_appends(&fileContent,"function CQuickFramework_createProject(){};\r\n");
+	smart_str_appends(&fileContent,"function CQuickFramework_createPlugin(){};\r\n");
+	smart_str_appends(&fileContent,"function CQuickFramework_createConsumer(){};\r\n");
+	smart_str_appends(&fileContent,"function CQuickFramework_dumpClassMapForIDE(){};\r\n");
 
 	h = zend_hash_num_elements(Z_ARRVAL_P(classList));
 	for(i = 0 ; i < h ; i++){
@@ -1921,7 +1921,7 @@ PHP_METHOD(CDebug,dumpInternalClass)
 		zend_hash_get_current_key(EG(class_table),&key,&ukey,0);
 
 #if ( PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION <= 3 )
-		if ((*thisVal)->module && !strcasecmp((*thisVal)->module->name, CMyFrameExtension_module_entry.name)) {
+		if ((*thisVal)->module && !strcasecmp((*thisVal)->module->name, CQuickFramework_module_entry.name)) {
 			className = estrdup((*thisVal)->name);
 			CDebug_dumpClass(className,&returnClass TSRMLS_CC);
 			if(noPrint == 0){
@@ -1932,7 +1932,7 @@ PHP_METHOD(CDebug,dumpInternalClass)
 			efree(className);
 		}
 #else
-		if (((*thisVal)->type == ZEND_INTERNAL_CLASS) && (*thisVal)->info.internal.module && !strcasecmp((*thisVal)->info.internal.module->name, CMyFrameExtension_module_entry.name)) {
+		if (((*thisVal)->type == ZEND_INTERNAL_CLASS) && (*thisVal)->info.internal.module && !strcasecmp((*thisVal)->info.internal.module->name, CQuickFramework_module_entry.name)) {
 			className = estrdup((*thisVal)->name);
 			CDebug_dumpClass(className,&returnClass TSRMLS_CC);
 			if(noPrint == 0){

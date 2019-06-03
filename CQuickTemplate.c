@@ -25,11 +25,12 @@
 #include "ext/standard/info.h"
 
 
-#include "php_CMyFrameExtension.h"
+#include "php_CQuickFramework.h"
 #include "php_CQuickTemplate.h"
 #include "php_CException.h"
 #include "ext/standard/php_smart_str_public.h"
 #include "ext/standard/php_smart_str.h"
+#include "php_CValidate.h"
 
 
 void CQuickTemplate__parse_var(zval *object,zval *match1,zval **returnZval TSRMLS_DC);
@@ -90,6 +91,12 @@ zend_function_entry CQuickTemplate_functions[] = {
 	PHP_ME(CQuickTemplate,_modifier_default,NULL,ZEND_ACC_PRIVATE)
 	PHP_ME(CQuickTemplate,_modifier_replace,NULL,ZEND_ACC_PRIVATE)
 	PHP_ME(CQuickTemplate,_modifier_isWeekend,NULL,ZEND_ACC_PRIVATE)
+	PHP_ME(CQuickTemplate,_modifier_isPhone,NULL,ZEND_ACC_PRIVATE)
+	PHP_ME(CQuickTemplate,_modifier_isEmail,NULL,ZEND_ACC_PRIVATE)
+	PHP_ME(CQuickTemplate,_modifier_isIDCard,NULL,ZEND_ACC_PRIVATE)
+	PHP_ME(CQuickTemplate,_modifier_isUrl,NULL,ZEND_ACC_PRIVATE)
+	PHP_ME(CQuickTemplate,_modifier_isEmpty,NULL,ZEND_ACC_PRIVATE)
+	PHP_ME(CQuickTemplate,_modifier_isLeapYear,NULL,ZEND_ACC_PRIVATE)
 	PHP_ME(CQuickTemplate,_run_mod_handler,NULL,ZEND_ACC_PRIVATE)
 	PHP_ME(CQuickTemplate,_modifier_cat,NULL,ZEND_ACC_PRIVATE)
 	PHP_ME(CQuickTemplate,__call,CQuickTemplate_call_arginfo,ZEND_ACC_PUBLIC)
@@ -3787,6 +3794,102 @@ PHP_METHOD(CQuickTemplate,_modifier_replace){
 	efree(returnString);
 }
 
+PHP_METHOD(CQuickTemplate,_modifier_isPhone){
+
+	char	*string;
+
+	int		stringLen = 0;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"s",&string,&stringLen) == FAILURE){
+		RETURN_FALSE;
+	}
+	
+	if(CValidate_isPhone(string)){
+		RETURN_TRUE;
+	}
+
+	RETURN_FALSE;
+}
+
+PHP_METHOD(CQuickTemplate,_modifier_isEmail){
+
+	char	*string;
+
+	int		stringLen = 0;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"s",&string,&stringLen) == FAILURE){
+		RETURN_FALSE;
+	}
+	
+	if(CValidate_isEmail(string)){
+		RETURN_TRUE;
+	}
+
+	RETURN_FALSE;
+
+}
+PHP_METHOD(CQuickTemplate,_modifier_isIDCard){
+	char	*string;
+
+	int		stringLen = 0;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"s",&string,&stringLen) == FAILURE){
+		RETURN_FALSE;
+	}
+	
+	if(CValidate_isIDCard(string TSRMLS_CC)){
+		RETURN_TRUE;
+	}
+
+	RETURN_FALSE;
+}
+PHP_METHOD(CQuickTemplate,_modifier_isUrl){
+	char	*string;
+
+	int		stringLen = 0;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"s",&string,&stringLen) == FAILURE){
+		RETURN_FALSE;
+	}
+	
+	if(CValidate_isUrl(string)){
+		RETURN_TRUE;
+	}
+
+	RETURN_FALSE;
+}
+PHP_METHOD(CQuickTemplate,_modifier_isEmpty){
+
+	char	*string;
+
+	int		stringLen = 0;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"s",&string,&stringLen) == FAILURE){
+		RETURN_FALSE;
+	}
+	
+	if(strlen(string) > 0){
+		RETURN_FALSE;
+	}
+
+	RETURN_TRUE;
+
+}
+PHP_METHOD(CQuickTemplate,_modifier_isLeapYear){
+
+	long	year = 0;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"l",&year) == FAILURE){
+		RETURN_FALSE;
+	}
+	
+	if(CDate_isLeapYear(year)){
+		RETURN_TRUE;
+	}
+	
+	RETURN_FALSE;
+}
+
 PHP_METHOD(CQuickTemplate,_modifier_isWeekend){
 
 	char	*string1,
@@ -3878,7 +3981,6 @@ PHP_METHOD(CQuickTemplate,__call){
 		char *trueFunName;
 		str_replace("_modifier_","",val,&trueFunName);
 
-	
 		//ÅÐ¶Ïº¯Êý´æÔÚ
 		if(function_exists(trueFunName)){
 
@@ -3924,7 +4026,86 @@ PHP_METHOD(CQuickTemplate,__call){
 				zval_dtor(&constructReturn);
 			MODULE_END
 
+		}else{
+		
+			//can not find php function and try to find Static function
+			zval	*cutStatic;
+			php_explode("_",trueFunName,&cutStatic);
+	
+			//match _modifier_CDate_isWeekend  
+			if(2 == zend_hash_num_elements(Z_ARRVAL_P(cutStatic))){
+				
+				zval				**className,
+									**functionName;
+				zend_class_entry	**classEntryPP,
+									*classEntry;
+				zend_function		*functionCe;
+
+				zend_hash_index_find(Z_ARRVAL_P(cutStatic),0,(void**)&className);
+				zend_hash_index_find(Z_ARRVAL_P(cutStatic),1,(void**)&functionName);
+
+				//check class exists
+				php_strtolower(Z_STRVAL_PP(className),strlen(Z_STRVAL_PP(className))+1);
+				if(SUCCESS == zend_hash_find(EG(class_table),Z_STRVAL_PP(className),strlen(Z_STRVAL_PP(className))+1,(void**)&classEntryPP)){
+					classEntry = *classEntryPP;
+					//find function
+					if(zend_hash_find(&classEntry->function_table,Z_STRVAL_PP(functionName),strlen(Z_STRVAL_PP(functionName))+1,(void**)&functionCe) != SUCCESS){
+						
+						//call static function
+						num = zend_hash_num_elements(Z_ARRVAL_P(args));
+
+						if(num >= 64){
+							php_error_docref(NULL TSRMLS_CC, E_ERROR ,"[CViewException] CQuickTemplate execution method parameter number too much");
+							return;
+						}
+
+						zend_hash_internal_pointer_reset(Z_ARRVAL_P(args));
+						for(i = 0 ; i < num ; i++){
+							paramsList[i] = &param;
+							MAKE_STD_ZVAL(paramsList[i]);
+							zend_hash_get_current_data(Z_ARRVAL_P(args),(void**)&thisVal);
+							ZVAL_ZVAL(paramsList[i],*thisVal,1,0);
+							zend_hash_move_forward(Z_ARRVAL_P(args));
+						}
+
+						MODULE_BEGIN
+							zval	constructReturn,
+									constructVal,
+									*saveZval;
+							int		callStatus = 0;
+							INIT_ZVAL(constructVal);
+							ZVAL_STRING(&constructVal,Z_STRVAL_PP(functionName), 0);
+
+							callStatus = call_user_function(&classEntry->function_table, NULL, &constructVal, &constructReturn, num, paramsList TSRMLS_CC);
+							returnZval = &constructReturn;
+
+							for(i = 0 ; i < num ; i++){
+								zval_ptr_dtor(&paramsList[i]);
+							}
+
+							if(EG(exception)){
+								char errMessage[1024];
+								sprintf(errMessage,"%s%s%s","[CViewException] CQuickTempate call function error: ",trueFunName,"()");
+								Z_OBJ_HANDLE_P(EG(exception)) = 0;
+								zend_clear_exception(TSRMLS_C);
+								php_error_docref(NULL TSRMLS_CC, E_ERROR ,errMessage);
+								return;
+							}
+
+							ZVAL_ZVAL(return_value,returnZval,1,0);
+							zval_dtor(&constructReturn);
+						MODULE_END
+
+					}
+					
+				}
+
+			}
+
+			zval_ptr_dtor(&cutStatic);
 		}
+		
+
 
 		efree(trueFunName);
 	}
@@ -3988,3 +4169,4 @@ int CQuickTemplate_checkNeedCompileTemplate(zval *object,char *name TSRMLS_DC){
 
 PHP_METHOD(CQuickTemplate,checkNeedCompileTemplate){
 }
+
