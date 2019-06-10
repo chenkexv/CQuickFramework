@@ -70,6 +70,7 @@ zend_function_entry CRequset_functions[] = {
 	PHP_ME(CRequest,isWap,NULL,ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
 	PHP_ME(CRequest,isCli,NULL,ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
 	PHP_ME(CRequest,end,NULL,ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
+	PHP_ME(CRequest,getRequestMethod,NULL,ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
 	PHP_ME(CRequest,removeXSS,NULL,ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
 
 	PHP_ME(CRequest,getAllMemory,NULL,ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
@@ -1995,4 +1996,23 @@ PHP_METHOD(CRequest,getProcessList)
 	Z_TYPE_P(return_value) = IS_ARRAY;
 	Z_ARRVAL_P(return_value) = Z_ARRVAL_P(processList);
 #endif
+}
+
+PHP_METHOD(CRequest,getRequestMethod)
+{
+	char	*requestMethod;
+
+
+
+	getServerParam("REQUEST_METHOD",&requestMethod TSRMLS_CC);
+	if(requestMethod == NULL){
+		zval	*sapiZval;
+		if(zend_hash_find(EG(zend_constants),"PHP_SAPI",strlen("PHP_SAPI")+1,(void**)&sapiZval) == SUCCESS && strcmp(Z_STRVAL_P(sapiZval),"cli") == 0){
+			RETURN_STRING("CLI",1);
+		}
+
+		RETURN_FALSE;
+	}
+
+	RETVAL_STRING(requestMethod,0);
 }
