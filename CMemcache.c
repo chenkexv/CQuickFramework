@@ -146,7 +146,7 @@ PHP_METHOD(CMemcache,__construct)
 
 	//保存变量
 	zend_update_property(CMemcacheCe,getThis(),ZEND_STRL("_cacheObject"),memcacheObj TSRMLS_CC);
-
+ 
 	//添加服务器
 	if(IS_OBJECT == Z_TYPE_P(memcacheObj)){
 
