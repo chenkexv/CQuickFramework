@@ -143,7 +143,7 @@ PHP_METHOD(CMemcache,__construct)
 		ZVAL_STRING(&constructVal, memcacheEntry->constructor->common.function_name, 1);
 		call_user_function(NULL, &memcacheObj, &constructVal, &constructReturn, 0, NULL TSRMLS_CC);
 	}
-
+ 
 	//±£¥Ê±‰¡ø
 	zend_update_property(CMemcacheCe,getThis(),ZEND_STRL("_cacheObject"),memcacheObj TSRMLS_CC);
  
