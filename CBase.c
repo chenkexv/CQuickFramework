@@ -216,6 +216,36 @@ void getServerParam(char *key,char **getStr TSRMLS_DC)
 	return;
 }
 
+void setServerParam(char *key,zval *params TSRMLS_DC)
+{
+
+	zval	**SERVER,
+			*saveParams;
+
+
+	//判断是否已注册全局变量
+#if ( PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION <= 3 )
+	zend_bool jit_init = (PG(auto_globals_jit) && !PG(register_globals) && !PG(register_long_arrays));
+#else
+	zend_bool jit_init = (PG(auto_globals_jit));
+#endif
+
+    if (jit_init){ 
+		zend_is_auto_global(ZEND_STRL("_SERVER") TSRMLS_CC);
+    }   
+
+	(void)zend_hash_find(&EG(symbol_table),ZEND_STRS("_SERVER"), (void **)&SERVER);
+
+	if(IS_ARRAY != Z_TYPE_PP(SERVER)){
+		return;
+	}
+
+	MAKE_STD_ZVAL(saveParams);
+	ZVAL_ZVAL(saveParams,params,1,0);
+	add_assoc_zval(*SERVER,key,saveParams);
+
+}
+
 //获取GET中的变量
 void getGetParam(char *key,char **getStr TSRMLS_DC)
 {
