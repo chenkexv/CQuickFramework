@@ -121,12 +121,10 @@ int CConfig_getInstance(char *configFileName,zval **returnZval TSRMLS_DC)
 
 		zend_class_entry **configClassCepp = NULL;
 		zend_hash_find(EG(class_table),"cconfig",strlen("cconfig")+1,(void**)&configClassCepp);
-		
 		if(configClassCepp == NULL){
 			php_error_docref(NULL TSRMLS_CC,E_ERROR,"[CQuickFrameworkFatalError] Framework can not get a pointer from zend_hash_find");
 			return;
 		}
-
 		MAKE_STD_ZVAL(object);
 		object_init_ex(object,*configClassCepp);
 
