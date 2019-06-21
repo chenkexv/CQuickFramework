@@ -191,6 +191,14 @@ CMYFRAME_REGISTER_CLASS_RUN(CMailException)
 	return SUCCESS;
 }
 
+CMYFRAME_REGISTER_CLASS_RUN(CMicroServerException)
+{
+	zend_class_entry	funCe;
+	INIT_CLASS_ENTRY(funCe,"CMicroServerException",COtherException_functions);
+	CMicroServerExceptionCe = zend_register_internal_class_ex(&funCe,CExceptionCe,NULL TSRMLS_CC);
+	return SUCCESS;
+}
+
 //类方法:创建应用对象
 PHP_METHOD(CException,__construct)
 {
