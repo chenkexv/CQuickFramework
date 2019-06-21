@@ -885,6 +885,7 @@ PHP_METHOD(CRabbit,publish)
 	//获取参数
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"ss",&route,&routeLen,&message,&messageLen) == FAILURE){
 		zend_throw_exception(CQueueExceptionCe, "[CQueueException] Call [CRabbit->publish] Parameter error , the message must be a string ", 10001 TSRMLS_CC);
+		RETVAL_FALSE;
 		return;
 	}
 
@@ -898,6 +899,7 @@ PHP_METHOD(CRabbit,publish)
 		efree(saveName);
 		zval_ptr_dtor(&exchangeObject);
 		zend_throw_exception(CQueueExceptionCe, "[CQueueException] Call [CRabbit->getExchange] Fail , can not get an object ", 10004 TSRMLS_CC);
+		RETVAL_FALSE;
 		return;
 	}
 
@@ -921,7 +923,7 @@ PHP_METHOD(CRabbit,publish)
 		zval_ptr_dtor(&paramsList[0]);
 		zval_ptr_dtor(&paramsList[1]);
 
-		if(IS_LONG == Z_TYPE(constructReturn) && 1 == Z_LVAL(constructReturn)){
+		if(IS_BOOL == Z_TYPE(constructReturn) && 1 == Z_LVAL(constructReturn)){
 			ZVAL_BOOL(return_value,1);
 		}else{
 			ZVAL_BOOL(return_value,0);
