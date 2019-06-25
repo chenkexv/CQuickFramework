@@ -17,32 +17,32 @@
 */
 
 //zend类对象
-zend_class_entry	*CExceptionCe,
-					*CPluginExceptionCe,
-					*CacheExceptionCe,
-					*CRedisExceptionCe,
-					*CClassNotFoundExceptionCe,
-					*CDbExceptionCe,
-					*CModelExceptionCe,
-					*CRouteExceptionCe,
-					*CSessionCookieExceptionCe,
-					*CViewExceptionCe,
-					*CShellExceptionCe,
-					*CHttpExceptionCe,
-					*CQueueExceptionCe,
-					*CMailExceptionCe,
-					*CFtpExceptionCe,
-					*CMicroServerExceptionCe;
-
+zend_class_entry	*CMicroServerCe,
+					*CMicroResponseCe,
+					*CMicroRequestCe;
 
 //类方法:创建应用
-PHP_METHOD(CException,__construct);
-PHP_METHOD(CException,__destruct);
-PHP_METHOD(CException,getTopErrors);
-PHP_METHOD(CException,getTopException);
-PHP_METHOD(CException,closeErrorShow);
-PHP_METHOD(CException,getErrorShow);
-PHP_METHOD(CException,hasFatalErrors);
-PHP_METHOD(CException,filterFileTruePath);
+PHP_METHOD(CMicroServer,__construct);
+PHP_METHOD(CMicroServer,getInstance);
+PHP_METHOD(CMicroServer,bind);
+PHP_METHOD(CMicroServer,listen);
+PHP_METHOD(CMicroServer,onRequest);
+PHP_METHOD(CMicroServer,onRoute);
 
 
+PHP_METHOD(CMicroResponse,setHeader);
+PHP_METHOD(CMicroResponse,setBody);
+PHP_METHOD(CMicroResponse,send);
+
+PHP_METHOD(CMicroRequest,getHeader);
+PHP_METHOD(CMicroRequest,getRawHeader);
+PHP_METHOD(CMicroRequest,getBody);
+PHP_METHOD(CMicroRequest,getUrl);
+PHP_METHOD(CMicroRequest,getUri);
+PHP_METHOD(CMicroRequest,getAgent);
+PHP_METHOD(CMicroRequest,getHost);
+PHP_METHOD(CMicroRequest,getIp);
+PHP_METHOD(CMicroRequest,isWap);
+PHP_METHOD(CMicroRequest,isCli);
+PHP_METHOD(CMicroRequest,getPath);
+PHP_METHOD(CMicroRequest,getQueryString);

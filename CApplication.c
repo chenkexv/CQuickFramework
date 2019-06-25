@@ -75,9 +75,8 @@ PHP_METHOD(CApplication,setBootParams){
 
 }
 
-//类方法:获取请求
-PHP_METHOD(CApplication,GetRequest)
-{
+void CApplication_GetRequest(TSRMLS_D){
+
 	zval	*requestInstace,
 			*routeDataZval,
 			*responseInstace;
@@ -93,6 +92,13 @@ PHP_METHOD(CApplication,GetRequest)
 	//发送响应
 	CResponse_getInstance(&responseInstace TSRMLS_CC);
 	zval_ptr_dtor(&responseInstace);
+
+}
+
+//类方法:获取请求
+PHP_METHOD(CApplication,GetRequest)
+{
+	CApplication_GetRequest(TSRMLS_C);
 }
 
 
