@@ -16,6 +16,8 @@
   +----------------------------------------------------------------------+
 */
 
+#ifndef PHP_WIN32
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -27,27 +29,25 @@
 #include "ext/standard/php_smart_str.h"
 #include "php_CQuickFramework.h"
 #include "php_CApplication.h"
-#include "php_CHttpServer.h"
 #include "php_CException.h"
-
-#ifdef PHP_WIN32
-#else
+#include "php_CHttpServer.h"
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <errno.h> 
-#endif
+
 
 //zend类方法
 zend_function_entry CMicroServer_functions[] = {
-	PHP_ME(CMicroServer,__construct,NULL,ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
-	PHP_ME(CMicroServer,getInstance,NULL,ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
+	PHP_ME(CMicroServer,__construct,NULL,ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
+	PHP_ME(CMicroServer,getInstance,NULL,ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
 	PHP_ME(CMicroServer,bind,NULL,ZEND_ACC_PUBLIC)
 	PHP_ME(CMicroServer,listen,NULL,ZEND_ACC_PUBLIC )
 	PHP_ME(CMicroServer,onRequest,NULL,ZEND_ACC_PUBLIC )
 	PHP_ME(CMicroServer,onRoute,NULL,ZEND_ACC_PUBLIC )
+	{NULL, NULL, NULL}
 };
 
 //模块被加载时
@@ -80,6 +80,7 @@ zend_function_entry CMicroRequest_functions[] = {
 	PHP_ME(CMicroRequest,isCli,NULL,ZEND_ACC_PUBLIC )
 	PHP_ME(CMicroRequest,getPath,NULL,ZEND_ACC_PUBLIC )
 	PHP_ME(CMicroRequest,getQueryString,NULL,ZEND_ACC_PUBLIC )
+	{NULL, NULL, NULL}
 };
 
 CMYFRAME_REGISTER_CLASS_RUN(CMicroRequest)
@@ -107,6 +108,7 @@ zend_function_entry CMicroResponse_functions[] = {
 	PHP_ME(CMicroResponse,setHeader,NULL,ZEND_ACC_PUBLIC)
 	PHP_ME(CMicroResponse,setBody,NULL,ZEND_ACC_PUBLIC)
 	PHP_ME(CMicroResponse,send,NULL,ZEND_ACC_PUBLIC)
+	{NULL, NULL, NULL}
 };
 
 CMYFRAME_REGISTER_CLASS_RUN(CMicroResponse)
@@ -123,8 +125,6 @@ CMYFRAME_REGISTER_CLASS_RUN(CMicroResponse)
 	return SUCCESS;
 }
 
-PHP_METHOD(CMicroResponse,setHeader){}
-PHP_METHOD(CMicroResponse,setBody){}
 
 
 void getHttpDesc(int useHttpCode,char **statusDesc){
@@ -231,9 +231,13 @@ void createResponseContent(zval *object,char *body,int thisCode,char **resultCon
 	
 }
 
+PHP_METHOD(CMicroResponse,setHeader){
+}
+PHP_METHOD(CMicroResponse,setBody){
+}
+
 PHP_METHOD(CMicroResponse,send){
 
-#ifndef PHP_WIN32
 	char	*content,
 			*resultContent;
 	int		contentLen = 0,
@@ -254,8 +258,7 @@ PHP_METHOD(CMicroResponse,send){
 	createResponseContent(getThis(),content,code,&resultContent TSRMLS_CC);
 	write(fd,resultContent,strlen(resultContent));
 	efree(resultContent);
- 
-#endif
+
 }
 
 PHP_METHOD(CMicroRequest,getHeader){
@@ -323,128 +326,7 @@ PHP_METHOD(CMicroRequest,isCli){
 	RETVAL_FALSE;
 }
 
-PHP_METHOD(CMicroServer,__construct){
 
-}
-
-PHP_METHOD(CMicroServer,onRoute){
-
-	char	*route,
-			*callback_name;
-	int		routeLen = 0;
-	zval	*callFunction,
-			*routeObject,
-			*saveRoute;
-
-	RETVAL_ZVAL(getThis(),1,0);
-
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"sz",&route,&routeLen,&callFunction) == FAILURE){
-		return;
-	}
-
-	if (!zend_is_callable(callFunction, 0, &callback_name TSRMLS_CC)) {
-		zend_throw_exception(CMicroServerExceptionCe, "[CMicroServerException] call [CMicroServer->onRoute] the params is not a callback function", 7001 TSRMLS_CC);
-		efree(callback_name);
-		return;
-	}
-
-	routeObject = zend_read_property(CMicroServerCe,getThis(),ZEND_STRL("routeObject"), 0 TSRMLS_CC);
-	if(IS_ARRAY != Z_TYPE_P(routeObject)){
-		zval *saveArray;
-		MAKE_STD_ZVAL(routeObject);
-		array_init(routeObject);
-		zend_update_property(CMicroServerCe,getThis(),ZEND_STRL("routeObject"),routeObject TSRMLS_CC);
-		zval_ptr_dtor(&routeObject);
-		routeObject = zend_read_property(CMicroServerCe,getThis(),ZEND_STRL("routeObject"), 0 TSRMLS_CC);
-	}
-
-	MAKE_STD_ZVAL(saveRoute);
-	ZVAL_ZVAL(saveRoute,callFunction,1,0);
-	add_assoc_zval(routeObject,route,saveRoute);
-}
-
-
-PHP_METHOD(CMicroServer,getInstance){
-
-	char	*key,
-			*saveKey;
-	int		keyLen = 0;
-
-	zval	*selfInstace,
-			**instaceSaveZval;
-
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"|s",&key,&keyLen) == FAILURE){
-		RETURN_FALSE;
-	}
-
-	if(keyLen == 0){
-		key = "main";
-	}
-
-#ifdef PHP_WIN32
-	zend_throw_exception(CMicroServerExceptionCe, "[CMicroServerException] this class is only support linux", 7001 TSRMLS_CC);
-	return;
-#endif
-
-	selfInstace = zend_read_static_property(CMicroServerCe,ZEND_STRL("instance"),1 TSRMLS_CC);
-
-	//如果为NULL则更新为ZvalHashtable
-	if(IS_ARRAY != Z_TYPE_P(selfInstace)){
-		zval *saveArray;
-		MAKE_STD_ZVAL(saveArray);
-		array_init(saveArray);
-		zend_update_static_property(CMicroServerCe,ZEND_STRL("instance"),saveArray TSRMLS_CC);
-		zval_ptr_dtor(&saveArray);
-		selfInstace = zend_read_static_property(CMicroServerCe,ZEND_STRL("instance"),1 TSRMLS_CC);
-	}
-
-	if(SUCCESS == zend_hash_find(Z_ARRVAL_P(selfInstace),key,strlen(key)+1,(void**)&instaceSaveZval) ){
-		RETVAL_ZVAL(*instaceSaveZval,1,0);
-	}else{
-
-		zval	*object;
-
-		MAKE_STD_ZVAL(object);
-		object_init_ex(object,CMicroServerCe);
-
-		//执行其构造器 并传入参数
-		if (CMicroServerCe->constructor) {
-			zval	constructVal,
-					constructReturn;
-			INIT_ZVAL(constructVal);
-			ZVAL_STRING(&constructVal, CMicroServerCe->constructor->common.function_name, 0);
-			call_user_function(NULL, &object, &constructVal, &constructReturn, 0, NULL TSRMLS_CC);
-			zval_dtor(&constructReturn);
-		}
-
-		//将构造器返回值存入instance静态变量
-		add_assoc_zval(selfInstace,key,object);
-		zend_update_static_property(CMicroServerCe,ZEND_STRL("instance"),selfInstace TSRMLS_CC);
-
-		RETURN_ZVAL(object,1,0);
-	}
-}
-
-PHP_METHOD(CMicroServer,bind){
-	
-	char	*host;
-	int		hostLen = 0,
-			port = 0;
-
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"sl",&host,&hostLen,&port) == FAILURE){
-		RETURN_FALSE;
-	}
-
-	if(port == 0){
-		zend_throw_exception(CMicroServerExceptionCe, "[CMicroServerException] call [CMicroServer->bind] the port must available port", 7001 TSRMLS_CC);
-		return;
-	}
-
-	zend_update_property_string(CMicroServerCe,getThis(),ZEND_STRL("host"),host TSRMLS_CC);
-	zend_update_property_long(CMicroServerCe,getThis(),ZEND_STRL("port"),port TSRMLS_CC);
-
-	RETVAL_ZVAL(getThis(),1,0);
-}
 
 int doCallbackFunction(zval *object,zval *params1,zval *params2 TSRMLS_DC){
 
@@ -544,12 +426,6 @@ int doRouteCallbackFunction(zval *object,zval *params1,zval *params2 TSRMLS_DC){
 	return callStatus;
 	
 }
-
-#ifdef PHP_WIN32
-int createHttpServer(char *host,int port){
-	return 0;
-}
-#else
 
 void setLogs(char *format, ...){
 	
@@ -741,8 +617,6 @@ void parseRequestHeader(zval *microRequestObject,char *raw,zval **headerArray TS
 
 void parseSocketAddrInfo(zval *microRequestObject,int fd TSRMLS_DC){
 	
-#ifndef PHP_WIN32
-
 	zval	*saveIp,
 			*savePort;
 	struct sockaddr_in socketInfo;
@@ -763,7 +637,6 @@ void parseSocketAddrInfo(zval *microRequestObject,int fd TSRMLS_DC){
 	setServerParam("REMOTE_PORT",saveIp);
 	zval_ptr_dtor(&savePort);
 
-#endif
 }
 
 void errorOutPut(int fd,int code){
@@ -976,7 +849,105 @@ int createHttpServer(char *host,int port,zval *object TSRMLS_DC){
     close(listenSock);
     return 0;
 }
-#endif;
+
+PHP_METHOD(CMicroServer,__construct){
+
+
+}
+
+PHP_METHOD(CMicroServer,onRoute){
+
+	char	*route,
+			*callback_name;
+	int		routeLen = 0;
+	zval	*callFunction,
+			*routeObject,
+			*saveRoute;
+
+	RETVAL_ZVAL(getThis(),1,0);
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"sz",&route,&routeLen,&callFunction) == FAILURE){
+		return;
+	}
+
+	if (!zend_is_callable(callFunction, 0, &callback_name TSRMLS_CC)) {
+		zend_throw_exception(CMicroServerExceptionCe, "[CMicroServerException] call [CMicroServer->onRoute] the params is not a callback function", 7001 TSRMLS_CC);
+		efree(callback_name);
+		return;
+	}
+
+	routeObject = zend_read_property(CMicroServerCe,getThis(),ZEND_STRL("routeObject"), 0 TSRMLS_CC);
+	if(IS_ARRAY != Z_TYPE_P(routeObject)){
+		zval *saveArray;
+		MAKE_STD_ZVAL(routeObject);
+		array_init(routeObject);
+		zend_update_property(CMicroServerCe,getThis(),ZEND_STRL("routeObject"),routeObject TSRMLS_CC);
+		zval_ptr_dtor(&routeObject);
+		routeObject = zend_read_property(CMicroServerCe,getThis(),ZEND_STRL("routeObject"), 0 TSRMLS_CC);
+	}
+
+	MAKE_STD_ZVAL(saveRoute);
+	ZVAL_ZVAL(saveRoute,callFunction,1,0);
+	add_assoc_zval(routeObject,route,saveRoute);
+}
+
+
+PHP_METHOD(CMicroServer,getInstance){
+
+	char	*key,
+			*saveKey;
+	int		keyLen = 0;
+
+	zval	*selfInstace,
+			**instaceSaveZval;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"|s",&key,&keyLen) == FAILURE){
+		RETURN_FALSE;
+	}
+
+	if(keyLen == 0){
+		key = "main";
+	}
+
+
+	selfInstace = zend_read_static_property(CMicroServerCe,ZEND_STRL("instance"),1 TSRMLS_CC);
+
+	//如果为NULL则更新为ZvalHashtable
+	if(IS_ARRAY != Z_TYPE_P(selfInstace)){
+		zval *saveArray;
+		MAKE_STD_ZVAL(saveArray);
+		array_init(saveArray);
+		zend_update_static_property(CMicroServerCe,ZEND_STRL("instance"),saveArray TSRMLS_CC);
+		zval_ptr_dtor(&saveArray);
+		selfInstace = zend_read_static_property(CMicroServerCe,ZEND_STRL("instance"),1 TSRMLS_CC);
+	}
+
+	if(SUCCESS == zend_hash_find(Z_ARRVAL_P(selfInstace),key,strlen(key)+1,(void**)&instaceSaveZval) ){
+		RETVAL_ZVAL(*instaceSaveZval,1,0);
+	}else{
+
+		zval	*object;
+
+		MAKE_STD_ZVAL(object);
+		object_init_ex(object,CMicroServerCe);
+
+		//执行其构造器 并传入参数
+		if (CMicroServerCe->constructor) {
+			zval	constructVal,
+					constructReturn;
+			INIT_ZVAL(constructVal);
+			ZVAL_STRING(&constructVal, CMicroServerCe->constructor->common.function_name, 0);
+			call_user_function(NULL, &object, &constructVal, &constructReturn, 0, NULL TSRMLS_CC);
+			zval_dtor(&constructReturn);
+		}
+
+		//将构造器返回值存入instance静态变量
+		add_assoc_zval(selfInstace,key,object);
+		zend_update_static_property(CMicroServerCe,ZEND_STRL("instance"),selfInstace TSRMLS_CC);
+
+		RETURN_ZVAL(object,1,0);
+	}
+}
 
 
 PHP_METHOD(CMicroServer,listen){
@@ -1030,3 +1001,27 @@ PHP_METHOD(CMicroServer,onRequest){
     efree(callback_name);
 	RETVAL_ZVAL(getThis(),1,0);
 }
+
+
+PHP_METHOD(CMicroServer,bind){
+	
+	char	*host;
+	int		hostLen = 0,
+			port = 0;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"sl",&host,&hostLen,&port) == FAILURE){
+		RETURN_FALSE;
+	}
+
+	if(port == 0){
+		zend_throw_exception(CMicroServerExceptionCe, "[CMicroServerException] call [CMicroServer->bind] the port must available port", 7001 TSRMLS_CC);
+		return;
+	}
+
+	zend_update_property_string(CMicroServerCe,getThis(),ZEND_STRL("host"),host TSRMLS_CC);
+	zend_update_property_long(CMicroServerCe,getThis(),ZEND_STRL("port"),port TSRMLS_CC);
+
+	RETVAL_ZVAL(getThis(),1,0);
+}
+
+#endif

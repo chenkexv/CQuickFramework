@@ -77,10 +77,10 @@ PHP_INI_END()
 static int frameworkDoCall(zend_execute_data *execute_data TSRMLS_DC)
 {
 
-	char	*funname,
-			*class_name,
-			*space,
-			*filePath;
+	const   char  *class_name = "",
+				  *space = "",
+				  *funname,
+				  *filePath;
 
 	zval	*timenow,
 			*thisSave;
@@ -120,9 +120,9 @@ static int frameworkDoCall(zend_execute_data *execute_data TSRMLS_DC)
 	array_init(thisSave);
 
 	add_assoc_double(thisSave,"time",Z_DVAL_P(timenow));
-	add_assoc_string(thisSave,"class_name",class_name,1);
-	add_assoc_string(thisSave,"function_name",funname,1);
-	add_assoc_string(thisSave,"file_name",filePath,1);
+	add_assoc_string(thisSave,"class_name",estrdup(class_name),0);
+	add_assoc_string(thisSave,"function_name",estrdup(funname),0);
+	add_assoc_string(thisSave,"file_name",estrdup(filePath),0);
 	add_assoc_long(thisSave,"function_type",execute_data->function_state.function->type);
 	add_next_index_zval(traceSave,thisSave);
 	
@@ -134,13 +134,13 @@ static int frameworkDoCall(zend_execute_data *execute_data TSRMLS_DC)
 
 void frameworkDoInternalCall(zend_execute_data *execute_data_ptr, int return_value_used TSRMLS_DC)
 {
-	char	*funcname;
+	const char	*funcname;
 	char	*filename,
-			*class_name,
-			*space,
 			*disableFunction,
 			*shell_check;
 
+	const char	*class_name = "",
+				*space = "";
 
 	zval	*traceSave,
 			*thisSave,
@@ -251,9 +251,9 @@ void frameworkDoInternalCall(zend_execute_data *execute_data_ptr, int return_val
 			MAKE_STD_ZVAL(thisSave);
 			array_init(thisSave);
 			add_assoc_double(thisSave,"time",Z_DVAL_P(timenow));
-			add_assoc_string(thisSave,"class_name",class_name,1);
-			add_assoc_string(thisSave,"function_name",funcname,1);
-			add_assoc_string(thisSave,"file_name",filename,1);
+			add_assoc_string(thisSave,"class_name",estrdup(class_name),0);
+			add_assoc_string(thisSave,"function_name",estrdup(funcname),0);
+			add_assoc_string(thisSave,"file_name",estrdup(filename),0);
 			add_assoc_long(thisSave,"function_type",execute_data_ptr->function_state.function->type);
 			add_next_index_zval(traceSave,thisSave);
 			zval_ptr_dtor(&timenow);
@@ -329,9 +329,17 @@ PHP_MINIT_FUNCTION(CQuickFramework)
 	CMYFRAME_REGISTER_CLASS(CTree);
 	CMYFRAME_REGISTER_CLASS(CFile);
 	CMYFRAME_REGISTER_CLASS(CHttp);
+
+#ifndef PHP_WIN32
 	CMYFRAME_REGISTER_CLASS(CMicroServer);
 	CMYFRAME_REGISTER_CLASS(CMicroRequest);
 	CMYFRAME_REGISTER_CLASS(CMicroResponse);
+#endif
+
+#if CQUICKFRAMEWORK_USE_QRENCODE
+	CMYFRAME_REGISTER_CLASS(CQrcode);
+#endif
+
 
 	//◊¢≤·“Ï≥£¿‡
 	CMYFRAME_REGISTER_CLASS(CException);

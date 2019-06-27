@@ -23,6 +23,7 @@
 #include "php.h"
 #include "php_ini.h"
 #include "ext/standard/info.h"
+#include <zend_exceptions.h>
 
 
 #include "php_CQuickFramework.h"
@@ -47,6 +48,8 @@ zend_function_entry CException_functions[] = {
 zend_function_entry COtherException_functions[] = {
 	{NULL, NULL, NULL}
 };
+
+zend_class_entry *CQuickFrameworkGetExceptionBase(int root);
 
 //模块被加载时
 CMYFRAME_REGISTER_CLASS_RUN(CException)

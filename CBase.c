@@ -23,6 +23,7 @@
 #include "php.h"
 #include "php_ini.h"
 #include "ext/standard/info.h"
+#include <zend_exceptions.h>
 
 
 #include "php_CQuickFramework.h"
@@ -689,6 +690,10 @@ zend_class_entry *CQuickFrameworkGetExceptionBase(int root) {
 		}
 	}
 #endif
-
+#if (PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION < 2)
 	return zend_exception_get_default();
+#else
+	TSRMLS_FETCH();
+	return zend_exception_get_default(TSRMLS_C);
+#endif
 }

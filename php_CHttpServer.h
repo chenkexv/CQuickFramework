@@ -28,12 +28,9 @@ PHP_METHOD(CMicroServer,bind);
 PHP_METHOD(CMicroServer,listen);
 PHP_METHOD(CMicroServer,onRequest);
 PHP_METHOD(CMicroServer,onRoute);
-
-
 PHP_METHOD(CMicroResponse,setHeader);
 PHP_METHOD(CMicroResponse,setBody);
 PHP_METHOD(CMicroResponse,send);
-
 PHP_METHOD(CMicroRequest,getHeader);
 PHP_METHOD(CMicroRequest,getRawHeader);
 PHP_METHOD(CMicroRequest,getBody);
