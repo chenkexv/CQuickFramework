@@ -43,3 +43,36 @@ PHP_METHOD(CMicroRequest,isWap);
 PHP_METHOD(CMicroRequest,isCli);
 PHP_METHOD(CMicroRequest,getPath);
 PHP_METHOD(CMicroRequest,getQueryString);
+
+typedef struct request
+{
+        char	*requestContent;
+        int		fd;
+		zval	*object;
+
+}request_t;
+
+typedef struct condition
+{
+    pthread_mutex_t pmutex;
+    pthread_cond_t pcond;
+}condition_t;
+
+typedef struct task
+{
+    void *(*run)(void *arg);
+    void *arg;
+    struct task *next;
+}task_t;
+
+
+typedef struct threadpool
+{
+    condition_t ready;
+    task_t *first;
+    task_t *last;
+    int counter;
+    int idle;
+    int max_threads;
+    int quit;
+}threadpool_t;

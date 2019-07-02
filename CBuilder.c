@@ -2346,8 +2346,7 @@ PHP_METHOD(CBuilder,execute)
 				//返回影响行数
 				MODULE_BEGIN
 					zval setAction,
-						 setReturen,
-						 *test;
+						 setReturen;
 					INIT_ZVAL(setAction);
 					ZVAL_STRING(&setAction,"rowCount",0);
 					call_user_function(NULL, &pdoReturnZval, &setAction, &setReturen, 0, NULL TSRMLS_CC);
