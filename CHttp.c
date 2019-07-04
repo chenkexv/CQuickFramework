@@ -160,7 +160,13 @@ void CHttp_sendHttpRequest(char *geturl,zval *params,char *getrequsetType,zval *
 	//GET·½Ê½
 	if(strcmp(requsetType,"get") == 0){
 		char *paramsQuery;
-		http_build_query(params,&paramsQuery);
+		if(IS_ARRAY == Z_TYPE_P(params)){
+			http_build_query(params,&paramsQuery);
+		}else if(IS_STRING == Z_TYPE_P(params)){
+			paramsQuery = estrdup(Z_STRVAL_P(params));
+		}else{
+			paramsQuery = estrdup("");
+		}
 		if(strstr(url,"?") == NULL){
 			strcat2(&requsetUrl,url,"?",paramsQuery,NULL);
 		}else{
@@ -409,6 +415,7 @@ PHP_METHOD(CHttp,fllowRedirect)
 		return;
 	}
 	zend_update_property_long(CHttpCe,getThis(),ZEND_STRL("fllowRedirct"),fllowRedicrt TSRMLS_CC);
+	RETVAL_ZVAL(getThis(),1,0);
 }
 
 PHP_METHOD(CHttp,sendHttpRequest){
@@ -634,9 +641,15 @@ PHP_METHOD(CHttp,setMethod){
 PHP_METHOD(CHttp,setParams){
 	zval	*params;
 	RETVAL_ZVAL(getThis(),1,0);
-	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"a",&params) == FAILURE){
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"z",&params) == FAILURE){
 		return;
 	}
+	if(IS_STRING == Z_TYPE_P(params) || IS_ARRAY == Z_TYPE_P(params)){	
+	}else{
+		zend_throw_exception(CHttpExceptionCe, "[CHttpException] call [CHttp->setParams] params error,the parmas must be a string or an array", 7001 TSRMLS_CC);
+		return;
+	}
+
 	zend_update_property(CHttpCe,getThis(),ZEND_STRL("params"),params TSRMLS_CC);
 }
 
