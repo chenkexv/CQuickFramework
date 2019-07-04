@@ -1879,6 +1879,35 @@ void CDebug_dumpClassMapForIDE(TSRMLS_D){
 	smart_str_appends(&fileContent,"function CQuickFramework_createConsumer(){};\r\n");
 	smart_str_appends(&fileContent,"function CQuickFramework_dumpClassMapForIDE(){};\r\n");
 
+	//consant
+	smart_str_appends(&fileContent,"define('HOOKS_ROUTE_START','HOOKS_ROUTE_START');\r\n");
+	smart_str_appends(&fileContent,"define('HOOKS_ROUTE_END','HOOKS_ROUTE_END');\r\n");
+	smart_str_appends(&fileContent,"define('HOOKS_ROUTE_ERROR','HOOKS_ROUTE_ERROR');\r\n");
+	smart_str_appends(&fileContent,"define('HOOKS_CONTROLLER_INIT','HOOKS_CONTROLLER_INIT');\r\n");
+	smart_str_appends(&fileContent,"define('HOOKS_ACTION_INIT','HOOKS_ACTION_INIT');\r\n");
+	smart_str_appends(&fileContent,"define('HOOKS_EXECUTE_BEFORE','HOOKS_EXECUTE_BEFORE');\r\n");
+	smart_str_appends(&fileContent,"define('HOOKS_EXECUTE_END','HOOKS_EXECUTE_END');\r\n");
+	smart_str_appends(&fileContent,"define('HOOKS_EXECUTE_ERROR','HOOKS_EXECUTE_ERROR');\r\n");
+	smart_str_appends(&fileContent,"define('HOOKS_ERROR_HAPPEN','HOOKS_ERROR_HAPPEN');\r\n");
+	smart_str_appends(&fileContent,"define('HOOKS_EXCEPTION_HAPPEN','HOOKS_EXCEPTION_HAPPEN');\r\n");
+	smart_str_appends(&fileContent,"define('HOOKS_SYSTEM_SHUTDOWN','HOOKS_SYSTEM_SHUTDOWN');\r\n");
+	smart_str_appends(&fileContent,"define('HOOKS_CACHE_SET','HOOKS_CACHE_SET');\r\n");
+	smart_str_appends(&fileContent,"define('HOOKS_CACHE_GET','HOOKS_CACHE_GET');\r\n");
+	smart_str_appends(&fileContent,"define('HOOKS_LOADER_START','HOOKS_LOADER_START');\r\n");
+	smart_str_appends(&fileContent,"define('HOOKS_VIEW_GET','HOOKS_VIEW_GET');\r\n");
+	smart_str_appends(&fileContent,"define('HOOKS_VIEW_SHOW','HOOKS_VIEW_SHOW');\r\n");
+	smart_str_appends(&fileContent,"define('HOOKS_URL_CREATE','HOOKS_URL_CREATE');\r\n");
+	smart_str_appends(&fileContent,"define('HOOKS_AUTO_LOAD','HOOKS_AUTO_LOAD');\r\n");
+	smart_str_appends(&fileContent,"define('HOOKS_MAIL_BEFORE','HOOKS_MAIL_BEFORE');\r\n");
+	smart_str_appends(&fileContent,"define('HOOKS_MONITOR_END','HOOKS_MONITOR_END');\r\n");
+	smart_str_appends(&fileContent,"define('HOOKS_SAFE_STOP','HOOKS_SAFE_STOP');\r\n");
+	smart_str_appends(&fileContent,"define('HOOKS_BASH_BEFORE','HOOKS_BASH_BEFORE');\r\n");
+	smart_str_appends(&fileContent,"define('HOOKS_BASH_END','HOOKS_BASH_END');\r\n");
+	smart_str_appends(&fileContent,"define('POOL_REJECT_WAIT',1);\r\n");
+	smart_str_appends(&fileContent,"define('POOL_REJECT_THROWEXCEPTION',2);\r\n");
+	smart_str_appends(&fileContent,"define('POOL_REJECT_DISCARD',3);\r\n");
+	
+
 	h = zend_hash_num_elements(Z_ARRVAL_P(classList));
 	for(i = 0 ; i < h ; i++){
 		zend_hash_get_current_data(Z_ARRVAL_P(classList),(void**)&thisVal);
