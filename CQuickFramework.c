@@ -38,6 +38,8 @@
 #include "php_CGuardController.h"
 
 static int le_CQuickFramework;
+static int le_resource_httpPool;
+
 
 zend_function_entry CQuickFramework_functions[] = {
 	PHP_FE(CDump,	NULL)
@@ -328,12 +330,14 @@ PHP_MINIT_FUNCTION(CQuickFramework)
 	CMYFRAME_REGISTER_CLASS(CImage);
 	CMYFRAME_REGISTER_CLASS(CTree);
 	CMYFRAME_REGISTER_CLASS(CFile);
+	CMYFRAME_REGISTER_CLASS(CHttpResponse);
 	CMYFRAME_REGISTER_CLASS(CHttp);
 
 #ifndef PHP_WIN32
 	CMYFRAME_REGISTER_CLASS(CMicroServer);
 	CMYFRAME_REGISTER_CLASS(CMicroRequest);
 	CMYFRAME_REGISTER_CLASS(CMicroResponse);
+	CMYFRAME_REGISTER_CLASS(CHttpPool);
 #endif
 
 #if CQUICKFRAMEWORK_USE_QRENCODE
@@ -358,7 +362,7 @@ PHP_MINIT_FUNCTION(CQuickFramework)
 	CMYFRAME_REGISTER_CLASS(CQueueException);
 	CMYFRAME_REGISTER_CLASS(CFtpException);	
 	CMYFRAME_REGISTER_CLASS(CMicroServerException);
-
+	CMYFRAME_REGISTER_CLASS(CRejectException);
 
 	//controller
 	CMYFRAME_REGISTER_CLASS(CGuardController);
