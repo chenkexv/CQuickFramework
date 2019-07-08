@@ -255,6 +255,7 @@ int CRedis_checkWriteRead(char *config TSRMLS_DC){
 		add_next_index_string(params,"testVal",1);
 		add_next_index_long(params,120);
 		CRedis_callFunction(config,"set",params,&returnData TSRMLS_CC);
+		zval_ptr_dtor(&params);
 		zval_ptr_dtor(&returnData);
 
 		if(EG(exception)){
@@ -274,7 +275,7 @@ int CRedis_checkWriteRead(char *config TSRMLS_DC){
 		add_next_index_string(params,"CQuickFrameTestKey",1);
 		add_next_index_string(params,"testVal",1);
 		CRedis_callFunction(config,"get",params,&returnData TSRMLS_CC);
-		php_var_dump(&returnData,1 TSRMLS_CC);
+		zval_ptr_dtor(&params);
 		zval_ptr_dtor(&returnData);
 
 		if(EG(exception)){
