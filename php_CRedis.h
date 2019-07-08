@@ -32,3 +32,5 @@ PHP_METHOD(CRedisMessage,getBody);
 PHP_METHOD(CRedisMessage,ack);
 PHP_METHOD(CRedisMessage,__call);
 
+int CRedis_checkWriteRead(char *config TSRMLS_DC);
+

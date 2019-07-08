@@ -171,6 +171,7 @@ void CRedis_getInstance(zval **returnZval,char *groupName TSRMLS_DC)
 	zend_throw_exception(CRedisExceptionCe, "[CRedisException] An internal error occurred while CQuickFramework was acquired by Redis ", 12011 TSRMLS_CC);
 }
 
+
 //fast function
 void CRedis_callFunction(char *config,char *val,zval *args,zval **returnData TSRMLS_DC){
 
@@ -239,6 +240,52 @@ void CRedis_callFunction(char *config,char *val,zval *args,zval **returnData TSR
 		zval_dtor(&constructReturn);
 	MODULE_END
 	zval_ptr_dtor(&redisZval);
+}
+
+int CRedis_checkWriteRead(char *config TSRMLS_DC){
+
+	MODULE_BEGIN
+		zval	*params,
+				*returnData;
+
+		//test write
+		MAKE_STD_ZVAL(params);
+		array_init(params);
+		add_next_index_string(params,"CQuickFrameTestKey",1);
+		add_next_index_string(params,"testVal",1);
+		add_next_index_long(params,120);
+		CRedis_callFunction(config,"set",params,&returnData TSRMLS_CC);
+		zval_ptr_dtor(&returnData);
+
+		if(EG(exception)){
+			Z_OBJ_HANDLE_P(EG(exception)) = 0;
+			zend_clear_exception(TSRMLS_C);
+			return 0;
+		}
+	MODULE_END
+
+	MODULE_BEGIN
+		zval	*params,
+				*returnData;
+
+		//test read
+		MAKE_STD_ZVAL(params);
+		array_init(params);
+		add_next_index_string(params,"CQuickFrameTestKey",1);
+		add_next_index_string(params,"testVal",1);
+		CRedis_callFunction(config,"get",params,&returnData TSRMLS_CC);
+		php_var_dump(&returnData,1 TSRMLS_CC);
+		zval_ptr_dtor(&returnData);
+
+		if(EG(exception)){
+			Z_OBJ_HANDLE_P(EG(exception)) = 0;
+			zend_clear_exception(TSRMLS_C);
+			return 0;
+		}
+	MODULE_END
+
+
+	return 1;
 }
 
 PHP_METHOD(CRedis,getInstance)
