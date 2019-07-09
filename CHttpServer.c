@@ -46,6 +46,7 @@
 //zendÀà·½·¨
 zend_function_entry CMicroServer_functions[] = {
 	PHP_ME(CMicroServer,__construct,NULL,ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
+	PHP_ME(CMicroServer,__destruct,NULL,ZEND_ACC_PUBLIC|ZEND_ACC_DTOR)
 	PHP_ME(CMicroServer,getInstance,NULL,ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
 	PHP_ME(CMicroServer,bind,NULL,ZEND_ACC_PUBLIC)
 	PHP_ME(CMicroServer,listen,NULL,ZEND_ACC_PUBLIC )
@@ -781,7 +782,7 @@ void *thread_routine(void *arg){
         timeout = 0;
         condition_lock(&pool -> ready);
         pool -> idle++;
-   
+		if(pool -> taskNum >0) pool -> taskNum --;
         while(pool -> first == NULL && !pool -> quit){
             clock_gettime(CLOCK_REALTIME,&abstime);
             abstime.tv_sec += 2;
@@ -838,6 +839,7 @@ void threadpool_init(threadpool_t *pool, int threads)
     pool -> idle = 0;
     pool -> max_threads = threads;
     pool -> quit = 0;
+	pool -> taskNum = 0;
 }
 
 
@@ -857,7 +859,8 @@ void threadpool_add_task(threadpool_t *pool, void *(*run)(void *arg),void *arg)
 	}
 	
     pool -> last = newstask;
- 
+	pool -> taskNum ++;
+
     if(pool -> idle > 0){
         condition_signal(&pool -> ready);
     }
@@ -992,6 +995,7 @@ int createHttpServer(char *host,int port,zval *object TSRMLS_DC){
 
 	int listenSock = startListen(host,port);
 	if(listenSock < 0){
+		close(epfd);
 		return listenSock;
 	}
 
@@ -1041,6 +1045,11 @@ PHP_METHOD(CMicroServer,__construct){
 
 }
 
+PHP_METHOD(CMicroServer,__destruct){
+
+	zend_update_property_null(CMicroServerCe,getThis(),ZEND_STRL("routeObject") TSRMLS_CC);
+}
+
 PHP_METHOD(CMicroServer,onRoute){
 
 	char	*route,
@@ -1057,24 +1066,27 @@ PHP_METHOD(CMicroServer,onRoute){
 	}
 
 	if (!zend_is_callable(callFunction, 0, &callback_name TSRMLS_CC)) {
-		zend_throw_exception(CMicroServerExceptionCe, "[CMicroServerException] call [CMicroServer->onRoute] the params is not a callback function", 7001 TSRMLS_CC);
 		efree(callback_name);
+		zend_throw_exception(CMicroServerExceptionCe, "[CMicroServerException] call [CMicroServer->onRoute] the params is not a callback function", 7001 TSRMLS_CC);
 		return;
 	}
 
 	routeObject = zend_read_property(CMicroServerCe,getThis(),ZEND_STRL("routeObject"), 0 TSRMLS_CC);
 	if(IS_ARRAY != Z_TYPE_P(routeObject)){
 		zval *saveArray;
-		MAKE_STD_ZVAL(routeObject);
-		array_init(routeObject);
-		zend_update_property(CMicroServerCe,getThis(),ZEND_STRL("routeObject"),routeObject TSRMLS_CC);
-		zval_ptr_dtor(&routeObject);
+		MAKE_STD_ZVAL(saveArray);
+		array_init(saveArray);
+		zend_update_property(CMicroServerCe,getThis(),ZEND_STRL("routeObject"),saveArray TSRMLS_CC);
+		zval_ptr_dtor(&saveArray);
 		routeObject = zend_read_property(CMicroServerCe,getThis(),ZEND_STRL("routeObject"), 0 TSRMLS_CC);
 	}
 
 	MAKE_STD_ZVAL(saveRoute);
 	ZVAL_ZVAL(saveRoute,callFunction,1,0);
 	add_assoc_zval(routeObject,route,saveRoute);
+	zend_update_property(CMicroServerCe,getThis(),ZEND_STRL("routeObject"),routeObject TSRMLS_CC);
+
+	efree(callback_name);
 }
 
 
@@ -1140,9 +1152,12 @@ PHP_METHOD(CMicroServer,listen){
 
 	zval	*host,
 			*port,
-			*object;
+			*object,
+			**argv,
+			**SERVER;
 
-	int		errorCode = 0;
+	int		errorCode = 0,
+			isDaemon = 0;
 
 	char	appPath[2024],
 			codePath[2024];
@@ -1158,9 +1173,35 @@ PHP_METHOD(CMicroServer,listen){
 	php_define("CODE_PATH",codePath TSRMLS_CC);
 	CWebApp_createApp(&object TSRMLS_CC);
 	zval_ptr_dtor(&object);
-	
+
+
+	(void)zend_hash_find(&EG(symbol_table),ZEND_STRS("_SERVER"), (void **)&SERVER);
+	if(zend_hash_find(Z_ARRVAL_PP(SERVER),"argv",strlen("argv")+1,(void**)&argv) == SUCCESS && IS_ARRAY == Z_TYPE_PP(argv)){
+		int	i,h;
+		zval **thisVal;
+		h = zend_hash_num_elements(Z_ARRVAL_PP(argv));
+		zend_hash_internal_pointer_reset(Z_ARRVAL_PP(argv));
+		for(i = 0 ; i < h;i++){
+			zend_hash_get_current_data(Z_ARRVAL_PP(argv),(void**)&thisVal);
+			if(strstr(Z_STRVAL_PP(thisVal),"--daemon") != NULL){
+				isDaemon = 1;
+				break;
+			}
+			zend_hash_move_forward(Z_ARRVAL_PP(argv));
+		}
+	}
+
+	//daemon
+	if(isDaemon){
+		php_printf("run as a daemon process..\n");
+		int s = daemon(1, 0);
+	}
+
 	//create a tcp server
 	errorCode = createHttpServer(Z_STRVAL_P(host),Z_LVAL_P(port),getThis() TSRMLS_CC);
+	if(errorCode < 0){
+		php_printf("createServiceFail,errorCode:%d..\n",errorCode);
+	}
 
 	//return
 	RETVAL_ZVAL(getThis(),1,0);
