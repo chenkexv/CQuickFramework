@@ -49,8 +49,8 @@ PHP_RSHUTDOWN_FUNCTION(CQuickFramework);
 PHP_MINFO_FUNCTION(CQuickFramework);
 
 //¶¨Òåºê
-#define CMYFRAME_REGISTER_CLASS(className)  register_class_##className(TSRMLS_C)
-#define CMYFRAME_REGISTER_CLASS_RUN(className)  int register_class_##className(TSRMLS_C)
+#define CMYFRAME_REGISTER_CLASS(className)  register_class_##className(module_number TSRMLS_CC)
+#define CMYFRAME_REGISTER_CLASS_RUN(className)  int register_class_##className(int module_number TSRMLS_DC)
 
 
 #if ((PHP_MAJOR_VERSION == 5) && (PHP_MINOR_VERSION > 2)) || (PHP_MAJOR_VERSION > 5)

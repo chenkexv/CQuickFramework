@@ -81,6 +81,7 @@ if test "$PHP_CQUICKFRAMEWORK" != "no"; then
 	    CString.c \
 	    CFile.c \
 	    CHttp.c \
+		CHttpPool.c \
 	    CHttpServer.c "
 
     dnl 检查qrcode所需要的外部libqrencode依赖
@@ -107,7 +108,8 @@ if test "$PHP_CQUICKFRAMEWORK" != "no"; then
 	    done
     fi
     
-
+	PHP_ADD_INCLUDE(./include)
+	PHP_ADD_LIBRARY_WITH_PATH(hiredis, ./lib, CQUICKFRAMEWORK_SHARED_LIBADD)
     PHP_NEW_EXTENSION(CQuickFramework,$frameworkSrouceFile,$ext_shared)
 	PHP_SUBST(CQUICKFRAMEWORK_SHARED_LIBADD)
 fi
