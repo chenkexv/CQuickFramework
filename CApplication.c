@@ -23,14 +23,14 @@
 #include "php.h"
 #include "php_ini.h"
 #include "ext/standard/info.h"
-
-
 #include "php_CQuickFramework.h"
 #include "php_CApplication.h"
 #include "php_CWebApp.h"
 #include "php_CHooks.h"
 #include "php_CInitApplication.h"
-
+#ifndef PHP_WIN32
+#include <unistd.h>
+#endif
 
 //zend类方法
 zend_function_entry CApplication_functions[] = {
@@ -38,6 +38,7 @@ zend_function_entry CApplication_functions[] = {
 	PHP_ME(CApplication,setBootParams,NULL,ZEND_ACC_PUBLIC)
 	PHP_ME(CApplication,setTimeLimit,NULL,ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
 	PHP_ME(CApplication,setMemoryLimit,NULL,ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
+	PHP_ME(CApplication,setDaemon,NULL,ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
 	PHP_ME(CApplication,runBash,NULL,ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
 	{NULL, NULL, NULL}
 };
@@ -50,6 +51,25 @@ CMYFRAME_REGISTER_CLASS_RUN(CApplication)
 	INIT_CLASS_ENTRY(funCe,"CApplication",CApplication_functions);
 	CApplicationCe = zend_register_internal_class_ex(&funCe,CInitApplicationCe,NULL TSRMLS_CC);
 	return SUCCESS;
+}
+
+//run as a deamon process
+PHP_METHOD(CApplication,setDaemon){
+
+	long	nochangeDir = 1,
+			noclose = 0;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"|ll",&nochangeDir,&noclose) == FAILURE){
+		return;
+	}
+
+
+#ifdef PHP_WIN32
+	RETVAL_FALSE;
+#else
+	int s = daemon(nochangeDir, noclose);
+	RETVAL_BOOL(s);
+#endif
 }
 
 //设置启动参数

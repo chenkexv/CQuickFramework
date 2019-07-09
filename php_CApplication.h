@@ -24,5 +24,6 @@ zend_class_entry	*CApplicationCe;
 PHP_METHOD(CApplication,GetRequest);
 PHP_METHOD(CApplication,setTimeLimit);
 PHP_METHOD(CApplication,setMemoryLimit);
+PHP_METHOD(CApplication,setDaemon);
 PHP_METHOD(CApplication,setBootParams);
 PHP_METHOD(CApplication,runBash);
