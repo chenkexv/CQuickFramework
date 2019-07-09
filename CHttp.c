@@ -159,6 +159,7 @@ void CHttp_sendHttpRequest(char *geturl,zval *params,char *getrequsetType,zval *
 	
 	//GET·½Ê½
 	if(strcmp(requsetType,"get") == 0){
+
 		char *paramsQuery;
 		if(IS_ARRAY == Z_TYPE_P(params)){
 			http_build_query(params,&paramsQuery);
@@ -696,13 +697,10 @@ PHP_METHOD(CHttp,send){
 	header = zend_read_property(CHttpCe,getThis(),ZEND_STRL("header"),0 TSRMLS_CC);
 	certPath = zend_read_property(CHttpCe,getThis(),ZEND_STRL("certPath"),0 TSRMLS_CC);
 
-	if(IS_ARRAY == Z_TYPE_P(params)){
-		MAKE_STD_ZVAL(callParams);
-		ZVAL_ZVAL(callParams,params,1,0);
-	}else{
-		MAKE_STD_ZVAL(callParams);
-		array_init(callParams);
-	}
+
+	MAKE_STD_ZVAL(callParams);
+	ZVAL_ZVAL(callParams,params,1,0);
+
 	
 	if(IS_ARRAY == Z_TYPE_P(header)){
 		MAKE_STD_ZVAL(callHeader);
