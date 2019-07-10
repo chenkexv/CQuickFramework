@@ -45,6 +45,7 @@
 #include <hiredis.h>
 #include <curl/curl.h>
 #include <sys/sysinfo.h>
+#include <sys/prctl.h>
 
 
 //zend类方法
@@ -104,7 +105,7 @@ CMYFRAME_REGISTER_CLASS_RUN(CHttpPool)
 PHP_METHOD(CHttpPool,setRejectedPolicy){
 	long num;
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"l",&num) == FAILURE){
-		zend_throw_exception(CHttpExceptionCe, "[CHttpException] call [CHttpPool->setRejectedPolicy] params error,must give long in (1,2,3)", 7001 TSRMLS_CC);
+		zend_throw_exception(CPoolExceptionCe, "[CPoolException] call [CHttpPool->setRejectedPolicy] params error,must give long in (1,2,3)", 7001 TSRMLS_CC);
 		return;
 	}
 
@@ -115,7 +116,7 @@ PHP_METHOD(CHttpPool,setRejectedPolicy){
 PHP_METHOD(CHttpPool,setRejectedTaskNum){
 	long num;
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"l",&num) == FAILURE){
-		zend_throw_exception(CHttpExceptionCe, "[CHttpException] call [CHttpPool->setRejectedTaskNum] params error,must give long", 7001 TSRMLS_CC);
+		zend_throw_exception(CPoolExceptionCe, "[CPoolException] call [CHttpPool->setRejectedTaskNum] params error,must give long", 7001 TSRMLS_CC);
 		return;
 	}
 
@@ -131,13 +132,13 @@ PHP_METHOD(CHttpPool,setResultToRedis){
 			redisStatus = 0;
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"s",&keyName,&keyNameLen) == FAILURE){
-		zend_throw_exception(CHttpExceptionCe, "[CHttpException] call [CHttpPool->setResultToRedis] params error,must give string", 7001 TSRMLS_CC);
+		zend_throw_exception(CPoolExceptionCe, "[CPoolException] call [CHttpPool->setResultToRedis] params error,must give string", 7001 TSRMLS_CC);
 		return;
 	}
 
 	redisStatus = CRedis_checkWriteRead("main" TSRMLS_CC);
 	if(!redisStatus){
-		zend_throw_exception(CHttpExceptionCe, "[CHttpException] call [CHttpPool->registerCallback] Test redis fail , check redis config [main->REDIS_HOST] is right. ", 7001 TSRMLS_CC);
+		zend_throw_exception(CPoolExceptionCe, "[CPoolException] call [CHttpPool->registerCallback] Test redis fail , check redis config [main->REDIS_HOST] is right. ", 7001 TSRMLS_CC);
 		return;
 	}
 
@@ -166,7 +167,7 @@ PHP_METHOD(CHttpPool,registerCallback){
 						*classEntryCe;
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"s",&callFunction,&callFunctionLen) == FAILURE){
-		zend_throw_exception(CHttpExceptionCe, "[CHttpException] call [CHttpPool->registerCallback] params error,must give string like \"[base::callback]\" ", 7001 TSRMLS_CC);
+		zend_throw_exception(CPoolExceptionCe, "[CPoolException] call [CHttpPool->registerCallback] params error,must give string like \"[base::callback]\" ", 7001 TSRMLS_CC);
 		return;
 	}
 
@@ -175,7 +176,7 @@ PHP_METHOD(CHttpPool,registerCallback){
 	if(IS_ARRAY == Z_TYPE_P(callArr) && zend_hash_num_elements(Z_ARRVAL_P(callArr)) == 2){
 	}else{
 		zval_ptr_dtor(&callArr);
-		zend_throw_exception(CHttpExceptionCe, "[CHttpException] call [CHttpPool->registerCallback] params error,must give string like \"[base::callback]\" ", 7001 TSRMLS_CC);
+		zend_throw_exception(CPoolExceptionCe, "[CPoolException] call [CHttpPool->registerCallback] params error,must give string like \"[base::callback]\" ", 7001 TSRMLS_CC);
 		return;
 	}
 
@@ -185,17 +186,17 @@ PHP_METHOD(CHttpPool,registerCallback){
 	php_strtolower(Z_STRVAL_PP(className),strlen(Z_STRVAL_PP(className))+1);
 	if(zend_hash_find(EG(class_table),Z_STRVAL_PP(className),strlen(Z_STRVAL_PP(className))+1,(void**)&classEntryPP) == FAILURE){
 		char errMessage[1024];
-		sprintf(errMessage,"[CHttpException] call [CHttpPool->registerCallback] params error,the class[%s] is not exists",Z_STRVAL_PP(className));
+		sprintf(errMessage,"[CPoolException] call [CHttpPool->registerCallback] params error,the class[%s] is not exists",Z_STRVAL_PP(className));
 		zval_ptr_dtor(&callArr);
-		zend_throw_exception(CHttpExceptionCe, errMessage, 7001 TSRMLS_CC);
+		zend_throw_exception(CPoolExceptionCe, errMessage, 7001 TSRMLS_CC);
 		return;
 	}
 	classEntryCe = *classEntryPP;
 	if(!zend_hash_exists(&classEntryCe->function_table,Z_STRVAL_PP(funcName),strlen(Z_STRVAL_PP(funcName))+1)){
 		char errMessage[1024];
-		sprintf(errMessage,"[CHttpException] call [CHttpPool->registerCallback] params error,the function[%s] is not exists",Z_STRVAL_PP(funcName));
+		sprintf(errMessage,"[CPoolException] call [CHttpPool->registerCallback] params error,the function[%s] is not exists",Z_STRVAL_PP(funcName));
 		zval_ptr_dtor(&callArr);
-		zend_throw_exception(CHttpExceptionCe, errMessage, 7001 TSRMLS_CC);
+		zend_throw_exception(CPoolExceptionCe, errMessage, 7001 TSRMLS_CC);
 		return;
 	}
 	zval_ptr_dtor(&callArr);
@@ -203,7 +204,7 @@ PHP_METHOD(CHttpPool,registerCallback){
 
 	redisStatus = CRedis_checkWriteRead("main" TSRMLS_CC);
 	if(!redisStatus){
-		zend_throw_exception(CHttpExceptionCe, "[CHttpException] call [CHttpPool->registerCallback] In NTS environment, callback trigger relies on multi-process, and Redis is chosen as process communication carrier. Make sure that Redis is configured correctly. ", 7001 TSRMLS_CC);
+		zend_throw_exception(CPoolExceptionCe, "[CPoolException] call [CHttpPool->registerCallback] In NTS environment, callback trigger relies on multi-process, and Redis is chosen as process communication carrier. Make sure that Redis is configured correctly. ", 7001 TSRMLS_CC);
 		return;
 	}
 
@@ -213,14 +214,13 @@ PHP_METHOD(CHttpPool,registerCallback){
 	//check create how many process
 	int processNum = checkProcessNum();
 
-
 	//create process
 	for(i = 0 ; i < processNum;i++){
 	
 		//fork a child process
 		int childPid=fork();
 		if(childPid==-1){
-			zend_throw_exception(CHttpExceptionCe, "[CHttpException] call [CHttpPool->registerCallback] create child process failed", 7001 TSRMLS_CC);
+			zend_throw_exception(CPoolExceptionCe, "[CPoolException] call [CHttpPool->registerCallback] create child process failed", 7001 TSRMLS_CC);
 			return;
 		}else if(childPid == 0){
 
@@ -268,7 +268,7 @@ PHP_METHOD(CHttpPool,setResultToFile){
 	zval	*appPath;
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"s",&keyName,&keyNameLen) == FAILURE){
-		zend_throw_exception(CHttpExceptionCe, "[CHttpException] call [CHttpPool->setResultToFile] params error,must give string", 7001 TSRMLS_CC);
+		zend_throw_exception(CPoolExceptionCe, "[CPoolException] call [CHttpPool->setResultToFile] params error,must give string", 7001 TSRMLS_CC);
 		return;
 	}
 
@@ -289,7 +289,7 @@ PHP_METHOD(CHttpPool,setResultToFile){
 		//创建失败
 		if(FAILURE == fileExist(logsPath)){
 			efree(logsPath);
-			zend_throw_exception(CHttpExceptionCe, "[CHttpException] call [CHttpPool->setResultToFile] error, cant not create logs save path", 7001 TSRMLS_CC);
+			zend_throw_exception(CPoolExceptionCe, "[CPoolException] call [CHttpPool->setResultToFile] error, cant not create logs save path", 7001 TSRMLS_CC);
 			return;
 		}
 
@@ -314,7 +314,7 @@ PHP_METHOD(CHttpPool,setResultToFile){
 		FILE *fd = fopen(logsFileName,"w+"); 
 		if(fd == NULL){
 			efree(logsFileName);
-			zend_throw_exception(CHttpExceptionCe, "[CHttpException] call [CHttpPool->setResultToFile] error, cant not create logs save path", 7001 TSRMLS_CC);
+			zend_throw_exception(CPoolExceptionCe, "[CPoolException] call [CHttpPool->setResultToFile] error, cant not create logs save path", 7001 TSRMLS_CC);
 			return;
 		}
 		fclose(fd);
@@ -759,7 +759,7 @@ PHP_METHOD(CHttpPool,getPoolStatus){
 	poolResourceId = zend_read_property(CHttpPoolCe,getThis(),ZEND_STRL("poolResourceId"),0 TSRMLS_CC);
 	pool = zend_list_find(Z_LVAL_P(poolResourceId), &type);
 	if(type != le_resource_httpPool){
-		zend_throw_exception(CHttpExceptionCe, "[CHttpException] call [CHttpPool->add] get thread pool resource fail", 7001 TSRMLS_CC);
+		zend_throw_exception(CPoolExceptionCe, "[CPoolException] call [CHttpPool->add] get thread pool resource fail", 7001 TSRMLS_CC);
 		return;
 	}
 
@@ -806,20 +806,20 @@ PHP_METHOD(CHttpPool,add){
 
 	//get params
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"z|s",&requestObject,&taskName,&taskNameLen) == FAILURE){
-		zend_throw_exception(CHttpExceptionCe, "[CHttpException] call [CHttpPool->add] must give string, object(CHttp)", 7001 TSRMLS_CC);
+		zend_throw_exception(CPoolExceptionCe, "[CPoolException] call [CHttpPool->add] must give string, object(CHttp)", 7001 TSRMLS_CC);
 		RETVAL_FALSE;
 		return;
 	}
 
 	if(IS_OBJECT != Z_TYPE_P(requestObject)){
-		zend_throw_exception(CHttpExceptionCe, "[CHttpException] call [CHttpPool->add] must give a CHttp Object", 7001 TSRMLS_CC);
+		zend_throw_exception(CPoolExceptionCe, "[CPoolException] call [CHttpPool->add] must give a CHttp Object", 7001 TSRMLS_CC);
 		RETVAL_FALSE;
 		return;
 	}
 
 	//chec is object from CHttp
 	if(strcmp(Z_OBJCE_P(requestObject)->name,"CHttp") != 0){
-		zend_throw_exception(CHttpExceptionCe, "[CHttpException] call [CHttpPool->add] must give a CHttp Object", 7001 TSRMLS_CC);
+		zend_throw_exception(CPoolExceptionCe, "[CPoolException] call [CHttpPool->add] must give a CHttp Object", 7001 TSRMLS_CC);
 		RETVAL_FALSE;
 		return;
 	}
@@ -828,7 +828,7 @@ PHP_METHOD(CHttpPool,add){
 	poolResourceId = zend_read_property(CHttpPoolCe,getThis(),ZEND_STRL("poolResourceId"),0 TSRMLS_CC);
 	pool = zend_list_find(Z_LVAL_P(poolResourceId), &type);
 	if(type != le_resource_httpPool){
-		zend_throw_exception(CHttpExceptionCe, "[CHttpException] call [CHttpPool->add] get thread pool resource fail", 7001 TSRMLS_CC);
+		zend_throw_exception(CPoolExceptionCe, "[CPoolException] call [CHttpPool->add] get thread pool resource fail", 7001 TSRMLS_CC);
 		RETVAL_FALSE;
 		return;
 	}
@@ -1027,12 +1027,12 @@ PHP_METHOD(CHttpPool,setThreadMaxNum){
 	long	num;
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"l",&num) == FAILURE){
-		zend_throw_exception(CHttpExceptionCe, "[CHttpException] call [CHttpPool->setThreadMaxNum] the params type error,the params is a int between 1 to 100", 7001 TSRMLS_CC);
+		zend_throw_exception(CPoolExceptionCe, "[CPoolException] call [CHttpPool->setThreadMaxNum] the params type error,the params is a int between 1 to 100", 7001 TSRMLS_CC);
 		return;
 	}
 
 	if(num < 1 || num > 100){
-		zend_throw_exception(CHttpExceptionCe, "[CHttpException] call [CHttpPool->setThreadMaxNum] the params type error,the params is a int between 1 to 100", 7001 TSRMLS_CC);
+		zend_throw_exception(CPoolExceptionCe, "[CPoolException] call [CHttpPool->setThreadMaxNum] the params type error,the params is a int between 1 to 100", 7001 TSRMLS_CC);
 		return;
 	}
 
