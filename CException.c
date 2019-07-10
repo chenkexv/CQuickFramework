@@ -210,6 +210,23 @@ CMYFRAME_REGISTER_CLASS_RUN(CRejectException)
 	return SUCCESS;
 }
 
+CMYFRAME_REGISTER_CLASS_RUN(CIOException)
+{
+	zend_class_entry	funCe;
+	INIT_CLASS_ENTRY(funCe,"CIOException",COtherException_functions);
+	CIOExceptionCe = zend_register_internal_class_ex(&funCe,CExceptionCe,NULL TSRMLS_CC);
+	return SUCCESS;
+}
+
+CMYFRAME_REGISTER_CLASS_RUN(CPoolException)
+{
+	zend_class_entry	funCe;
+	INIT_CLASS_ENTRY(funCe,"CPoolException",COtherException_functions);
+	CPoolExceptionCe = zend_register_internal_class_ex(&funCe,CExceptionCe,NULL TSRMLS_CC);
+	return SUCCESS;
+}
+
+
 //类方法:创建应用对象
 PHP_METHOD(CException,__construct)
 {

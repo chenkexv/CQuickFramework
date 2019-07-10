@@ -33,7 +33,9 @@ zend_class_entry	*CExceptionCe,
 					*CMailExceptionCe,
 					*CFtpExceptionCe,
 					*CMicroServerExceptionCe,
-					*CRejectExceptionCe;
+					*CRejectExceptionCe,
+					*CIOExceptionCe,
+					*CPoolExceptionCe;
 
 
 //类方法:创建应用
