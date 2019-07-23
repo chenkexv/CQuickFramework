@@ -274,7 +274,7 @@ int CRedis_checkWriteRead(char *config TSRMLS_DC){
 		array_init(params);
 		add_next_index_string(params,"CQuickFrameTestKey",1);
 		add_next_index_string(params,"testVal",1);
-		CRedis_callFunction(config,"get",params,&returnData TSRMLS_CC);
+		CRedis_callFunction(config,"del",params,&returnData TSRMLS_CC);
 		zval_ptr_dtor(&params);
 		zval_ptr_dtor(&returnData);
 
