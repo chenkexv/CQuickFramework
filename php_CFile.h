@@ -36,6 +36,12 @@ PHP_METHOD(CFile,delete);
 PHP_METHOD(CFile,exist);
 PHP_METHOD(CFile,writeAll);
 
+#ifndef PHP_WIN32
+PHP_METHOD(CFile,asyncAppend);
+PHP_METHOD(CFile,asyncReadAll);
+PHP_METHOD(CFile,asyncWriteAll);
+#endif
+
 
 
 

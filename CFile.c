@@ -23,11 +23,15 @@
 #include "php.h"
 #include "php_ini.h"
 #include "ext/standard/info.h"
-
-
 #include "php_CQuickFramework.h"
 #include "php_CException.h"
 #include "php_CFile.h"
+
+#ifndef PHP_WIN32
+#include <sys/types.h>
+#include <fcntl.h>
+#include <aio.h>
+#endif
 
 
 //zendÀà·½·¨
@@ -46,6 +50,13 @@ zend_function_entry CFile_functions[] = {
 	PHP_ME(CFile,delete,NULL,ZEND_ACC_PUBLIC)
 	PHP_ME(CFile,exist,NULL,ZEND_ACC_PUBLIC)
 	PHP_ME(CFile,writeAll,NULL,ZEND_ACC_PUBLIC)
+
+#ifndef PHP_WIN32
+	PHP_ME(CFile,asyncAppend,NULL,ZEND_ACC_PUBLIC)
+	PHP_ME(CFile,asyncReadAll,NULL,ZEND_ACC_PUBLIC)
+	PHP_ME(CFile,asyncWriteAll,NULL,ZEND_ACC_PUBLIC)
+#endif
+
 	{NULL, NULL, NULL}
 };
 
@@ -63,6 +74,64 @@ CMYFRAME_REGISTER_CLASS_RUN(CFile)
 	zend_declare_property_string(CFileCe, ZEND_STRL("lastError"),"",ZEND_ACC_PRIVATE TSRMLS_CC);
 	return SUCCESS;
 }
+
+#ifndef PHP_WIN32
+PHP_METHOD(CFile,asyncAppend)
+{
+	char	*content;
+	int		contentLen = 0;
+
+	zval	*sapiZval,
+			*filePath;
+
+	if(zend_hash_find(EG(zend_constants),"PHP_SAPI",strlen("PHP_SAPI")+1,(void**)&sapiZval) == SUCCESS && strcmp(Z_STRVAL_P(sapiZval),"cli") == 0){
+	}else{
+		zend_throw_exception(CIOExceptionCe, "[CIOException] call [CFile->asyncAppend] is only used in cli", 10001 TSRMLS_CC);
+		return;
+	}
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"s",&content,&contentLen) == FAILURE){
+		return;
+	}
+
+	filePath = zend_read_property(CFileCe,getThis(),ZEND_STRL("filePath"),0 TSRMLS_CC);
+	if(SUCCESS != fileExist(Z_STRVAL_P(filePath))){
+		char errMessage[1024];
+		sprintf(errMessage,"[CIOException] call [CFile->asyncAppend] , the file not exists : %s",Z_STRVAL_P(filePath));
+		zend_throw_exception(CIOExceptionCe, errMessage, 10001 TSRMLS_CC);
+		return;
+	}
+
+	//
+
+
+}
+
+PHP_METHOD(CFile,asyncReadAll)
+{
+	zval	*sapiZval;
+
+	if(zend_hash_find(EG(zend_constants),"PHP_SAPI",strlen("PHP_SAPI")+1,(void**)&sapiZval) == SUCCESS && strcmp(Z_STRVAL_P(sapiZval),"cli") == 0){
+	}else{
+		zend_throw_exception(CIOExceptionCe, "[CIOException] call [CFile->asyncAppend] is only used in cli", 10001 TSRMLS_CC);
+		return;
+	}
+
+
+
+
+}
+
+PHP_METHOD(CFile,asyncWriteAll){
+
+	zval *sapiZval;
+	if(zend_hash_find(EG(zend_constants),"PHP_SAPI",strlen("PHP_SAPI")+1,(void**)&sapiZval) == SUCCESS && strcmp(Z_STRVAL_P(sapiZval),"cli") == 0){
+	}else{
+		zend_throw_exception(CIOExceptionCe, "[CIOException] call [CFile->asyncAppend] is only used in cli", 10001 TSRMLS_CC);
+		return;
+	}
+}
+#endif
 
 PHP_METHOD(CFile,__construct){
 
@@ -136,7 +205,7 @@ PHP_METHOD(CFile,readAll){
 	char	*fileContent;
 	filePath = zend_read_property(CFileCe,getThis(),ZEND_STRL("filePath"),0 TSRMLS_CC);
 	if(SUCCESS != fileExist(Z_STRVAL_P(filePath))){
-		zend_throw_exception(CClassNotFoundExceptionCe, "[CIOException] call [CFile->readAll] , the file not exists", 10001 TSRMLS_CC);
+		zend_throw_exception(CIOExceptionCe, "[CIOException] call [CFile->readAll] , the file not exists", 10001 TSRMLS_CC);
 		return;
 	}
 	file_get_contents(Z_STRVAL_P(filePath),&fileContent);
@@ -158,7 +227,7 @@ PHP_METHOD(CFile,append){
 
 	filePath = zend_read_property(CFileCe,getThis(),ZEND_STRL("filePath"),0 TSRMLS_CC);
 	if(SUCCESS != fileExist(Z_STRVAL_P(filePath))){
-		zend_throw_exception(CClassNotFoundExceptionCe, "[CIOException] call [CFile->readAll] , the file not exists", 10001 TSRMLS_CC);
+		zend_throw_exception(CIOExceptionCe, "[CIOException] call [CFile->readAll] , the file not exists", 10001 TSRMLS_CC);
 		return;
 	}
 
