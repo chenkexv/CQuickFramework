@@ -39,6 +39,7 @@
 zend_function_entry CCrontabController_functions[] = {
 	PHP_ME(CCrontabController,__construct,NULL,ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
 	PHP_ME(CCrontabController,Action_recHttpPool,NULL,ZEND_ACC_PUBLIC)
+	PHP_ME(CCrontabController,Action_poolWoker,NULL,ZEND_ACC_PUBLIC)
 	{NULL, NULL, NULL}
 };
 
@@ -84,6 +85,7 @@ PHP_METHOD(CCrontabController,Action_recHttpPool){
 	//rec parent process exit signal
 	signal(SIGHUP, handle_signal);
     prctl(PR_SET_PDEATHSIG, SIGHUP);
+	prctl(PR_SET_NAME, "CQuickHttpPool worker"); 
 
 	zval	*llenParams,
 			*llen,
@@ -240,6 +242,97 @@ PHP_METHOD(CCrontabController,Action_recHttpPool){
 
 	efree(callbakFunctionName);
 	zval_ptr_dtor(&callArr);
+
+#endif
+
+}
+
+int doRunObject(zval *callObject TSRMLS_DC)
+{
+	
+	zval	**classZval,
+			**objectZval,
+			*object,
+			*loadStatus;
+
+	zend_class_entry	*classCe,
+						**classEntryPP;
+
+	if(IS_ARRAY != Z_TYPE_P(callObject)){
+		return -1;
+	}
+
+	if(SUCCESS == zend_hash_find(Z_ARRVAL_P(callObject),"class",strlen("class")+1,(void**)&classZval) && 
+		IS_STRING == Z_TYPE_PP(classZval) &&
+		SUCCESS == zend_hash_find(Z_ARRVAL_P(callObject),"object",strlen("object")+1,(void**)&objectZval) &&
+		IS_STRING == Z_TYPE_PP(objectZval)){
+	}else{
+		return -2;
+	}
+
+	php_strtolower(Z_STRVAL_PP(classZval),strlen(Z_STRVAL_PP(classZval))+1);
+	if(zend_hash_find(EG(class_table),Z_STRVAL_PP(classZval),strlen(Z_STRVAL_PP(classZval))+1,(void**)&classEntryPP) == FAILURE){
+
+		//load class find className
+		CLoader_load(Z_STRVAL_PP(classZval),&loadStatus TSRMLS_CC);
+		zval_ptr_dtor(&loadStatus);
+	}
+
+
+	unserialize(*objectZval,&object);
+	classCe = Z_OBJCE_P(object);
+
+	//call run function
+	MODULE_BEGIN
+		zval	callFunction,
+				returnFunction;
+		INIT_ZVAL(callFunction);
+		ZVAL_STRING(&callFunction,"run",0);
+		call_user_function(NULL, &object, &callFunction, &returnFunction, 0, NULL TSRMLS_CC);
+		zval_dtor(&returnFunction);
+	MODULE_END
+
+	zval_ptr_dtor(&object);
+	return 1;
+}
+
+PHP_METHOD(CCrontabController,Action_poolWoker){
+	
+#ifdef PHP_WIN32
+#else
+
+	signal(SIGHUP, handle_signal);
+    prctl(PR_SET_PDEATHSIG, SIGHUP);
+	prctl(PR_SET_NAME, "CQuickPoolWoker"); 
+
+	zval	*rangeParams,
+			*message,
+			*callObject,
+			*jsonDecode;
+
+	int		runStatus;
+
+	while(!do_abort) {
+	
+
+		MAKE_STD_ZVAL(rangeParams);
+		array_init(rangeParams);
+		add_next_index_string(rangeParams,"CQuickFramePool",1);
+		CRedis_callFunction("main","lpop",rangeParams,&message TSRMLS_DC);
+		zval_ptr_dtor(&rangeParams);
+
+		if(IS_STRING != Z_TYPE_P(message)){
+			usleep(10000);
+			zval_ptr_dtor(&message);
+			continue;
+		}
+
+		json_decode(Z_STRVAL_P(message),&jsonDecode);
+		runStatus = doRunObject(jsonDecode TSRMLS_CC);
+		zval_ptr_dtor(&jsonDecode);
+		zval_ptr_dtor(&message);
+	}
+	
 
 #endif
 

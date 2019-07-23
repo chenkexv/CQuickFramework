@@ -23,3 +23,4 @@ zend_class_entry	*CCrontabControllerCe;
 //类方法:创建应用
 PHP_METHOD(CCrontabController,__construct);
 PHP_METHOD(CCrontabController,Action_recHttpPool);
+PHP_METHOD(CCrontabController,Action_poolWoker);
