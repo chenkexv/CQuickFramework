@@ -146,7 +146,6 @@ void CEncrypt_AesEncode(char *val,char *key,zval **returnObjectZval TSRMLS_DC){
 		tdObject = &tdObjectReturn;
 	MODULE_END
 
-
 	if(IS_RESOURCE != Z_TYPE_P(tdObject)){
 		efree(paddingInput);
 		zval_dtor(&tdObjectReturn);
@@ -238,7 +237,6 @@ void CEncrypt_AesEncode(char *val,char *key,zval **returnObjectZval TSRMLS_DC){
 		zval_ptr_dtor(&paramsList[1]);
 		dataObject = &dataReturn;
 	MODULE_END
-
 
 	ZVAL_ZVAL(*returnObjectZval,dataObject,1,0);
 
