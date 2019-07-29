@@ -453,7 +453,53 @@ PHP_METHOD(CString,isNumber){
 	zval_ptr_dtor(&newData);
 	RETURN_FALSE;
 }
-PHP_METHOD(CString,getInstance){}
+
+int CString_getInstance(zval **returnZval TSRMLS_DC){
+
+	zval	*instanceZval,
+		    *backZval;
+
+	//读取静态instace变量
+	instanceZval = zend_read_static_property(CStringCe,ZEND_STRL("instance"),0 TSRMLS_CC);
+
+	//为空时则实例化自身
+	if(IS_NULL == Z_TYPE_P(instanceZval) ){
+		
+		zval			*object;
+
+		//实例化该插件
+		MAKE_STD_ZVAL(object);
+		object_init_ex(object,CStringCe);
+
+		//执行构造器
+		if (CStringCe->constructor) {
+			zval constructReturn;
+			zval constructVal;
+			INIT_ZVAL(constructVal);
+			ZVAL_STRING(&constructVal, CStringCe->constructor->common.function_name, 0);
+			call_user_function(NULL, &object, &constructVal, &constructReturn, 0, NULL TSRMLS_CC);
+			zval_dtor(&constructReturn);
+		}
+
+		//将类对象保存在instance静态变量
+		zend_update_static_property(CStringCe,ZEND_STRL("instance"),object TSRMLS_CC);
+		
+		//返回
+		MAKE_STD_ZVAL(*returnZval);
+		ZVAL_ZVAL(*returnZval,object,1,1);
+		return SUCCESS;
+	}
+
+	MAKE_STD_ZVAL(*returnZval);
+	ZVAL_ZVAL(*returnZval,instanceZval,1,0);
+	return SUCCESS;
+}
+
+PHP_METHOD(CString,getInstance){
+	zval *returnZval;
+	CString_getInstance(&returnZval TSRMLS_CC);
+	RETVAL_ZVAL(returnZval,1,1);
+}
 
 
 PHP_METHOD(CString,setData){
@@ -472,4 +518,6 @@ PHP_METHOD(CString,setData){
 	}
 
 	zend_update_property_string(CStringCe,getThis(),ZEND_STRL("data"),string TSRMLS_CC);
+
+	RETVAL_ZVAL(getThis(),1,0);
 }
