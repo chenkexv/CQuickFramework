@@ -3377,7 +3377,7 @@ void CQuickTemplate_displayHTML(zval *object,char *html,char *name TSRMLS_DC){
 		if(!compileStatus){
 			char errorMessage[1024];
 			sprintf(errorMessage,"%s%s","[CQuickTemplate] Compiler error , can not complete template :",name);
-			php_error_docref(NULL TSRMLS_CC, E_ERROR ,errorMessage);
+			php_printf(errorMessage);
 			return;
 		}
 	}

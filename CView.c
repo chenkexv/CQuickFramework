@@ -143,7 +143,6 @@ void CView_init_CTemplate(zval *viewObject TSRMLS_DC){
 			*checkRightFn,
 			*showHtml;
 
-
 	controller = zend_read_static_property(CRouteCe,ZEND_STRL("thisController"),0 TSRMLS_CC);
 	action = zend_read_static_property(CRouteCe,ZEND_STRL("thisAction"),0 TSRMLS_CC);
 	module = zend_read_static_property(CRouteCe,ZEND_STRL("thisModule"),0 TSRMLS_CC);
@@ -205,56 +204,54 @@ void CView_init_CTemplate(zval *viewObject TSRMLS_DC){
 	//ÆäÓàÅäÖÃ
 	CConfig_load("TEMPLATE.CQuickTemplate.CONF_INFO",cconfigInstanceZval,&conf_smarty TSRMLS_CC);
 	if(IS_ARRAY != Z_TYPE_P(conf_smarty)){
-		php_error_docref(NULL TSRMLS_CC, E_ERROR ,"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />[ViewException] Read the configuration items [TEMPLATE->CQuickTemplate->CONF_INFO] type Error, not give an array");
+		zval_ptr_dtor(&conf_smarty);
+		zval_ptr_dtor(&cconfigInstanceZval);
+		php_printf("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />[ViewException] Read the configuration items [TEMPLATE->CQuickTemplate->CONF_INFO] type Error, not give an array");
 		return;
 	}
 
 	//»º´æÄ¿Â¼
 	if(SUCCESS == zend_hash_find(Z_ARRVAL_P(conf_smarty),"cache_dir",strlen("cache_dir")+1,(void**)&conf_cacheDir) && IS_STRING == Z_TYPE_PP(conf_cacheDir)){
 	}else{
-		php_error_docref(NULL TSRMLS_CC, E_ERROR ,"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />[ViewException] Read the configuration items [TEMPLATE->CQuickTemplate->CONF_INFO.cache_dir] Error, is not string");
+		zval_ptr_dtor(&conf_smarty);
+		zval_ptr_dtor(&cconfigInstanceZval);
+		php_printf("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />[ViewException] Read the configuration items [TEMPLATE->CQuickTemplate->CONF_INFO.cache_dir] Error, is not string");
 		return;
 	}
 
 	//±àÒëÄ¿Â¼
 	if(SUCCESS == zend_hash_find(Z_ARRVAL_P(conf_smarty),"compile_dir",strlen("compile_dir")+1,(void**)&conf_compileDir) && IS_STRING == Z_TYPE_PP(conf_compileDir)){
 	}else{
-		php_error_docref(NULL TSRMLS_CC, E_ERROR ,"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />[ViewException] Read the configuration items [TEMPLATE->CQuickTemplate->CONF_INFO.compile_dir] Error, is not string");
+		zval_ptr_dtor(&conf_smarty);
+		zval_ptr_dtor(&cconfigInstanceZval);
+		php_printf("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />[ViewException] Read the configuration items [TEMPLATE->CQuickTemplate->CONF_INFO.compile_dir] Error, is not string");
 		return;
 	}
 
 	//Ä£°åÄ¿Â¼
 	if(SUCCESS == zend_hash_find(Z_ARRVAL_P(conf_smarty),"template_dir",strlen("template_dir")+1,(void**)&conf_templateDir) && IS_STRING == Z_TYPE_PP(conf_templateDir)){
 	}else{
-		php_error_docref(NULL TSRMLS_CC, E_ERROR ,"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />[ViewException] Read the configuration items [TEMPLATE->CQuickTemplate->CONF_INFO.template_dir] Error, is not string");
+		zval_ptr_dtor(&conf_smarty);
+		zval_ptr_dtor(&cconfigInstanceZval);
+		php_printf("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />[ViewException] Read the configuration items [TEMPLATE->CQuickTemplate->CONF_INFO.template_dir] Error, is not string");
 		return;
 	}
 
 	//×ó±ê
 	if(SUCCESS == zend_hash_find(Z_ARRVAL_P(conf_smarty),"left_delimiter",strlen("left_delimiter")+1,(void**)&conf_leftTag) && IS_STRING == Z_TYPE_PP(conf_leftTag)){
 	}else{
-		php_error_docref(NULL TSRMLS_CC, E_ERROR ,"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />[ViewException] Read the configuration items [TEMPLATE->CQuickTemplate->CONF_INFO.left_delimiter] Error, is not string");
+		zval_ptr_dtor(&conf_smarty);
+		zval_ptr_dtor(&cconfigInstanceZval);
+		php_printf("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />[ViewException] Read the configuration items [TEMPLATE->CQuickTemplate->CONF_INFO.left_delimiter] Error, is not string");
 		return;
 	}
 
 	//ÓÒ±ê
 	if(SUCCESS == zend_hash_find(Z_ARRVAL_P(conf_smarty),"right_delimiter",strlen("right_delimiter")+1,(void**)&conf_rightTag) && IS_STRING == Z_TYPE_PP(conf_rightTag)){
 	}else{
-		php_error_docref(NULL TSRMLS_CC, E_ERROR ,"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />[ViewException] Read the configuration items [TEMPLATE->CQuickTemplate->CONF_INFO.right_delimiter] Error, is not string");
-		return;
-	}
-
-	//ÊÇ·ñÆôÓÃ»º´æ
-	if(SUCCESS == zend_hash_find(Z_ARRVAL_P(conf_smarty),"caching",strlen("caching")+1,(void**)&conf_isCache) && IS_BOOL == Z_TYPE_PP(conf_isCache)){
-	}else{
-		php_error_docref(NULL TSRMLS_CC, E_ERROR ,"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />[ViewException] Read the configuration items [TEMPLATE->CQuickTemplate->CONF_INFO.caching] Error, is not boolean");
-		return;
-	}
-
-	//»º´æÊ±¼ä
-	if(SUCCESS == zend_hash_find(Z_ARRVAL_P(conf_smarty),"cache_lifetime",strlen("cache_lifetime")+1,(void**)&conf_cachetime) && IS_LONG == Z_TYPE_PP(conf_cachetime)){
-	}else{
-		php_error_docref(NULL TSRMLS_CC, E_ERROR ,"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />[ViewException] Read the configuration items [TEMPLATE->CQuickTemplate->CONF_INFO.cache_lifetime] Error, is not long");
+		zval_ptr_dtor(&conf_smarty);
+		zval_ptr_dtor(&cconfigInstanceZval);
+		php_printf("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />[ViewException] Read the configuration items [TEMPLATE->CQuickTemplate->CONF_INFO.right_delimiter] Error, is not string");
 		return;
 	}
 
@@ -264,10 +261,6 @@ void CView_init_CTemplate(zval *viewObject TSRMLS_DC){
 	zend_update_property_string(Z_OBJCE_P(viewObject),viewObject,"cache_dir",strlen("cache_dir"),Z_STRVAL_PP(conf_cacheDir) TSRMLS_CC);
 	zend_update_property_string(Z_OBJCE_P(viewObject),viewObject,"left_delimiter",strlen("left_delimiter"),Z_STRVAL_PP(conf_leftTag) TSRMLS_CC);
 	zend_update_property_string(Z_OBJCE_P(viewObject),viewObject,"right_delimiter",strlen("right_delimiter"),Z_STRVAL_PP(conf_rightTag) TSRMLS_CC);
-	//zend_update_property_bool(Z_OBJCE_P(viewObject),viewObject,"allow_php_tag",strlen("allow_php_tag"),Z_BVAL_PP(conf_allowPhp) TSRMLS_CC);
-	//zend_update_property_bool(Z_OBJCE_P(viewObject),viewObject,"caching",strlen("caching"),Z_BVAL_PP(conf_isCache) TSRMLS_CC);
-	//zend_update_property_long(Z_OBJCE_P(viewObject),viewObject,"cache_lifetime",strlen("cache_lifetime"),Z_LVAL_PP(conf_cachetime) TSRMLS_CC);
-
 
 	//¼ì²é±àÒëÄ¿Â¼
 	if(FAILURE == fileExist(Z_STRVAL_PP(conf_compileDir))){

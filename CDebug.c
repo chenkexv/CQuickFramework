@@ -1212,6 +1212,7 @@ PHP_METHOD(CDebug,getRequestShutdown)
 	CConfig_getInstance("main",&cconfigInstanceZval TSRMLS_CC);
 	CConfig_load("DEBUG",cconfigInstanceZval,&debugStatus TSRMLS_CC);
 	CConfig_load("USE_QUICKTEMPLATE",cconfigInstanceZval,&useQuickTemplate TSRMLS_CC);
+
 	if(IS_BOOL == Z_TYPE_P(debugStatus) && 1 == Z_LVAL_P(debugStatus)){
 	}else{
 		zval_ptr_dtor(&cconfigInstanceZval);
@@ -1270,6 +1271,7 @@ PHP_METHOD(CDebug,getRequestShutdown)
 
 	CDebug_createServerData(&serverData TSRMLS_CC);
 	CQuickTemplate_assign(viewObjectZval,"server",serverData TSRMLS_CC);
+
 
 	//show HTML
 	MODULE_BEGIN
