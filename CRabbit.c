@@ -75,6 +75,7 @@ void CRabbit_getInstance(zval **returnZval,char *groupName TSRMLS_DC)
 
 	int hasExistConfig;
 
+
 	//读取静态instace变量
 	instanceZval = zend_read_static_property(CRabbitCe,ZEND_STRL("instance"),0 TSRMLS_CC);
 
@@ -122,6 +123,7 @@ void CRabbit_getInstance(zval **returnZval,char *groupName TSRMLS_DC)
 		//判断是否有报告异常
 		if(EG(exception)){
 			MAKE_STD_ZVAL(*returnZval);
+			ZVAL_BOOL(*returnZval,0);
 			zval_ptr_dtor(&object);
 			return;
 		}
@@ -147,6 +149,8 @@ void CRabbit_getInstance(zval **returnZval,char *groupName TSRMLS_DC)
 		return;
 	}
 
+	MAKE_STD_ZVAL(*returnZval);
+	ZVAL_BOOL(*returnZval,0);
 	zend_throw_exception(CQueueExceptionCe, "[CQueueException] An internal error occurred while CQuickFramework was acquired by AMQP ", 1 TSRMLS_CC);
 }
 
@@ -191,8 +195,10 @@ void CRabbit_geConnection(zval *object,char *groupName TSRMLS_DC)
 	//当前配置的名称
 	sprintf(thisConfigKey,"%s%s%s","RABBITMQ.",groupName,".connection");
 
+
 	//获取连接配置
 	CConfig_load(thisConfigKey,cconfigInstanceZval,&connectParamsZval TSRMLS_CC);
+
 	if(IS_ARRAY != Z_TYPE_P(connectParamsZval)){
 		char errorMessage[1024];
 		sprintf(errorMessage,"%s%s","[CQueueException] There is no specified MQ configuration : ",thisConfigKey);
