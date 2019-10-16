@@ -28,6 +28,7 @@ PHP_METHOD(CPool,add);
 PHP_METHOD(CPool,destory);
 PHP_METHOD(CPool,setThreadMaxNum);
 PHP_METHOD(CPool,__destruct);
+PHP_METHOD(CPool,setIPCType);
 
 PHP_METHOD(CPoolRunable,run);
 

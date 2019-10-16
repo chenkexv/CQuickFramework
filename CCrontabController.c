@@ -28,6 +28,8 @@
 #include "php_CQuickFramework.h"
 #include "php_CCrontabController.h"
 #include "php_CController.h"
+#include "ext/standard/php_smart_str_public.h"
+#include "ext/standard/php_smart_str.h"
 #include "php_CException.h"
 #ifndef PHP_WIN32
 #include <sys/prctl.h>
@@ -72,7 +74,7 @@ PHP_METHOD(CCrontabController,__construct)
 static int do_abort = 0;
 void handle_signal(int signo){
 	if (signo == SIGHUP){                 
-		php_printf("child recv parent process exit sighup..\n");
+		php_printf("[CPoolRuntime] child [%d] recv parent process exit sighup..\n",getpid());
 		do_abort = 1;
 	}
 }
@@ -312,26 +314,71 @@ PHP_METHOD(CCrontabController,Action_poolWoker){
 
 	int		runStatus;
 
-	while(!do_abort) {
-	
+	zval	*ipcType,
+			*pipe;
 
-		MAKE_STD_ZVAL(rangeParams);
-		array_init(rangeParams);
-		add_next_index_string(rangeParams,"CQuickFramePool",1);
-		CRedis_callFunction("main","lpop",rangeParams,&message TSRMLS_DC);
-		zval_ptr_dtor(&rangeParams);
 
-		if(IS_STRING != Z_TYPE_P(message)){
-			usleep(10000);
+	//get ipctype and pipe
+	CRequest_Args("ipc","int","GET",0,&ipcType TSRMLS_CC);
+	CRequest_Args("pipe","int","GET",0,&pipe TSRMLS_CC);
+
+	//read from redis
+	if(Z_TYPE_P(ipcType) == IS_LONG && Z_LVAL_P(ipcType) == 2){
+		while(!do_abort) {
+			MAKE_STD_ZVAL(rangeParams);
+			array_init(rangeParams);
+			add_next_index_string(rangeParams,"CQuickFramePool",1);
+			CRedis_callFunction("main","lpop",rangeParams,&message TSRMLS_DC);
+			zval_ptr_dtor(&rangeParams);
+
+			if(IS_STRING != Z_TYPE_P(message)){
+				usleep(10000);
+				zval_ptr_dtor(&message);
+				continue;
+			}
+
+			json_decode(Z_STRVAL_P(message),&jsonDecode);
+			runStatus = doRunObject(jsonDecode TSRMLS_CC);
+			zval_ptr_dtor(&jsonDecode);
 			zval_ptr_dtor(&message);
-			continue;
 		}
+	}else{
 
-		json_decode(Z_STRVAL_P(message),&jsonDecode);
-		runStatus = doRunObject(jsonDecode TSRMLS_CC);
-		zval_ptr_dtor(&jsonDecode);
-		zval_ptr_dtor(&message);
+		//不断尝试从管道中读取数据
+		while(!do_abort) {
+			//每次去读一个字母,取到\n即停止,分割数据流
+			char		*useString;
+			smart_str	thisMessage = {0};
+			char		buf[2];
+			int			hasMessage = 0;
+			while(1){
+				int readLen = read(Z_LVAL_P(pipe),buf,1);
+				if(buf[0] == '\n' || readLen == 0){
+					break;
+				}
+				buf[1] = '\0';
+				smart_str_appends(&thisMessage,buf);
+				hasMessage = 1;
+			}
+			if(hasMessage == 0){
+				continue;
+			}
+			smart_str_0(&thisMessage);
+			useString = estrdup(thisMessage.c);
+			
+			//执行回调函数逻辑
+			json_decode(useString,&jsonDecode);
+			runStatus = doRunObject(jsonDecode TSRMLS_CC);
+			zval_ptr_dtor(&jsonDecode);
+
+			smart_str_free(&thisMessage);
+			efree(useString);
+		}
 	}
+
+
+	zval_ptr_dtor(&pipe);
+	zval_ptr_dtor(&ipcType);
 	
 
 #endif
