@@ -167,8 +167,8 @@ int CSmtp_putCMD(zval *object,char *command,char *args TSRMLS_DC){
 				return 0;
 			}
 			efree(replaceString);
+			zval_ptr_dtor(&match);
 		}
-		zval_ptr_dtor(&match);
 		zval_dtor(&constructReturn);
 	MODULE_END
 
