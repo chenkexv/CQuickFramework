@@ -671,8 +671,6 @@ void CConsumer_checkHeartbeat(zval *object TSRMLS_DC){
 		needHeart = 1;
 	}
 
-	php_printf("checkHeart--%d-%d\n",Z_LVAL_P(emptySec),Z_LVAL_P(emptySec) % Z_LVAL_P(heartBeatTime));
-
 	//触发心跳回调
 	if(1 == needHeart){
 		zval	constructVal,
