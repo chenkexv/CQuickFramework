@@ -68,6 +68,51 @@ CMYFRAME_REGISTER_CLASS_RUN(CRabbit)
 	return SUCCESS;
 }
 
+//清理Crabbit链接
+void CRabbit_destory(char *groupName TSRMLS_DC){
+
+	zval	*instanceZval;
+
+	int hasExistConfig;
+
+	php_printf("destory\n");
+
+	//读取静态instace变量
+	instanceZval = zend_read_static_property(CRabbitCe,ZEND_STRL("instance"),0 TSRMLS_CC);
+
+	//判断单列对象中存在config的key
+	hasExistConfig = zend_hash_exists(Z_ARRVAL_P(instanceZval), groupName, strlen(groupName)+1);
+
+	//存在则删除
+	if(0 != hasExistConfig){
+
+		zval	constructReturn,
+				constructVal,
+				*ampqConnectObjectZval,
+				**instaceSaveZval,
+				*connectZval;
+
+		zend_hash_find(Z_ARRVAL_P(instanceZval),groupName,strlen(groupName)+1,(void**)&instaceSaveZval);
+		connectZval = zend_read_property(CRabbitCe,*instaceSaveZval,ZEND_STRL("_conn"),0 TSRMLS_CC);
+
+
+		if(IS_OBJECT == Z_TYPE_P(connectZval)){
+
+			//call disconnect
+			zval	constructReturn,
+					constructVal;
+
+			INIT_ZVAL(constructVal);
+			ZVAL_STRING(&constructVal,"disconnect", 0);
+			call_user_function(NULL, &connectZval, &constructVal, &constructReturn, 0, NULL TSRMLS_CC);
+			zval_dtor(&constructReturn);
+		}
+
+		zend_hash_del(Z_ARRVAL_P(instanceZval), groupName, strlen(groupName)+1);
+		zend_update_static_property(CRabbitCe, ZEND_STRL("instance"),instanceZval TSRMLS_CC);
+	}
+}
+
 void CRabbit_getInstance(zval **returnZval,char *groupName TSRMLS_DC)
 {
 	zval	*instanceZval,
@@ -247,8 +292,13 @@ void CRabbit_geConnection(zval *object,char *groupName TSRMLS_DC)
 		zval_dtor(&constructReturn);
 
 		if(EG(exception)){
-			char errMessage[1024];
-			sprintf(errMessage,"%s%s","[CQueueException] Unable to connect to the Rabbit server : ",thisConfigKey);
+			char errMessage[10240];
+			zval	*exceptionMessage;
+			zend_class_entry *exceptionCe;
+			exceptionCe = Z_OBJCE_P(EG(exception));
+			exceptionMessage = zend_read_property(exceptionCe,EG(exception), "message",strlen("message"),0 TSRMLS_CC);
+			sprintf(errMessage,"%s%s => %s","[CQueueException] Unable to connect to the Rabbit server : ",thisConfigKey,Z_STRVAL_P(exceptionMessage));
+
 			Z_OBJ_HANDLE_P(EG(exception)) = 0;
 			zend_clear_exception(TSRMLS_C);
 			zval_ptr_dtor(&cconfigInstanceZval);
@@ -314,6 +364,9 @@ PHP_METHOD(CRabbit,__construct)
 		zend_throw_exception(CRedisExceptionCe, "[CQueueException] CRabbit execution method parameter error", 12012 TSRMLS_CC);
 		return;
 	}
+
+	//_configName
+	zend_update_property_string(CRabbitCe,getThis(),ZEND_STRL("_configName"),groupName TSRMLS_CC);
 
 	CRabbit_geConnection(getThis(),groupName TSRMLS_CC);
 }

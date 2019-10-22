@@ -229,7 +229,7 @@ void CArrayHelper_getKeyString(zval *array,char *key,zval *defaultVal,zval **ret
 			ZVAL_ZVAL(*returnZval,defaultVal,1,0);
 		}
 	}else{
-		ZVAL_STRING(*returnZval,"",1);
+		ZVAL_ZVAL(*returnZval,defaultVal,1,0);
 	}
 }
 
@@ -249,6 +249,7 @@ PHP_METHOD(CArrayHelper,get)
 	}
 
 	if(IS_ARRAY != Z_TYPE_P(array)){
+		RETVAL_ZVAL(defaultVal,1,0);
 		return;
 	}
 

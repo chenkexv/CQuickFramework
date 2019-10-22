@@ -531,6 +531,49 @@ void CConsumer_getRedisMessage(zval *object,zval **returnObject TSRMLS_DC){
 	ZVAL_ZVAL(*returnObject,redisMessageObject,1,1);
 }
 
+//重启自身
+void CConsumer_restartSelf(TSRMLS_D){
+
+	//获取cli下的argv
+	zval	**SERVER,
+			**ret,
+			**otherData;
+
+
+	//判断是否已注册全局变量
+#if ( PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION <= 3 )
+	zend_bool jit_init = (PG(auto_globals_jit) && !PG(register_globals) && !PG(register_long_arrays));
+#else
+	zend_bool jit_init = (PG(auto_globals_jit));
+#endif
+
+    if (jit_init) 
+	{ 
+		zend_is_auto_global(ZEND_STRL("_SERVER") TSRMLS_CC);
+    }   
+
+	(void)zend_hash_find(&EG(symbol_table),ZEND_STRS("_SERVER"), (void **)&SERVER);
+
+	//检索zend内部hash表
+	if (zend_hash_find(Z_ARRVAL_PP(SERVER),"argv",strlen("argv") + 1,(void **)&ret) == SUCCESS ){
+
+		zval	**file,
+				**params;
+
+		if(IS_ARRAY == Z_TYPE_PP(ret) && SUCCESS == zend_hash_index_find(Z_ARRVAL_PP(ret),0,(void**)&file) && SUCCESS == zend_hash_index_find(Z_ARRVAL_PP(ret),1,(void**)&params) ){
+
+			//命令
+			char *restartCommand;
+			spprintf(&restartCommand,0,"nohup php %s %s >/dev/null 2>log &",Z_STRVAL_PP(file),Z_STRVAL_PP(params));
+			exec_shell(restartCommand);
+			efree(restartCommand);
+		}
+	}
+	
+	//kill self
+	zend_bailout();
+}
+
 void CConsumer_getRabbitMessage(zval *object,zval **returnObject TSRMLS_DC){
 
 	zval	*rabbitObject,
@@ -557,10 +600,21 @@ void CConsumer_getRabbitMessage(zval *object,zval **returnObject TSRMLS_DC){
 
 	//获取CRabbit对象
 	CRabbit_getInstance(&rabbitObject,Z_STRVAL_P(mqId) TSRMLS_CC);
+
 	if(EG(exception)){
+
+		zval	*exceptionMessage;
+		zend_class_entry *exceptionCe;
+		exceptionCe = Z_OBJCE_P(EG(exception));
+		exceptionMessage = zend_read_property(exceptionCe,EG(exception), "message",strlen("message"),0 TSRMLS_CC);
+		setLog(object,Z_STRVAL_P(exceptionMessage) TSRMLS_CC);
+
 		zval_ptr_dtor(&rabbitObject);
 		Z_OBJ_HANDLE_P(EG(exception)) = 0;	
 		zend_clear_exception(TSRMLS_C);
+		
+		//强行中止等待重启
+		CConsumer_restartSelf(TSRMLS_C);
 		return;
 	}
 
