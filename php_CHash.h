@@ -21,4 +21,5 @@ zend_class_entry	*CHashCe;
 
 //类方法:创建应用
 PHP_METHOD(CHash,rand);
+PHP_METHOD(CHash,mmRand);
 

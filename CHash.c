@@ -35,6 +35,7 @@
 //zend¿‡∑Ω∑®
 zend_function_entry CHash_functions[] = {
 	PHP_ME(CHash,rand,NULL,ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
+	PHP_ME(CHash,mmRand,NULL,ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
 	{NULL, NULL, NULL}
 };
 
@@ -115,4 +116,9 @@ PHP_METHOD(CHash,rand)
 	CHash_rand(returnLen,inputType,&returnString TSRMLS_CC);
 	RETVAL_STRING(returnString,1);
 	efree(returnString);
+}
+
+PHP_METHOD(CHash,mmRand)
+{
+
 }

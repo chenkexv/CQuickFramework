@@ -967,7 +967,7 @@ void CRouteParse_getRoute(zval **returnZval TSRMLS_DC)
 			zval_ptr_dtor(&requestUrlZval);
 			zval_ptr_dtor(&cconfigInstanceZval);
 			efree(requsetM);
-			php_error_docref(NULL TSRMLS_CC,E_ERROR,"[RouteException] The favicon.ico not exist");
+			//php_error_docref(NULL TSRMLS_CC,E_ERROR,"[RouteException] The favicon.ico not exist");
 			return;
 		}
 
