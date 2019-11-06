@@ -32,6 +32,11 @@
 #include "php_CRedis.h"
 #include "php_CRabbitMessage.h"
 #include "php_CException.h"
+#include "php_CWebApp.h"
+
+#ifndef PHP_WIN32
+#include <unistd.h>
+#endif
 
 
 
@@ -431,49 +436,44 @@ PHP_METHOD(CConsumer,ack)
 //设置日志
 void setLog(zval *object,char *message TSRMLS_DC){
 	
-	zval	constructVal,
-			ivsizeReturn,
-			*paramsList[2],
-			params1,
-			params2,
-			*logName,
+	zval	*logName,
 			*exchange,
 			*route,
-			*queue;
+			*queue,
+			*appPath;
 
 	char	*messageSave,
-			queueKey[10240];
+			*logTruePath,
+			*thisMothTime;
 
-	paramsList[0] = &params1;
-	paramsList[1] = &params2;
-	MAKE_STD_ZVAL(paramsList[0]);
-	MAKE_STD_ZVAL(paramsList[1]);
+	int		pid = 0;
+
 
 	//日志文件名字
 	logName = zend_read_property(CConsumerCe,object,ZEND_STRL("logName"),0 TSRMLS_CC);
 	exchange = zend_read_property(CConsumerCe,object,ZEND_STRL("producerExchange"),0 TSRMLS_CC);
 	route = zend_read_property(CConsumerCe,object,ZEND_STRL("producerRoute"),0 TSRMLS_CC);
 	queue = zend_read_property(CConsumerCe,object,ZEND_STRL("producerQueue"),0 TSRMLS_CC);
+	appPath = zend_read_static_property(CWebAppCe, ZEND_STRL("app_path"), 0 TSRMLS_CC);
 
+	php_date("Y-m-d H:i:s",&thisMothTime);
+
+#ifndef PHP_WIN32
+	pid = getpid();
+#endif
 
 	//队列前缀
-	sprintf(queueKey,"%s%s%s%s%s%s%s","[",Z_STRVAL_P(exchange),"->",Z_STRVAL_P(route),"->",Z_STRVAL_P(queue),"]");
-	strcat2(&messageSave,queueKey,"=>",message,NULL);
+	spprintf(&messageSave,0,"#LogTime[Pid:%d]:%s%sLogContent:[%s]->[%s]->[%s] : %s%s%s",pid,thisMothTime,PHP_EOL,Z_STRVAL_P(exchange),Z_STRVAL_P(route),Z_STRVAL_P(queue),message,PHP_EOL,PHP_EOL);
 
+	//日志路径
+	spprintf(&logTruePath,0,"%s/logs/userlog/%s.log",Z_STRVAL_P(appPath),Z_STRVAL_P(logName));
+	CLog_writeFile(logTruePath,messageSave);
 
-	ZVAL_ZVAL(paramsList[0],logName,1,0);
-	ZVAL_STRING(paramsList[1],messageSave,1);
-
-	INIT_ZVAL(constructVal);
-	ZVAL_STRING(&constructVal,"write", 0);
-	call_user_function(&CLogCe->function_table, NULL, &constructVal, &ivsizeReturn,2, paramsList TSRMLS_CC);
-
-	zval_ptr_dtor(&paramsList[0]);
-	zval_ptr_dtor(&paramsList[1]);
-
-	zval_dtor(&ivsizeReturn);
+	php_printf("%s===%s\n",logTruePath,messageSave);
 
 	efree(messageSave);
+	efree(logTruePath);
+	efree(thisMothTime);
 }
 
 
@@ -778,7 +778,6 @@ void CConsumer_parseMessage(zval *object,zval *message TSRMLS_DC){
 		zval_ptr_dtor(&paramsList[0]);
 		zval_ptr_dtor(&paramsList[1]);
 		efree(callFunctionName);
-		setLog(object,"process message ... " TSRMLS_CC);
 	MODULE_END
 }
 
