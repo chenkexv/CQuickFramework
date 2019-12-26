@@ -73,10 +73,10 @@ PHP_METHOD(CSmtp,__construct){
 	int		mailHostLen = 0,
 			mailUserLen = 0,
 			mailPassLen = 0,
-			mailPort = 25,
 			debug = 0,
 			siteNameLen = 0;
 
+	long	mailPort = 25;
 
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"slss|bs",&mailHost,&mailHostLen,&mailPort,&mailUser,&mailUserLen,&mailPass,&mailPassLen,&debug,&siteName,&siteNameLen) == FAILURE){

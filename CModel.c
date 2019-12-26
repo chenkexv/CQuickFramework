@@ -302,7 +302,7 @@ PHP_METHOD(CModel,getPageRows)
 PHP_METHOD(CModel,setPageRows)
 {
 
-	int pageSet = 20;
+	long pageSet = 20;
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"l",&pageSet) == FAILURE){
 		RETVAL_FALSE;

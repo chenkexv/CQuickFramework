@@ -484,8 +484,8 @@ PHP_METHOD(CFtp,upload)
 			*localPath;
 
 	int		remotePathLen = 0,
-			localPathLen = 0,
-			mode = 0;
+			localPathLen = 0;
+	long	mode = 0;
 
 	zval	*conn;
 

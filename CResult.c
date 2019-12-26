@@ -149,7 +149,7 @@ PHP_METHOD(CResult,asArray)
 
 PHP_METHOD(CResult,setCache)
 {
-	int isCache = 0;
+	long isCache = 0;
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"l",&isCache) == FAILURE){
 		zend_throw_exception(CDbExceptionCe, "[CResultException] Call CResult->setCache(bool isCache) Method, parameter error", 6001 TSRMLS_CC);
 		return;

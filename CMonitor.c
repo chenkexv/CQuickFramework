@@ -240,7 +240,7 @@ void CMonitor_getCPU(zval **returnData,int num TSRMLS_DC){
 PHP_METHOD(CMonitor,getCPU)
 {
 	zval *data;
-	int		getNum = 1;
+	long	getNum = 1;
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"|l",&getNum) == FAILURE){
 		RETURN_FALSE;
@@ -330,7 +330,7 @@ void CMonitor_getMemory(zval **returnData,int num TSRMLS_DC){
 PHP_METHOD(CMonitor,getMemory)
 {
 	zval *data;
-	int		getNum = 1;
+	long		getNum = 1;
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"|l",&getNum) == FAILURE){
 		RETURN_FALSE;

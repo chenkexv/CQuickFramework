@@ -155,9 +155,10 @@ PHP_METHOD(CValidate,isBetween)
 	char	*data;
 	
 	int		dataLen = 0,
-			b = 0,
-			e = 0,
 			isTrue = 0;
+
+	long	b = 0,
+			e = 0;
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"s|ll",&data,&dataLen,&b,&e) == FAILURE){
 		RETURN_FALSE;

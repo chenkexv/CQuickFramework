@@ -233,7 +233,7 @@ PHP_METHOD(CString,toChar)
 
 PHP_METHOD(CString,at){
 
-	int		index = 0;
+	long	index = 0;
 	char	*endString;
 	zval	*nowData;
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"l",&index) == FAILURE){

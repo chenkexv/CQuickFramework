@@ -778,8 +778,8 @@ PHP_METHOD(CQrcode,create){
 	QRcode				*pQRC = NULL;
 	int					realwidth,
 						status = 0,
-						size = 6,
 						border = 1;
+	long				size = 6;
 	unsigned char		*row;
 	char				*saveTempPath,
 						*saveTempName,
@@ -848,7 +848,7 @@ PHP_METHOD(CQrcode,create){
 
 PHP_METHOD(CQrcode,getFilePath){
 
-	int		returnAllPath = 0;
+	long	returnAllPath = 0;
 	zval	*tempPath,
 			*appPath;
 
@@ -933,8 +933,8 @@ PHP_METHOD(CQrcode,show){
 PHP_METHOD(CQrcode,setIcon){
 
 	char	*content;
-	int		contentLen = 0,
-			size = 50;
+	int		contentLen = 0;
+	long	size = 50;
 
 	RETVAL_ZVAL(getThis(),1,0);
 

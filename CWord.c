@@ -753,8 +753,8 @@ PHP_METHOD(CWord,getHitWord)
 
 	zval	*returnArray;
 
-	int		contentLen = 0,
-			matchType = 1;
+	int		contentLen = 0;
+	long	matchType = 1;
 
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"s|l",&content,&contentLen,&matchType) == FAILURE){

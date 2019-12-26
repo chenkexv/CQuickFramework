@@ -620,8 +620,9 @@ PHP_METHOD(CRedis,set)
 			*value;
 
 	int		keyLen = 0,
-			valueLen = 0,
-			timeout = 3600;
+			valueLen = 0;
+
+	long	timeout = 3600;
 
 	zval	*redisZval;
 

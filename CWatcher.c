@@ -227,7 +227,7 @@ PHP_METHOD(CWatcher,__construct)
 
 PHP_METHOD(CWatcher,setRunNum)
 {
-	int runNum = 0;
+	long runNum = 0;
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"l",&runNum) == FAILURE){
 		zend_throw_exception(CShellExceptionCe, "[CShellException] Given an integer value, the number of processes that maintain the value", "10010" TSRMLS_CC);
@@ -364,7 +364,7 @@ PHP_METHOD(CWatcher,stopAll)
 
 PHP_METHOD(CWatcher,stop)
 {
-	int pid = 0;
+	long pid = 0;
 	char cmd[10240],
 		 *returnString;
 

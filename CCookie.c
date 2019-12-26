@@ -138,8 +138,9 @@ PHP_METHOD(CCookie,set)
 			*val;
 	int		keyLen = 0,
 			valLen = 0,
-			timeout = 3600,
 			status;
+
+	long	timeout = 3600;
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"ss|l",&key,&keyLen,&val,&valLen,&timeout) == FAILURE){
 		RETURN_FALSE;

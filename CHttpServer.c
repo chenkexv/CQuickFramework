@@ -246,9 +246,9 @@ PHP_METHOD(CMicroResponse,send){
 	char	*content,
 			*resultContent;
 	int		contentLen = 0,
-			code = 0,
 			epfd,
 			fd;
+	long	code = 0;
 
 	zval	*fdZval;
 
@@ -1234,8 +1234,8 @@ PHP_METHOD(CMicroServer,onRequest){
 PHP_METHOD(CMicroServer,bind){
 	
 	char	*host;
-	int		hostLen = 0,
-			port = 0;
+	int		hostLen = 0;
+	long	port = 0;
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"sl",&host,&hostLen,&port) == FAILURE){
 		RETURN_FALSE;

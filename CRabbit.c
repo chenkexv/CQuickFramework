@@ -540,8 +540,8 @@ PHP_METHOD(CRabbit,get)
 
 	int		routeLen = 0,
 			queueLen = 0,
-			autoAck = 0,
-			flags = 0;
+			autoAck = 0;
+	long	flags = 0;
 
 	zval	*queueObject = NULL,
 			*bindRouteZval,
@@ -753,8 +753,8 @@ PHP_METHOD(CRabbit,ack)
 PHP_METHOD(CRabbit,getQueue)
 {
 	char	*queue;
-	int		queueLen = 0,
-			tags = 0;
+	int		queueLen = 0;
+	long	tags = 0;
 
 	zval	*queueObject;
 
@@ -912,8 +912,8 @@ PHP_METHOD(CRabbit,getExchange)
 
 	int		nameLen = 0,
 			type = 0,
-			exchangeTypeLen = 0,
-			flags = 0;
+			exchangeTypeLen = 0;
+	long	flags = 0;
 
 	zval	*returnObject;
 

@@ -93,7 +93,7 @@ CMYFRAME_REGISTER_CLASS_RUN(CConsumer)
 
 PHP_METHOD(CConsumer,setEmptySleepTime)
 {
-	int		sleepTime = 3;
+	long	sleepTime = 3;
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"l",&sleepTime) == FAILURE){
 		zend_throw_exception(CQueueExceptionCe, "[CQueueException] Call [CConsumer->setEmptySleepTime] the 1 parameter type error , must be int ", 1 TSRMLS_CC);
 		return;
@@ -105,7 +105,7 @@ PHP_METHOD(CConsumer,setEmptySleepTime)
 
 PHP_METHOD(CConsumer,setProcessMaxNum)
 {
-	int		maxTime = 100000;
+	long		maxTime = 100000;
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"l",&maxTime) == FAILURE){
 		zend_throw_exception(CQueueExceptionCe, "[CQueueException] Call [CConsumer->setProcessMaxNum] the 1 parameter type error , must be int ", 1 TSRMLS_CC);
 		return;
@@ -145,7 +145,7 @@ PHP_METHOD(CConsumer,setMemoryLimit)
 
 PHP_METHOD(CConsumer,setTimeLimit)
 {
-	int		maxTime = 0;
+	long	maxTime = 0;
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"l",&maxTime) == FAILURE){
 		zend_throw_exception(CQueueExceptionCe, "[CQueueException] Call [CConsumer->setTimeLimit] the 1 parameter type error , must be int ", 1 TSRMLS_CC);
 		return;
@@ -160,8 +160,8 @@ PHP_METHOD(CConsumer,registerHeartbeatCallback)
 	zval	*callObject;
 	char	*callFun,
 			*functionName;
-	int		callFunLen = 0,
-			timeWhich = 0;
+	int		callFunLen = 0;
+	long	timeWhich = 0;
 
 	zend_class_entry *classEntry;
 
@@ -720,7 +720,6 @@ void CConsumer_checkHeartbeat(zval *object TSRMLS_DC){
 	heartFunction = zend_read_property(CConsumerCe,object,ZEND_STRL("heartbeatFunction"), 0 TSRMLS_CC);
 	heartBeatTime = zend_read_property(CConsumerCe,object,ZEND_STRL("heartBeatTime"), 0 TSRMLS_CC);
 	
-
 	if(IS_LONG == Z_TYPE_P(emptySec) && IS_LONG == Z_TYPE_P(heartBeatTime) && Z_LVAL_P(emptySec) % Z_LVAL_P(heartBeatTime) == 0){
 		needHeart = 1;
 	}
