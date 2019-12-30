@@ -2947,7 +2947,7 @@ PHP_METHOD(CBuilder,query)
 
 			if(zend_hash_num_elements(Z_ARRVAL(errorMessage)) > 0){
 				char *errorText,
-						errorMessageStr[10240];
+						*errorMessageStr;
 				zval **errorData;
 				zend_hash_move_forward(Z_ARRVAL(errorMessage));
 				zend_hash_move_forward(Z_ARRVAL(errorMessage));
@@ -2973,11 +2973,12 @@ PHP_METHOD(CBuilder,query)
 				MODULE_END
 
 				zval_dtor(&errorMessage);
-				sprintf(errorMessageStr,"%s%s%s%s%s","[SQLException]",errorText," - SQL[",sql,"]");
+				php_sprintf(&errorMessageStr,0,"%s%s%s%s%s","[SQLException]",errorText," - SQL[",sql,"]");
 				efree(errorText);
 				zval_ptr_dtor(&beginTime);
 				zval_ptr_dtor(&pdoObject);
 				zend_throw_exception(CDbExceptionCe, errorMessageStr, 5010 TSRMLS_CC);
+				efree(errorMessageStr);
 				RETVAL_FALSE;
 				return;
 			}else{
