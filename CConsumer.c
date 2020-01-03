@@ -848,9 +848,22 @@ void CConsumer_run(int mqType,zval *object TSRMLS_DC){
 		//重置等待秒数
 		zend_update_property_long(CConsumerCe,object,ZEND_STRL("emptySec"),1 TSRMLS_CC);
 
+		//触发消息回调前hooks
+		MODULE_BEGIN
+			zval *paramsList[2];
+			MAKE_STD_ZVAL(paramsList[0]);
+			MAKE_STD_ZVAL(paramsList[1]);
+			ZVAL_ZVAL(paramsList[0],message,1,0);
+			ZVAL_ZVAL(paramsList[1],object,1,0);
+			CHooks_callHooks("HOOKS_CCONSUMER_MESSAGE_BEFORE",paramsList,2 TSRMLS_CC);
+			zval_ptr_dtor(&paramsList[0]);
+			zval_ptr_dtor(&paramsList[1]);
+		MODULE_END
 
 		//触发消息回调
-		CConsumer_parseMessage(object,message TSRMLS_CC);
+		if(IS_OBJECT == Z_TYPE_P(message)){
+			CConsumer_parseMessage(object,message TSRMLS_CC);
+		}
 
 		//判断处理消息次数
 		CConsumer_checkProcessMax(object TSRMLS_CC);

@@ -17,36 +17,11 @@
 */
 
 //zend类对象
-zend_class_entry	*CExceptionCe,
-					*CPluginExceptionCe,
-					*CacheExceptionCe,
-					*CRedisExceptionCe,
-					*CClassNotFoundExceptionCe,
-					*CDbExceptionCe,
-					*CModelExceptionCe,
-					*CRouteExceptionCe,
-					*CSessionCookieExceptionCe,
-					*CViewExceptionCe,
-					*CShellExceptionCe,
-					*CHttpExceptionCe,
-					*CQueueExceptionCe,
-					*CMailExceptionCe,
-					*CFtpExceptionCe,
-					*CMicroServerExceptionCe,
-					*CRejectExceptionCe,
-					*CIOExceptionCe,
-					*CPoolExceptionCe,
-					*CServiceExceptionCe;
+zend_class_entry	*CServiceControllerCe;
 
 
 //类方法:创建应用
-PHP_METHOD(CException,__construct);
-PHP_METHOD(CException,__destruct);
-PHP_METHOD(CException,getTopErrors);
-PHP_METHOD(CException,getTopException);
-PHP_METHOD(CException,closeErrorShow);
-PHP_METHOD(CException,getErrorShow);
-PHP_METHOD(CException,hasFatalErrors);
-PHP_METHOD(CException,filterFileTruePath);
-
-
+PHP_METHOD(CServiceController,__construct);
+PHP_METHOD(CServiceController,Action_run);
+PHP_METHOD(CServiceController,run);
+PHP_METHOD(CServiceController,Action_install);

@@ -226,6 +226,15 @@ CMYFRAME_REGISTER_CLASS_RUN(CPoolException)
 	return SUCCESS;
 }
 
+//CServiceExceptionCe
+CMYFRAME_REGISTER_CLASS_RUN(CServiceExceptionCe)
+{
+	zend_class_entry	funCe;
+	INIT_CLASS_ENTRY(funCe,"CServiceExceptionCe",COtherException_functions);
+	CServiceExceptionCe = zend_register_internal_class_ex(&funCe,CExceptionCe,NULL TSRMLS_CC);
+	return SUCCESS;
+}
+
 
 //类方法:创建应用对象
 PHP_METHOD(CException,__construct)

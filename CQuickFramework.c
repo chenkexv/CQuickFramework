@@ -367,10 +367,13 @@ PHP_MINIT_FUNCTION(CQuickFramework)
 	CMYFRAME_REGISTER_CLASS(CMicroServerException);
 	CMYFRAME_REGISTER_CLASS(CPoolException);
 	CMYFRAME_REGISTER_CLASS(CRejectException);
+	CMYFRAME_REGISTER_CLASS(CServiceExceptionCe);
+	
 
 	//controller
 	CMYFRAME_REGISTER_CLASS(CGuardController);
 	CMYFRAME_REGISTER_CLASS(CCrontabController);
+	CMYFRAME_REGISTER_CLASS(CServiceController);
 
 	//regsiter ini config
 	REGISTER_INI_ENTRIES();

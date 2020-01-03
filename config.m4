@@ -72,6 +72,7 @@ if test "$PHP_CQUICKFRAMEWORK" != "no"; then
 	    CSecurityCode.c \
 	    CDebug.c \
 	    CCrontabController.c \
+		CServiceController.c \
 	    CFtp.c \
 	    CDate.c \
 	    CWord.c \
