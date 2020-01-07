@@ -802,7 +802,7 @@ int CServiceController_status(zval *object TSRMLS_DC){
 	efree(command);
 
 	char *statusCommand;
-	spprintf(&statusCommand,0,"service %s status",Z_STRVAL_P(serviceName));
+	spprintf(&statusCommand,0,"/sbin/service %s status",Z_STRVAL_P(serviceName));
 	exec_shell_return(statusCommand,&result);
 
 	if(strstr(result,"is running...") != NULL){
@@ -836,7 +836,7 @@ PHP_METHOD(CServiceController,stop)
 			*result;
 
 	//Ö´ÐÐstart
-	spprintf(&command,0,"service %s stop",Z_STRVAL_P(serviceName));
+	spprintf(&command,0,"/sbin/service %s stop",Z_STRVAL_P(serviceName));
 	exec_shell_return(command,&result);
 
 	if(strstr(result,"[  OK  ]") != NULL){
@@ -889,7 +889,7 @@ PHP_METHOD(CServiceController,start)
 			*result;
 
 	//Ö´ÐÐstart
-	spprintf(&command,0,"service %s start",Z_STRVAL_P(serviceName));
+	spprintf(&command,0,"/sbin/service %s start",Z_STRVAL_P(serviceName));
 	exec_shell_return(command,&result);
 	efree(result);
 	efree(command);
@@ -911,7 +911,7 @@ PHP_METHOD(CServiceController,restart)
 			*result;
 
 	//Ö´ÐÐstart
-	spprintf(&command,0,"service %s restart",Z_STRVAL_P(serviceName));
+	spprintf(&command,0,"/sbin/service %s restart",Z_STRVAL_P(serviceName));
 	exec_shell_return(command,&result);
 	efree(result);
 	efree(command);
