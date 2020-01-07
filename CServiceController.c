@@ -49,7 +49,14 @@ zend_function_entry CServiceController_functions[] = {
 	PHP_ME(CServiceController,serviceWorker,NULL,ZEND_ACC_PUBLIC)
 	PHP_ME(CServiceController,serviceName,NULL,ZEND_ACC_PUBLIC)
 	PHP_ME(CServiceController,serviceLogs,NULL,ZEND_ACC_PUBLIC)
+	PHP_ME(CServiceController,serviceNote,NULL,ZEND_ACC_PUBLIC)
 	PHP_ME(CServiceController,Action_install,NULL,ZEND_ACC_PUBLIC)
+	PHP_ME(CServiceController,status,NULL,ZEND_ACC_PUBLIC)
+	PHP_ME(CServiceController,stop,NULL,ZEND_ACC_PUBLIC)
+	PHP_ME(CServiceController,start,NULL,ZEND_ACC_PUBLIC)
+	PHP_ME(CServiceController,restart,NULL,ZEND_ACC_PUBLIC)
+	PHP_ME(CServiceController,Action_help,NULL,ZEND_ACC_PUBLIC)
+	PHP_ME(CServiceController,Action_list,NULL,ZEND_ACC_PUBLIC)
 	PHP_ME(CServiceController,Action_serviceRunning,NULL,ZEND_ACC_PUBLIC)
 	{NULL, NULL, NULL}
 };
@@ -61,6 +68,7 @@ CMYFRAME_REGISTER_CLASS_RUN(CServiceController)
 	CServiceControllerCe = zend_register_internal_class_ex(&funCe,CControllerCe,NULL TSRMLS_CC);
 
 	zend_declare_property_string(CServiceControllerCe, ZEND_STRL("name"),"",ZEND_ACC_PUBLIC TSRMLS_CC);
+	zend_declare_property_string(CServiceControllerCe, ZEND_STRL("note"),"No description of related services",ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_string(CServiceControllerCe, ZEND_STRL("logs"),"",ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_long(CServiceControllerCe, ZEND_STRL("processNum"),1,ZEND_ACC_PUBLIC TSRMLS_CC);
 	zend_declare_property_null(CServiceControllerCe, ZEND_STRL("pidList"),ZEND_ACC_PRIVATE TSRMLS_CC);
@@ -111,7 +119,7 @@ PHP_METHOD(CServiceController,__dispatch){
 		call_user_function(NULL, &getThis(), &constructVal, &constructReturn, 0, NULL TSRMLS_CC);
 		zval_dtor(&constructReturn);
 
-	}if(strcmp(data,"Action_install") == 0){
+	}else if(strcmp(data,"Action_install") == 0){
 		
 		zval	constructVal,
 				constructReturn;
@@ -120,12 +128,75 @@ PHP_METHOD(CServiceController,__dispatch){
 		call_user_function(NULL, &getThis(), &constructVal, &constructReturn, 0, NULL TSRMLS_CC);
 		zval_dtor(&constructReturn);
 
+	}else if(strcmp(data,"status") == 0){
+		
+		zval	constructVal,
+				constructReturn;
+		INIT_ZVAL(constructVal);
+		ZVAL_STRING(&constructVal,"status",0);
+		call_user_function(NULL, &getThis(), &constructVal, &constructReturn, 0, NULL TSRMLS_CC);
+		zval_dtor(&constructReturn);
+
+	}else if(strcmp(data,"start") == 0){
+		
+		zval	constructVal,
+				constructReturn;
+		INIT_ZVAL(constructVal);
+		ZVAL_STRING(&constructVal,"start",0);
+		call_user_function(NULL, &getThis(), &constructVal, &constructReturn, 0, NULL TSRMLS_CC);
+		zval_dtor(&constructReturn);
+
+	}else if(strcmp(data,"stop") == 0){
+		
+		zval	constructVal,
+				constructReturn;
+		INIT_ZVAL(constructVal);
+		ZVAL_STRING(&constructVal,"stop",0);
+		call_user_function(NULL, &getThis(), &constructVal, &constructReturn, 0, NULL TSRMLS_CC);
+		zval_dtor(&constructReturn);
+
+	}else if(strcmp(data,"restart") == 0){
+		
+		zval	constructVal,
+				constructReturn;
+		INIT_ZVAL(constructVal);
+		ZVAL_STRING(&constructVal,"restart",0);
+		call_user_function(NULL, &getThis(), &constructVal, &constructReturn, 0, NULL TSRMLS_CC);
+		zval_dtor(&constructReturn);
+
+	}else if(strcmp(data,"Action_help") == 0){
+		
+		zval	constructVal,
+				constructReturn;
+		INIT_ZVAL(constructVal);
+		ZVAL_STRING(&constructVal,"Action_help",0);
+		call_user_function(NULL, &getThis(), &constructVal, &constructReturn, 0, NULL TSRMLS_CC);
+		zval_dtor(&constructReturn);
+
+	}else if(strcmp(data,"Action_list") == 0){
+		
+		zval	constructVal,
+				constructReturn;
+		INIT_ZVAL(constructVal);
+		ZVAL_STRING(&constructVal,"Action_list",0);
+		call_user_function(NULL, &getThis(), &constructVal, &constructReturn, 0, NULL TSRMLS_CC);
+		zval_dtor(&constructReturn);
+
+	}else if(strcmp(data,"Action_run") == 0){
+		
+		zval	constructVal,
+				constructReturn;
+		INIT_ZVAL(constructVal);
+		ZVAL_STRING(&constructVal,"Action_run",0);
+		call_user_function(NULL, &getThis(), &constructVal, &constructReturn, 0, NULL TSRMLS_CC);
+		zval_dtor(&constructReturn);
+
 	}else{
 
 		zval	constructVal,
 				constructReturn;
 		INIT_ZVAL(constructVal);
-		ZVAL_STRING(&constructVal,"Action_run",0);
+		ZVAL_STRING(&constructVal,"Action_help",0);
 		call_user_function(NULL, &getThis(), &constructVal, &constructReturn, 0, NULL TSRMLS_CC);
 		zval_dtor(&constructReturn);
 
@@ -193,6 +264,22 @@ PHP_METHOD(CServiceController,__construct){
 		returnZval = &callReturn;
 		if(IS_STRING == Z_TYPE_P(returnZval) && strlen(Z_STRVAL_P(returnZval)) > 0){
 			zend_update_property_string(CServiceControllerCe,getThis(),ZEND_STRL("logs"),Z_STRVAL_P(returnZval) TSRMLS_CC);
+		}
+		zval_dtor(&callReturn);
+	MODULE_END
+
+	//获取服务说明
+	MODULE_BEGIN
+		zval	callFunction,
+				callReturn;
+
+		INIT_ZVAL(callFunction);
+		ZVAL_STRING(&callFunction,"serviceNote",0);
+		call_user_function(NULL, &getThis(), &callFunction, &callReturn, 0, NULL TSRMLS_CC);
+		zval	*returnZval;
+		returnZval = &callReturn;
+		if(IS_STRING == Z_TYPE_P(returnZval) && strlen(Z_STRVAL_P(returnZval)) > 0){
+			zend_update_property_string(CServiceControllerCe,getThis(),ZEND_STRL("note"),Z_STRVAL_P(returnZval) TSRMLS_CC);
 		}
 		zval_dtor(&callReturn);
 	MODULE_END
@@ -302,9 +389,6 @@ void catchChildSig(int sig){
 		zend_hash_index_del(Z_ARRVAL_P(pidList),endPid);
 	}
 	checkChildStatusOnce(serviceObject TSRMLS_CC);
-
-
-
 }
 
 
@@ -505,10 +589,10 @@ PHP_METHOD(CServiceController,serviceLogs)
 	RETURN_STRING(savePath,0);
 }
 
-void CServiceController_action_install(char *path,char *serviceName,char *controller TSRMLS_DC){
+void CServiceController_action_install(char *path,char *serviceName,char *controller,char *note TSRMLS_DC){
 
-	char *templateString = "IyEvYmluL3NoCi4gL2V0Yy9yYy5kL2luaXQuZC9mdW5jdGlvbnMKbmFtZT0iPHskc2VydmVyTmFtZX0+IgpleGVjPSIvdXNyL2Jpbi9waHAiCmlucHV0UGF0aD0iPHskaHRtbFBhdGh9PiIKY29udHJvbGxlcj0iPHskY29udHJvbGxlcn0+IgpzdGFydCgpIHsKICAgIGVjaG8gLW4gJCJTdGFydGluZyBDUXVpY2tGcmFtZXdvcmsgU2VydmljZSBbJG5hbWVdOiAiCiAgICBkYWVtb24gLS11c2VyIHJvb3QgIiRleGVjICRpbnB1dFBhdGgvaW5kZXgucGhwICRjb250cm9sbGVyL3J1biIKICAgIHJldHZhbD0kPwogICAgZWNobwogICAgcmV0dXJuICRyZXR2YWwKfQpzdG9wKCkgewogICAgZWNobyAtbiAkIlN0b3BwaW5nIENRdWlja0ZyYW1ld29yayBTZXJ2aWNlIFskbmFtZV06ICIKICAgIGtpbGxwcm9jIC1wICIkaW5wdXRQYXRoL2xvZ3MvcGlkLyRuYW1lLnBpZCIgJG5hbWUKICAgIHJldHZhbD0kPwogICAgZWNobwogICAgcmV0dXJuICRyZXR2YWwKfQpyZXN0YXJ0KCkgewogICAgc3RvcAogICAgc3RhcnQKfQpyaF9zdGF0dXMoKSB7CiAgICBzdGF0dXMgLXAgIiRpbnB1dFBhdGgvbG9ncy9waWQvJG"
-		"5hbWUucGlkIiAkbmFtZQp9CnJoX3N0YXR1c19xKCkgewogICAgcmhfc3RhdHVzID4vZGV2L251bGwgMj4mMQp9CmNhc2UgIiQxIiBpbgogICAgc3RhcnQpCiAgICAgICAgcmhfc3RhdHVzX3EgJiYgZXhpdCAwCiAgICAgICAgJDEKICAgICAgICA7OwogICAgc3RvcCkKICAgICAgICByaF9zdGF0dXNfcSB8fCBleGl0IDAKICAgICAgICAkMQogICAgICAgIDs7CiAgICByZXN0YXJ0KQogICAgICAgICQxCiAgICAgICAgOzsKICAgIHN0YXR1cykKICAgICAgICByaF9zdGF0dXMKICAgICAgICA7OwogICAgKikKICAgICAgICBlY2hvICQiVXNhZ2U6ICQwIHtzdGFydHxzdG9wfHN0YXR1c3xyZXN0YXJ0fSIKICAgICAgICBleGl0IDIKZXNhYwpleGl0ICQ/";
+	char *templateString = "IyEvYmluL3NoCi4gL2V0Yy9yYy5kL2luaXQuZC9mdW5jdGlvbnMKbmFtZT0iPHskc2VydmVyTmFtZX0+IgpleGVjPSIvdXNyL2Jpbi9waHAiCmlucHV0UGF0aD0iPHskaHRtbFBhdGh9PiIKY29udHJvbGxlcj0iPHskY29udHJvbGxlcn0+Igpub3RlPSI8eyRub3RlfT4iCnN0YXJ0KCkgewogICAgZWNobyAtbiAkIlN0YXJ0aW5nIENRdWlja0ZyYW1ld29yayBTZXJ2aWNlIFskbmFtZV06ICIKICAgIGRhZW1vbiAtLXVzZXIgcm9vdCAiJGV4ZWMgJGlucHV0UGF0aC9pbmRleC5waHAgJGNvbnRyb2xsZXIvcnVuIgogICAgcmV0dmFsPSQ/CiAgICBlY2hvCiAgICByZXR1cm4gJHJldHZhbAp9CnN0b3AoKSB7CiAgICBlY2hvIC1uICQiU3RvcHBpbmcgQ1F1aWNrRnJhbWV3b3JrIFNlcnZpY2UgWyRuYW1lXTogIgogICAga2lsbHByb2MgLXAgIiRpbnB1dFBhdGgvbG9ncy9waWQvJG5hbWUucGlkIiAkbmFtZQogICAgcmV0dmFsPSQ/CiAgICBlY2hvCiAgICByZXR1cm4gJHJldHZhbAp9CnJlc3RhcnQoKSB7CiAgICBzdG9wCiAgICBzdGFydAp9CnJoX3N0YXR1cygpIHsKICAgIHN0YXR1cyAtcCAiJGlucHV0UGF0aC9sb2dzL3BpZC8kbmFtZS5waWQiICRuYW1lCn0Kcmhfc3RhdHVzX3EoKSB7CiAgICByaF9zdGF0dXMgPi9kZXYvbnVsbCAyPiYxCn0KY2FzZSAiJDEiIGluCiAgICBzdGFydCkKICAgICAgICByaF9zdGF0dXNfcSAmJiBleGl0IDAKICAgICAgICAkMQogICAgICAgIDs7CiAgICBzdG9wKQogICAgICAgIHJoX3N0YXR1c19xIHx8IGV4aXQgMAogICAgICAgICQxCiAgICAgICAgOzsKICAgIHJlc3RhcnQpCiAgICAgICAgJDEKICAgICAgICA7OwogICA"
+							"gc3RhdHVzKQogICAgICAgIHJoX3N0YXR1cwogICAgICAgIDs7CglpbmZvKQoJCWVjaG8gIiRub3RlIgoJCTs7CiAgICAqKQogICAgICAgIGVjaG8gJCJVc2FnZTogJDAge3N0YXJ0fHN0b3B8c3RhdHVzfHJlc3RhcnR9IgogICAgICAgIGV4aXQgMgplc2FjCmV4aXQgJD8=";
 	char *templateContent;
 
 
@@ -544,9 +628,11 @@ void CServiceController_action_install(char *path,char *serviceName,char *contro
 	add_next_index_string(replace,"<{$serverName}>",1);
 	add_next_index_string(replace,"<{$htmlPath}>",1);
 	add_next_index_string(replace,"<{$controller}>",1);
+	add_next_index_string(replace,"<{$note}>",1);
 	add_next_index_string(newVal,serviceName,1);
 	add_next_index_string(newVal,path,1);
 	add_next_index_string(newVal,controller,1);
+	add_next_index_string(newVal,note,1);
 	
 	str_replaceArray(replace,newVal,templateContent,&serviceCode);
 
@@ -632,6 +718,7 @@ void CServiceController_action_install(char *path,char *serviceName,char *contro
 PHP_METHOD(CServiceController,Action_install)
 {
 	zval *serviceName = zend_read_property(CServiceControllerCe,getThis(),ZEND_STRL("name"),1 TSRMLS_CC);
+	zval *note = zend_read_property(CServiceControllerCe,getThis(),ZEND_STRL("note"),1 TSRMLS_CC);
 	zval *appPath = zend_read_static_property(CWebAppCe, ZEND_STRL("app_path"), 0 TSRMLS_CC);
 	zend_class_entry *nowClass = Z_OBJCE_P(getThis());
 
@@ -669,7 +756,7 @@ PHP_METHOD(CServiceController,Action_install)
 	}
 
 	char *className = estrdup(nowClass->name);
-	CServiceController_action_install(Z_STRVAL_P(appPath),Z_STRVAL_P(serviceName),className TSRMLS_CC);
+	CServiceController_action_install(Z_STRVAL_P(appPath),Z_STRVAL_P(serviceName),className,Z_STRVAL_P(note) TSRMLS_CC);
 	efree(className);
 }
 
@@ -692,4 +779,253 @@ PHP_METHOD(CServiceController,Action_serviceRunning)
 	call_user_function(NULL, &getThis(), &constructVal, &constructReturn, 0, NULL TSRMLS_CC);
 	zval_dtor(&constructReturn);
 }
+
+int CServiceController_status(zval *object TSRMLS_DC){
+
+	zval	*serviceName = zend_read_property(CServiceControllerCe,object,ZEND_STRL("name"),1 TSRMLS_CC);
+
+	//检查服务存在
+	char	*command,
+			*result;
+
+	spprintf(&command,0,"/etc/init.d/%s",Z_STRVAL_P(serviceName));
+	
+	if(0 != access(command, 6)){
+		char *tips = "5b2T5YmN5o6n5Yi25Zmo5bCa5pyq5a6J6KOF5oiQbGludXjmnI3liqHvvIzor7fosIPnlKhpbnN0YWxs5pa55rOV5a6J6KOF5pyN5Yqh77yM6ICM5ZCO6LCD55Soc3RhdHVz5Y+v6L+U5Zue5b2T5YmN5pyN5Yqh54q25oCB";
+		char *tipsSay;
+		base64Decode(tips,&tipsSay);
+		zend_throw_exception(CServiceExceptionCe, tipsSay, 7001 TSRMLS_CC);
+		efree(command);
+		efree(tipsSay);
+		return -1;
+	}
+	efree(command);
+
+	char *statusCommand;
+	spprintf(&statusCommand,0,"service %s status",Z_STRVAL_P(serviceName));
+	exec_shell_return(statusCommand,&result);
+
+	if(strstr(result,"is running...") != NULL){
+		efree(statusCommand);
+		efree(result);
+		return 1;
+	}else{
+		efree(statusCommand);
+		efree(result);
+		return 0;
+	}
+}
+
+PHP_METHOD(CServiceController,status)
+{
+	int status = CServiceController_status(getThis() TSRMLS_CC);
+
+	if(status == 1){
+		RETVAL_TRUE;
+	}else{
+		RETVAL_FALSE;
+	}
+}
+
+PHP_METHOD(CServiceController,stop)
+{
+
+	//先执行stop
+	zval	*serviceName = zend_read_property(CServiceControllerCe,getThis(),ZEND_STRL("name"),1 TSRMLS_CC);
+	char	*command,
+			*result;
+
+	//执行start
+	spprintf(&command,0,"service %s stop",Z_STRVAL_P(serviceName));
+	exec_shell_return(command,&result);
+
+	if(strstr(result,"[  OK  ]") != NULL){
+		efree(result);
+		efree(command);
+		RETURN_BOOL(1);
+	}
+
+	efree(result);
+	efree(command);
+
+	//而后读取pid 判断进程是否存在
+	zval *appPath = zend_read_static_property(CWebAppCe, ZEND_STRL("app_path"), 0 TSRMLS_CC);
+	char *pidPath;
+	spprintf(&pidPath,0,"%s/logs/pid/%s.pid",Z_STRVAL_P(appPath),Z_STRVAL_P(serviceName));
+
+	//没有pid也返回成功
+	if(FAILURE == fileExist(pidPath)){
+		efree(pidPath);
+		RETURN_BOOL(1);
+	}
+
+	//找pid则检查进程
+	char *pidString;
+	file_get_contents(pidPath,&pidString);
+	if(strlen(pidString) <= 0){
+		efree(pidString);
+		efree(pidPath);
+		RETURN_BOOL(1);
+	}
+
+	//检查进程存在
+	int pidInt = toInt(pidString);
+	int processStatus = kill(pidInt,0);
+	if(processStatus == 0){
+		efree(pidString);
+		efree(pidPath);
+		RETURN_BOOL(0);
+	}
+
+	efree(pidString);
+	efree(pidPath);
+	RETURN_BOOL(1);
+}
+
+PHP_METHOD(CServiceController,start)
+{
+	zval	*serviceName = zend_read_property(CServiceControllerCe,getThis(),ZEND_STRL("name"),1 TSRMLS_CC);
+	char	*command,
+			*result;
+
+	//执行start
+	spprintf(&command,0,"service %s start",Z_STRVAL_P(serviceName));
+	exec_shell_return(command,&result);
+	efree(result);
+	efree(command);
+
+	//判断是否已启动
+	int status = CServiceController_status(getThis() TSRMLS_CC);
+	
+	if(status == 1){
+		RETVAL_TRUE;
+	}else{
+		RETVAL_FALSE;
+	}
+}
+
+PHP_METHOD(CServiceController,restart)
+{
+	zval	*serviceName = zend_read_property(CServiceControllerCe,getThis(),ZEND_STRL("name"),1 TSRMLS_CC);
+	char	*command,
+			*result;
+
+	//执行start
+	spprintf(&command,0,"service %s restart",Z_STRVAL_P(serviceName));
+	exec_shell_return(command,&result);
+	efree(result);
+	efree(command);
+
+	//判断是否已启动
+	int status = CServiceController_status(getThis() TSRMLS_CC);
+	
+	if(status == 1){
+		RETVAL_TRUE;
+	}else{
+		RETVAL_FALSE;
+	}
+}
+
+PHP_METHOD(CServiceController,Action_help)
+{
+	char	*tips = "CkNMSeWRveS7pOihjOaPkOekujoK5a6J6KOF5pyN5YqhOiBwaHAgPCRwYXRoPi9pbmRleC5waHAgPCRjb250cm9sbGVyPi9pbnN0YWxsCui/kOihjOacjeWKoTogcGhwIDwkcGF0aD4vaW5kZXgucGhwIDwkY29udHJvbGxlcj4vcnVuCuWIl+WHuuacjeWKoTogcGhwIDwkcGF0aD4vaW5kZXgucGhwIDwkY29udHJvbGxlcj4vbGlzdAoK5a6J6KOF5pyN5Yqh5Y+v5L2/55So5aaC5LiL5ZG95LukOgrlkK/liqjmnI3liqE6IHNlcnZpY2UgPCRuYW1lPiBzdGFydArlgZzmraLmnI3liqE6IHNlcnZpY2UgPCRuYW1lPiBzdG9wCumHjeWQr+acjeWKoTogc2VydmljZSA8JG5hbWU+IHJlc3RhcnQK5Yig6Zmk5pyN5YqhOiBybSAtcmYgL2V0Yy9pbml0LmQvPCRuYW1lPgoK";
+	char	*decodeTips,
+			*replaceString;
+
+	zval	*appPath = zend_read_static_property(CWebAppCe, ZEND_STRL("app_path"), 0 TSRMLS_CC);
+	zval	*serviceName = zend_read_property(CServiceControllerCe,getThis(),ZEND_STRL("name"),1 TSRMLS_CC);
+	zend_class_entry	*nowClass = Z_OBJCE_P(getThis());
+
+	zval	*replace,
+			*newVal;
+
+	MAKE_STD_ZVAL(replace);
+	MAKE_STD_ZVAL(newVal);
+	array_init(replace);
+	array_init(newVal);
+	add_next_index_string(replace,"<$path>",1);
+	add_next_index_string(replace,"<$name>",1);
+	add_next_index_string(replace,"<$controller>",1);
+	add_next_index_string(newVal,Z_STRVAL_P(appPath),1);
+	add_next_index_string(newVal,Z_STRVAL_P(serviceName),1);
+	add_next_index_string(newVal,nowClass->name,1);
+
+
+	base64Decode(tips,&decodeTips);
+	str_replaceArray(replace,newVal,decodeTips,&replaceString);
+
+
+	php_printf("%s",replaceString);
+
+	zval_ptr_dtor(&replace);
+	zval_ptr_dtor(&newVal);
+	efree(decodeTips);
+	efree(replaceString);
+}
+
+PHP_METHOD(CServiceController,Action_list)
+{
+
+	char	*path;
+	zval	*dirFile;
+	zval	*appPath = zend_read_static_property(CWebAppCe, ZEND_STRL("app_path"), 0 TSRMLS_CC);
+
+	spprintf(&path,0,"%s/logs/pid",Z_STRVAL_P(appPath));
+
+	printfBase64("5b2T5YmN6aG555uu5a6J6KOF6L+H55qE5pyN5YqhOgo=");
+
+	//列出pid目录下曾经安装过的服务
+	php_scandir(path,&dirFile);
+
+	int		i,h,allNum = 0,serviceStatus=0;
+	zval	**nowData;
+	char	*servicePath,
+			*serverName;
+	h = zend_hash_num_elements(Z_ARRVAL_P(dirFile));
+	zend_hash_internal_pointer_reset(Z_ARRVAL_P(dirFile));
+	for(i = 0 ; i < h ;i++){
+		zend_hash_get_current_data(Z_ARRVAL_P(dirFile),(void**)&nowData);
+
+		if(strstr(Z_STRVAL_PP(nowData),".pid") == NULL){
+			zend_hash_move_forward(Z_ARRVAL_P(dirFile));
+			continue;
+		}
+
+		//判断此服务是否还存在
+		str_replace(".pid","",Z_STRVAL_PP(nowData),&serverName);
+		spprintf(&servicePath,0,"/etc/init.d/%s",serverName);
+
+		//检查是否存在且可执行
+		if(0 == access(servicePath, 6)){
+			
+			char	*serviceNote,
+					*getNoteCommand;
+			spprintf(&getNoteCommand,0,"service %s info",serverName);
+			exec_shell_return(getNoteCommand,&serviceNote);
+			php_printf("Service [%s] has available ; Note: %s\n",serverName,serviceNote);
+			efree(getNoteCommand);
+			efree(serviceNote);
+
+		}else{
+			php_printf("Service [%s] has been removed\n",serverName);
+		}
+
+
+		efree(serverName);
+		efree(servicePath);
+
+		zend_hash_move_forward(Z_ARRVAL_P(dirFile));
+	}
+
+
+
+	efree(path);
+	zval_ptr_dtor(&dirFile);
+}
+
+PHP_METHOD(CServiceController,serviceNote){
+	RETVAL_FALSE;
+}
+
+
 #endif

@@ -223,6 +223,13 @@ void getServerParam(char *key,char **getStr TSRMLS_DC)
 	return;
 }
 
+void printfBase64(char *tips){
+	char *decode;
+	base64Decode(tips,&decode);
+	php_printf("%s",decode);
+	efree(decode);
+}
+
 void setServerParam(char *key,zval *params TSRMLS_DC)
 {
 
