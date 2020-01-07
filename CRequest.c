@@ -798,6 +798,32 @@ void CRequest_execAction(zval *routeObject,zval *object TSRMLS_DC)
 	MODULE_END
 
 
+	//检查存在__dispatch魔术函数
+	if(zend_hash_exists(&controllerCe->function_table,"__dispatch",strlen("__dispatch")+1)){
+
+		zend_function    *beforeEntry;
+		//判断函数是否可调
+		zend_hash_find(&controllerCe->function_table,"__dispatch",strlen("__dispatch")+1,(void **)&beforeEntry);
+		if(beforeEntry->common.fn_flags & ZEND_ACC_PUBLIC){
+			//调用before方法
+			zval fnReturn;
+			zval fnName;
+			zval *params[1];
+			MAKE_STD_ZVAL(params[0]);
+			ZVAL_STRING(params[0],requsetAction,1);
+			INIT_ZVAL(fnName);
+			ZVAL_STRING(&fnName,"__dispatch", 0);
+			call_user_function(NULL, &controllerObject, &fnName, &fnReturn, 1, params TSRMLS_CC);
+			zval_dtor(&fnReturn);
+			efree(requsetController);
+			efree(requsetAction);
+			zval_ptr_dtor(&params[0]);
+			return;
+		}
+	}
+
+
+
 	//检查类存在请求方法
 	php_strtolower(requsetAction,strlen(requsetAction)+1);
 	if(!zend_hash_exists(&controllerCe->function_table,requsetAction,strlen(requsetAction)+1)){
