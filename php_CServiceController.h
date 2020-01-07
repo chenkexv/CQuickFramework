@@ -25,3 +25,8 @@ PHP_METHOD(CServiceController,__construct);
 PHP_METHOD(CServiceController,Action_run);
 PHP_METHOD(CServiceController,run);
 PHP_METHOD(CServiceController,Action_install);
+PHP_METHOD(CServiceController,__dispatch);
+PHP_METHOD(CServiceController,Action_serviceRunning);
+PHP_METHOD(CServiceController,serviceWorker);
+PHP_METHOD(CServiceController,serviceName);
+PHP_METHOD(CServiceController,serviceLogs);
