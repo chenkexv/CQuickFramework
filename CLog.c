@@ -309,7 +309,8 @@ PHP_METHOD(CLog,save)
 	zval	**logContentList,
 			**logContent;
 
-	zval	*fopenHandle;
+	zval	*fopenHandle,
+			*sapiZval;
 
 	logList = zend_read_property(CLogCe,getThis(),ZEND_STRL("logList"),0 TSRMLS_CC);
 	if(IS_ARRAY != Z_TYPE_P(logList)){
@@ -336,6 +337,16 @@ PHP_METHOD(CLog,save)
 		if(FAILURE == fileExist(logPath)){
 			RETVAL_FALSE;
 			return;
+		}
+
+		//如果是cli 将目录所有设为apache:apche
+		if(zend_hash_find(EG(zend_constants),"PHP_SAPI",strlen("PHP_SAPI")+1,(void**)&sapiZval) == SUCCESS && strcmp(Z_STRVAL_P(sapiZval),"cli") == 0){
+			char    *command,
+					*returnString;
+			spprintf(&command, 0,"chown apache:apache -R %s", logPath);
+			exec_shell_return(command,&returnString);
+			efree(command);
+			efree(returnString);
 		}
 	}
 
@@ -573,7 +584,8 @@ int CLog_writeFile(char *filePath,char *content)
 
 int CLog_writeSystemFile(char *content TSRMLS_DC){
 
-	zval *appPath;
+	zval *appPath,
+			*sapiZval;
 
 	char logPath[10240],
 		 filePath[10240],
@@ -598,6 +610,16 @@ int CLog_writeSystemFile(char *content TSRMLS_DC){
 		if(FAILURE == fileExist(logPath)){
 			return FAILURE;
 		}
+
+		//如果是cli 将目录所有设为apache:apche
+		if(zend_hash_find(EG(zend_constants),"PHP_SAPI",strlen("PHP_SAPI")+1,(void**)&sapiZval) == SUCCESS && strcmp(Z_STRVAL_P(sapiZval),"cli") == 0){
+			char    *command,
+					*returnString;
+			spprintf(&command, 0,"chown apache:apache -R %s", logPath);
+			exec_shell_return(command,&returnString);
+			efree(command);
+			efree(returnString);
+		}
 	}
 
 	//日期
@@ -611,6 +633,31 @@ int CLog_writeSystemFile(char *content TSRMLS_DC){
 
 
 	return SUCCESS;
+}
+
+int CLog_writeFileContent(char *fileName,char *content TSRMLS_DC){
+
+
+	char	*thisMothTime;
+	smart_str smart_logContentStr = {0};
+
+	php_date("Y-m-d H:i:s",&thisMothTime);
+	smart_str_appends(&smart_logContentStr,"#LogTime:");
+	smart_str_appends(&smart_logContentStr,thisMothTime);
+	smart_str_appends(&smart_logContentStr,PHP_EOL);
+	smart_str_appends(&smart_logContentStr,"LogContent:");
+	smart_str_appends(&smart_logContentStr,content);
+	smart_str_appends(&smart_logContentStr,PHP_EOL);
+	smart_str_appends(&smart_logContentStr,PHP_EOL);
+	smart_str_0(&smart_logContentStr);
+	efree(thisMothTime);
+
+
+	//调用writeFile函数
+	CLog_writeFile(fileName,smart_logContentStr.c);
+	smart_str_free(&smart_logContentStr);
+
+	return 1;
 }
 
 PHP_METHOD(CLog,writeFile)
