@@ -2973,7 +2973,7 @@ PHP_METHOD(CBuilder,query)
 				MODULE_END
 
 				zval_dtor(&errorMessage);
-				php_sprintf(&errorMessageStr,0,"%s%s%s%s%s","[SQLException]",errorText," - SQL[",sql,"]");
+				spprintf(&errorMessageStr,0,"%s%s%s%s%s","[SQLException]",errorText," - SQL[",sql,"]");
 				efree(errorText);
 				zval_ptr_dtor(&beginTime);
 				zval_ptr_dtor(&pdoObject);
