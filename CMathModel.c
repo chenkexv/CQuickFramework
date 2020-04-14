@@ -146,9 +146,9 @@ PHP_METHOD(CMathModel,getInstance)
 	}
 
 	if(type == NULL || typeLen == 0){
-		nowModel = estrdup(type);
-	}else{
 		nowModel = estrdup("auto");
+	}else{
+		nowModel = estrdup(type);
 	}
 
 	CMathModel_getInstance(&instanceZval,nowModel TSRMLS_CC);
