@@ -51,7 +51,6 @@ if test "$PHP_CQUICKFRAMEWORK" != "no"; then
 	    CSmarty.c \
 	    CView.c \
 	    CWebApp.c \
-	    CServer.c \
 	    CDiContainer.c \
 	    CLog.c \
 	    CPagination.c \
