@@ -88,57 +88,76 @@ CMYFRAME_REGISTER_CLASS_RUN(CMathModel)
 	return SUCCESS;
 }
 
-int CMathModel_getInstance(zval **returnZval TSRMLS_DC)
+int CMathModel_getInstance(zval **returnZval,char *key TSRMLS_DC)
 {
-	zval	*instanceZval,
-		    *backZval;
 
-	//读取静态instace变量
-	instanceZval = zend_read_static_property(CMathModelCe,ZEND_STRL("instance"),0 TSRMLS_CC);
+	zval	*selfInstace,
+			**instaceSaveZval;
 
-	//为空时则实例化自身
-	if(IS_NULL == Z_TYPE_P(instanceZval) ){
-		zval				*object,
-							*saveObject;
+	selfInstace = zend_read_static_property(CMathModelCe,ZEND_STRL("instance"),1 TSRMLS_CC);
 
+	MAKE_STD_ZVAL(*returnZval);
 
-		//实例化该插件
+	//如果为NULL则更新为ZvalHashtable
+	if(IS_ARRAY != Z_TYPE_P(selfInstace)){
+		zval *saveArray;
+		MAKE_STD_ZVAL(saveArray);
+		array_init(saveArray);
+		zend_update_static_property(CMathModelCe,ZEND_STRL("instance"),saveArray TSRMLS_CC);
+		zval_ptr_dtor(&saveArray);
+		selfInstace = zend_read_static_property(CMathModelCe,ZEND_STRL("instance"),1 TSRMLS_CC);
+	}
+
+	if(SUCCESS == zend_hash_find(Z_ARRVAL_P(selfInstace),key,strlen(key)+1,(void**)&instaceSaveZval) ){
+		ZVAL_ZVAL(*returnZval,*instaceSaveZval,1,0);
+	}else{
+
+		zval	*object;
+
 		MAKE_STD_ZVAL(object);
 		object_init_ex(object,CMathModelCe);
 
-		//执行构造器
+		//执行其构造器 并传入参数
 		if (CMathModelCe->constructor) {
-			zval constructReturn;
-			zval constructVal;
+			zval	constructVal,
+					constructReturn;
 			INIT_ZVAL(constructVal);
 			ZVAL_STRING(&constructVal, CMathModelCe->constructor->common.function_name, 0);
 			call_user_function(NULL, &object, &constructVal, &constructReturn, 0, NULL TSRMLS_CC);
 			zval_dtor(&constructReturn);
 		}
 
-		//将类对象保存在instance静态变量
-		zend_update_static_property(CMathModelCe,ZEND_STRL("instance"),object TSRMLS_CC);
-		
-		//返回
-		MAKE_STD_ZVAL(*returnZval);
-		ZVAL_ZVAL(*returnZval,object,1,1);
-		return SUCCESS;
+		//将构造器返回值存入instance静态变量
+		add_assoc_zval(selfInstace,key,object);
+		zend_update_static_property(CMathModelCe,ZEND_STRL("instance"),selfInstace TSRMLS_CC);
+		ZVAL_ZVAL(*returnZval,object,1,0);
 	}
-
-	MAKE_STD_ZVAL(*returnZval);
-	ZVAL_ZVAL(*returnZval,instanceZval,1,0);
-	return SUCCESS;
 }
 
 PHP_METHOD(CMathModel,getInstance)
 {
 	zval *instanceZval;
+	char	*type = NULL,
+			*nowModel;
+	int		typeLen = 0;
 
-	CMathModel_getInstance(&instanceZval TSRMLS_CC);
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|s", &type,&typeLen) == FAILURE) {
+		return;
+	}
+
+	if(type == NULL || typeLen == 0){
+		nowModel = estrdup(type);
+	}else{
+		nowModel = estrdup("auto");
+	}
+
+	CMathModel_getInstance(&instanceZval,nowModel TSRMLS_CC);
 	ZVAL_ZVAL(return_value,instanceZval,1,1);
+	efree(nowModel);
 }
 
-PHP_METHOD(CMathModel,__construct){}
+PHP_METHOD(CMathModel,__construct){
+}
 
 PHP_METHOD(CMathModel,setData){}
 PHP_METHOD(CMathModel,getMathMode){}
