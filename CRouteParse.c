@@ -590,30 +590,67 @@ void CRouteParse_url(zval *paramsList,char **returnUrl TSRMLS_DC)
 
 
 	if(strcmp(useRewrite,"on") == 0){
-		char *tempUrl;
+		char				*tempUrl;
+		zval				*createUrlParams[1],
+							*newUrlZval;
+		zend_class_entry	**stdClassCePP,
+								*stdClass;
+
 		//调用重写函数
 		urlWriteResult(paramsList,reWriteList,1,&tempUrl TSRMLS_CC);
 		getResultUrl(module,domain,tempUrl,&resultUrl);
-		*returnUrl = estrdup(resultUrl);
+
+
+		zend_hash_find(EG(class_table),"stdclass",strlen("stdclass")+1,(void**)&stdClassCePP);
+		stdClass = *stdClassCePP;
+		MAKE_STD_ZVAL(createUrlParams[0]);
+		object_init_ex(createUrlParams[0],stdClass);
+		zend_update_property_string(stdClass,createUrlParams[0],ZEND_STRL("url"),resultUrl TSRMLS_CC);
+		CHooks_callHooks("HOOKS_URL_CREATE",createUrlParams,1 TSRMLS_CC);
+		newUrlZval = zend_read_property(stdClass,createUrlParams[0],ZEND_STRL("url"),1 TSRMLS_CC);
+		if(IS_STRING == Z_TYPE_P(newUrlZval)){
+			*returnUrl = estrdup(Z_STRVAL_P(newUrlZval));
+		}else{
+			*returnUrl = estrdup(resultUrl);
+		}
 		efree(tempUrl);
 		efree(resultUrl);
 		efree(useRewrite);
 		efree(domain);
 		zval_ptr_dtor(&cconfigInstanceZval);
 		zval_ptr_dtor(&reWriteList);
+		zval_ptr_dtor(&createUrlParams[0]);
 		return;
 	}else{
 		//调用非重写函数
 		char *reNoWriteUrl;
+		zval				*createUrlParams[1],
+							*newUrlZval;
+		zend_class_entry	**stdClassCePP,
+								*stdClass;
+
 		urlNoWriteResult(paramsList,reWriteList,1,&reNoWriteUrl TSRMLS_CC);
 		getResultUrl(module,domain,reNoWriteUrl,&resultUrl);
-		*returnUrl = estrdup(resultUrl);
+
+		zend_hash_find(EG(class_table),"stdclass",strlen("stdclass")+1,(void**)&stdClassCePP);
+		stdClass = *stdClassCePP;
+		MAKE_STD_ZVAL(createUrlParams[0]);
+		object_init_ex(createUrlParams[0],stdClass);
+		zend_update_property_string(stdClass,createUrlParams[0],ZEND_STRL("url"),resultUrl TSRMLS_CC);
+		CHooks_callHooks("HOOKS_URL_CREATE",createUrlParams,1 TSRMLS_CC);
+		newUrlZval = zend_read_property(stdClass,createUrlParams[0],ZEND_STRL("url"),1 TSRMLS_CC);
+		if(IS_STRING == Z_TYPE_P(newUrlZval)){
+			*returnUrl = estrdup(Z_STRVAL_P(newUrlZval));
+		}else{
+			*returnUrl = estrdup(resultUrl);
+		}
 		efree(reNoWriteUrl);
 		efree(resultUrl);
 		efree(domain);
 		efree(useRewrite);
 		zval_ptr_dtor(&cconfigInstanceZval);
 		zval_ptr_dtor(&reWriteList);
+		zval_ptr_dtor(&createUrlParams[0]);
 		return;
 	}
 
