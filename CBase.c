@@ -710,3 +710,14 @@ zend_class_entry *CQuickFrameworkGetExceptionBase(int root) {
 	return zend_exception_get_default(TSRMLS_C);
 #endif
 }
+
+//日志函数
+void writeSystemLog(char *name,char *log TSRMLS_DC){
+
+	//未指定日志 则直接写入系统日志中
+	zval *appPath = zend_read_static_property(CWebAppCe, ZEND_STRL("app_path"), 0 TSRMLS_CC);
+	char *saveFiles;
+	spprintf(&saveFiles,0,"%s/logs/systemlog/%s.log",Z_STRVAL_P(appPath),name);
+	CLog_writeFileContent(saveFiles,log TSRMLS_CC);
+	efree(saveFiles);
+}
