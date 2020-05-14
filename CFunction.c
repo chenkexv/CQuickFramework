@@ -2171,7 +2171,7 @@ void microtime(zval **getZval){
 double getMicrotime(){
 	char ret[100];
 	struct timeval tp = {0};
-	if (0 != gettimeofday(&tp, NULL)) {
+	if (gettimeofday(&tp, NULL)) {
 		return (double)1000000000.00;
 	}
 	return (double)(tp.tv_sec + tp.tv_usec / MICRO_IN_SEC);
