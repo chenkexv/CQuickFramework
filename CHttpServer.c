@@ -915,12 +915,12 @@ void handlerEvents(int epfd,struct epoll_event revs[],int num,int listen_sock,zv
 				continue;
 			}
 
-		   //refarword to message
-		   ev.events = EPOLLIN;
-		   ev.data.fd = new_sock;
-		   epoll_ctl(epfd,EPOLL_CTL_ADD,new_sock,&ev);
+			//refarword to message
+			ev.events = EPOLLIN;
+			ev.data.fd = new_sock;
+			epoll_ctl(epfd,EPOLL_CTL_ADD,new_sock,&ev);
 
-		   continue;
+			continue;
 		}
 
 		// 如果是普通文件描述符，则调用read提供读取数据的服务
