@@ -230,8 +230,17 @@ CMYFRAME_REGISTER_CLASS_RUN(CPoolException)
 CMYFRAME_REGISTER_CLASS_RUN(CServiceExceptionCe)
 {
 	zend_class_entry	funCe;
-	INIT_CLASS_ENTRY(funCe,"CServiceExceptionCe",COtherException_functions);
+	INIT_CLASS_ENTRY(funCe,"CServiceException",COtherException_functions);
 	CServiceExceptionCe = zend_register_internal_class_ex(&funCe,CExceptionCe,NULL TSRMLS_CC);
+	return SUCCESS;
+}
+
+//CNullPointerExceptionCe
+CMYFRAME_REGISTER_CLASS_RUN(CNullPointerExceptionCe)
+{
+	zend_class_entry	funCe;
+	INIT_CLASS_ENTRY(funCe,"CNullPointerException",COtherException_functions);
+	CNullPointerExceptionCe = zend_register_internal_class_ex(&funCe,CExceptionCe,NULL TSRMLS_CC);
 	return SUCCESS;
 }
 

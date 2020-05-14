@@ -36,6 +36,7 @@ zend_class_entry	*CExceptionCe,
 					*CRejectExceptionCe,
 					*CIOExceptionCe,
 					*CPoolExceptionCe,
+					*CNullPointerExceptionCe,
 					*CServiceExceptionCe;
 
 
