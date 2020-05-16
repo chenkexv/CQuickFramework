@@ -56,22 +56,35 @@
 #define MSG_USER 1
 #define MSG_HEART 2
 
+#define MAX_SENDLIST_LEN  1024
+
 //服务器全局变量
 static zval *serverSocketList = NULL;
 static smart_str serverTempBuffer[10240] = {0};
+static zval *serverErrorHandler = NULL;
+static zval *serverSendList = NULL;
+static zval *serverMainObject = NULL;
+static int serverListenSocket = 0;
+static sem_t *serverAccpetLock = NULL;
+
 
 
 //客户端全局变量
 static int clientErrNums = 0;
-static int clientStatus = 0;	//0 未就绪 1连接成功 2断开连接， 3正在重试
+static int clientStatus = 0;	//0 未就绪 1连接成功 2断开连接， 3正在重试 4主动断开不再重试
 static int clientSocketId = 0;
 static unsigned int clientTimer = 0;
 static char *clientHost = NULL;
 static int clientPort = 0;
 static double clientLastMessageTime = 0.0;
 static int clientRecProcessId = 0;
-static int clientWriteProcessId = 0;
 static int clientMainEpollFd = 0;
+static zval *clientPHPObject = NULL;
+static zval *clientErrorHandler = NULL;
+static int clientRecProcessWritePipeFd = 0;
+static int clientRecProcessReadPipeFd = 0;
+static int clientSleepFlag = 0;
+static zval *clientSendList = NULL;
 
 
 //zend类方法
@@ -80,9 +93,11 @@ zend_function_entry CTcpServer_functions[] = {
 	PHP_ME(CTcpServer,__destruct,NULL,ZEND_ACC_PUBLIC|ZEND_ACC_DTOR)
 	PHP_ME(CTcpServer,getInstance,NULL,ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
 	PHP_ME(CTcpServer,bind,NULL,ZEND_ACC_PUBLIC)
+	PHP_ME(CTcpServer,setWorker,NULL,ZEND_ACC_PUBLIC)
 	PHP_ME(CTcpServer,listen,NULL,ZEND_ACC_PUBLIC )
 	PHP_ME(CTcpServer,on,NULL,ZEND_ACC_PUBLIC )
 	PHP_ME(CTcpServer,onData,NULL,ZEND_ACC_PUBLIC )
+	PHP_ME(CTcpServer,onError,NULL,ZEND_ACC_PUBLIC )
 	PHP_ME(CTcpServer,Action_worker,NULL,ZEND_ACC_PUBLIC )
 	{NULL, NULL, NULL}
 };
@@ -92,11 +107,11 @@ zend_function_entry CTcpClient_functions[] = {
 	PHP_ME(CTcpClient,__destruct,NULL,ZEND_ACC_PUBLIC|ZEND_ACC_DTOR)
 	PHP_ME(CTcpClient,getInstance,NULL,ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
 	PHP_ME(CTcpClient,connect,NULL,ZEND_ACC_PUBLIC)
-	PHP_ME(CTcpClient,onConnect,NULL,ZEND_ACC_PUBLIC )
 	PHP_ME(CTcpClient,on,NULL,ZEND_ACC_PUBLIC )
-	PHP_ME(CTcpClient,onDisconnect,NULL,ZEND_ACC_PUBLIC )
+	PHP_ME(CTcpClient,onError,NULL,ZEND_ACC_PUBLIC )
 	PHP_ME(CTcpClient,emit,NULL,ZEND_ACC_PUBLIC )
 	PHP_ME(CTcpClient,close,NULL,ZEND_ACC_PUBLIC )
+	PHP_ME(CTcpClient,sleep,NULL,ZEND_ACC_PUBLIC )
 	{NULL, NULL, NULL}
 };
 
@@ -111,8 +126,11 @@ zend_function_entry CSocket_functions[] = {
 	PHP_ME(CSocket,getSessionId,NULL,ZEND_ACC_PUBLIC )
 	PHP_ME(CSocket,getProcessId,NULL,ZEND_ACC_PUBLIC )
 	PHP_ME(CSocket,getLastActiveTime,NULL,ZEND_ACC_PUBLIC )
+	PHP_ME(CSocket,getSocket,NULL,ZEND_ACC_PUBLIC )
+	PHP_ME(CSocket,getAllConnection,NULL,ZEND_ACC_PUBLIC )
 	{NULL, NULL, NULL}
 };
+
 
 //模块被加载时
 CMYFRAME_REGISTER_CLASS_RUN(CTcpServer)
@@ -127,7 +145,7 @@ CMYFRAME_REGISTER_CLASS_RUN(CTcpServer)
 	zend_declare_property_long(CTcpServerCe, ZEND_STRL("port"),0,ZEND_ACC_PRIVATE TSRMLS_CC);
 	zend_declare_property_long(CTcpServerCe, ZEND_STRL("worker"),0,ZEND_ACC_PRIVATE TSRMLS_CC);
 	zend_declare_property_null(CTcpServerCe, ZEND_STRL("pidList"),ZEND_ACC_PRIVATE TSRMLS_CC);
-
+	
 	//dataCallbackObject
 	zend_declare_property_null(CTcpServerCe, ZEND_STRL("eventTable"),ZEND_ACC_PRIVATE TSRMLS_CC);
 	zend_declare_property_null(CTcpServerCe, ZEND_STRL("eventDefault"),ZEND_ACC_PRIVATE TSRMLS_CC);
@@ -144,7 +162,8 @@ CMYFRAME_REGISTER_CLASS_RUN(CTcpClient)
 	zend_declare_property_null(CTcpClientCe, ZEND_STRL("instance"),ZEND_ACC_PRIVATE|ZEND_ACC_STATIC TSRMLS_CC);
 	zend_declare_property_string(CTcpClientCe, ZEND_STRL("host"),"",ZEND_ACC_PRIVATE TSRMLS_CC);
 	zend_declare_property_long(CTcpClientCe, ZEND_STRL("port"),0,ZEND_ACC_PRIVATE TSRMLS_CC);
-	zend_declare_property_null(CTcpClientCe, ZEND_STRL("sendList"),ZEND_ACC_PRIVATE TSRMLS_CC);
+	zend_declare_property_double(CTcpClientCe, ZEND_STRL("connectTime"),0.00,ZEND_ACC_PRIVATE TSRMLS_CC);
+	zend_declare_property_null(CTcpClientCe, ZEND_STRL("eventTable"),ZEND_ACC_PRIVATE TSRMLS_CC);
 
 	return SUCCESS;
 }
@@ -198,20 +217,199 @@ int startTcpListen(char *host,int port){
     return sock;
 }
 
+
+//主进程 检查所有worker进程状态
+void createWorkProcess(int forkNum,int listenfd,sem_t *lock,zval *object TSRMLS_DC);
+
+int checkTcpServerWorkerStatus(zval *object TSRMLS_DC){
+
+	//检查当前进程状态
+	int		i,h,processStatus,aliveNum = 0,
+			needCreate = 0,
+			need = 0;
+	zval	*pidList;
+	char	*key;
+	ulong	uKey;
+
+	pidList = zend_read_property(CTcpServerCe,serverMainObject,ZEND_STRL("pidList"),1 TSRMLS_CC);
+	h = zend_hash_num_elements(Z_ARRVAL_P(pidList));
+	zend_hash_internal_pointer_reset(Z_ARRVAL_P(pidList));
+	aliveNum = 0;
+	for(i = 0 ; i < h ; i++){
+		zend_hash_get_current_key(Z_ARRVAL_P(pidList),&key,&uKey,0);
+		//检查进程存活
+		processStatus = -1;
+		processStatus = kill(uKey,0);
+		if(processStatus == 0){
+			aliveNum++;
+		}else{
+			zend_hash_index_del(Z_ARRVAL_P(pidList),uKey);
+		}
+		zend_hash_move_forward(Z_ARRVAL_P(pidList));
+	}
+
+	need = getCreateWorkerNums(object TSRMLS_CC);
+
+	if(need > aliveNum){
+		needCreate = need - aliveNum;
+		php_printf("[CTcpServer] The master check child status,now alive [%d],need keep num[%d],need create[%d]\n",aliveNum,need,needCreate);
+		createWorkProcess(needCreate,serverListenSocket,serverAccpetLock,serverMainObject TSRMLS_CC);
+	}
+	
+
+}
+
 void catchTcpChildSig(int sig){
-	php_printf("[CPoolRuntime] [%d-%d] Receive a child process exit signal [%d]\n",getppid(),getpid(),sig);
+	php_printf("[CTcpServer] [%d-%d] Receive a child process exit signal [%d]\n",getppid(),getpid(),sig);
 	int endPid = wait(NULL);
-	php_printf("[CPoolRuntime] The process for determining the unexpected termination is [%d]\n",endPid);
-	//checkPoolStatus(thisObject TSRMLS_CC);
+	php_printf("[CTcpServer] The process for determining the unexpected termination is [%d]\n",endPid);
+
+	zval	*pidList = zend_read_property(CTcpServerCe,serverMainObject,ZEND_STRL("pidList"),1 TSRMLS_CC);
+	if(IS_ARRAY == Z_TYPE_P(pidList) && zend_hash_index_exists(Z_ARRVAL_P(pidList),endPid)){
+		zend_hash_index_del(Z_ARRVAL_P(pidList),endPid);
+	}
+	checkTcpServerWorkerStatus(serverMainObject TSRMLS_CC);
+}
+
+//创建多个子进程
+void createWorkProcess(int forkNum,int listenfd,sem_t *lock,zval *object TSRMLS_DC){
+
+	int		i = 0;
+
+	zval	*pidList = zend_read_property(CTcpServerCe,object,ZEND_STRL("pidList"),1 TSRMLS_CC);
+
+	for(i = 0 ; i < forkNum ;i++){
+
+		int forkPid = -1;
+		forkPid=fork();
+		if(forkPid==-1){
+			continue;
+		}else if(forkPid == 0){
+
+			//初始化子进程
+			workProcessInit(listenfd,lock,object TSRMLS_CC);
+
+		}else{
+
+			signal(SIGCHLD, catchTcpChildSig);
+
+			//将所有子进程的PID保存
+			add_index_long(pidList,forkPid,1);
+
+			if(i == forkNum - 1){
+
+				while(1){
+					sleep(10);
+				}
+
+			}
+
+		}
+	}
+
 }
 
 void catchTcpClientChildSig(int sig){
-	php_printf("[CPoolRuntime] [%d-%d] Receive a child process exit signal [%d]\n",getppid(),getpid(),sig);
+	php_printf("[CTcpServer] [%d-%d] Receive a child process exit signal [%d]\n",getppid(),getpid(),sig);
 	int endPid = wait(NULL);
-	php_printf("[CPoolRuntime] The process for determining the unexpected termination is [%d]\n",endPid);
-	if(endPid == clientRecProcessId || endPid == clientWriteProcessId){
-		clientStatus = 2;
+	php_printf("[CTcpServer] The process for determining the unexpected termination is [%d]\n",endPid);
+	if(endPid == clientRecProcessId){
+		if(clientStatus != 4){
+			clientStatus = 2;
+		}
 	}
+}
+
+static int read_to_buf(const char *filename, void *buf, int len)
+{
+	int fd;
+	int ret;
+	
+	if(buf == NULL || len < 0){
+		printf("%s: illegal para\n", __func__);
+		return -1;
+	}
+ 
+	memset(buf, 0, len);
+	fd = open(filename, O_RDONLY);
+	if(fd < 0){
+		perror("open:");
+		return -1;
+	}
+	ret = read(fd, buf, len);
+	close(fd);
+	return ret;
+}
+ 
+static char *getCmdline(int pid, char *buf, int len)
+{
+	char filename[32];
+	char *name = NULL;
+	int n = 0;
+	
+	if(pid < 1 || buf == NULL || len < 0){
+		printf("%s: illegal para\n", __func__);
+		return NULL;
+	}
+		
+	snprintf(filename, 32, "/proc/%d/cmdline", pid);
+	n = read_to_buf(filename, buf, len);
+	if(n < 0)
+		return NULL;
+ 
+	if(buf[n-1]=='\n')
+		buf[--n] = 0;
+ 
+	name = buf;
+	while(n) {
+		if(((unsigned char)*name) < ' ')
+			*name = ' ';
+		name++;
+		n--;
+	}
+	*name = 0;
+	name = NULL;
+ 
+	if(buf[0])
+		return buf;
+ 
+	return NULL;	
+}
+
+int throwClientException(char *message){
+
+}
+
+int throwServerException(char *message){
+	if(serverErrorHandler == NULL){
+		php_error_docref(NULL TSRMLS_CC, E_ERROR ,message);
+		return 1;
+	}
+
+	//触发错误事件
+	zval	*callback;
+	char	*callback_name = NULL;
+	callback = serverErrorHandler;
+	if (!zend_is_callable(callback, 0, &callback_name TSRMLS_CC)) {
+		efree(callback_name);
+		zend_throw_exception(CMicroServerExceptionCe, message, 10000 TSRMLS_CC);
+		return 0;
+	}
+
+	zval	constructVal,
+			contruReturn,
+			*paramsList[1];
+
+	INIT_ZVAL(constructVal);
+	ZVAL_STRING(&constructVal,callback_name,0);
+	MAKE_STD_ZVAL(paramsList[0]);
+	ZVAL_STRING(paramsList[0],message,1);
+	int callStatus = call_user_function(NULL, &callback, &constructVal, &contruReturn,1, paramsList TSRMLS_CC);
+
+	zval_dtor(&contruReturn);
+	zval_ptr_dtor(&paramsList[0]);
+	efree(callback_name);
+	return 2;
 }
 
 void getSocketRemoteIp(int fd,char **remoteIp){
@@ -241,7 +439,7 @@ int processMessage(int fd,char *thisMessage,zval *object TSRMLS_DC){
 		zval_ptr_dtor(&jsonDecoder);
 		char *errorMessage;
 		spprintf(&errorMessage,0,"some message parse error : %s",thisMessage);
-		writeSystemLog("TCPServer.log",errorMessage TSRMLS_CC);
+		throwServerException(errorMessage);
 		efree(errorMessage);
 		return -1;
 	}
@@ -268,7 +466,9 @@ int processMessage(int fd,char *thisMessage,zval *object TSRMLS_DC){
 
 		//生成客户端信息
 		zval **socketInfo;
-		if(SUCCESS == zend_hash_index_find(Z_ARRVAL_P(serverSocketList),getpid()+fd,(void**)&socketInfo) && IS_ARRAY == Z_TYPE_PP(socketInfo)){
+		char socketIndex[100];
+		sprintf(socketIndex,"%d_%d",getpid(),fd);
+		if(SUCCESS == zend_hash_find(Z_ARRVAL_P(serverSocketList),socketIndex,strlen(socketIndex)+1,(void**)&socketInfo) && IS_ARRAY == Z_TYPE_PP(socketInfo)){
 			zval **thisInfoItem;
 			if(SUCCESS == zend_hash_find(Z_ARRVAL_PP(socketInfo),"remoteIp",strlen("remoteIp")+1,(void**)&thisInfoItem)){
 				zend_update_property_string(CSocketCe,callParams,ZEND_STRL("remoteIp"),Z_STRVAL_PP(thisInfoItem) TSRMLS_CC);
@@ -285,6 +485,9 @@ int processMessage(int fd,char *thisMessage,zval *object TSRMLS_DC){
 		callback = *eventCallback;
 		if (!zend_is_callable(callback, 0, &callback_name TSRMLS_CC)) {
 			efree(callback_name);
+			efree(base64Decoder);
+			zval_ptr_dtor(&callParams);
+			zval_ptr_dtor(&jsonDecoder);
 			return 0;
 		}
 
@@ -312,16 +515,22 @@ int processMessage(int fd,char *thisMessage,zval *object TSRMLS_DC){
 void serverCloseClientSocket(int socketFd,zval *object){
 	
 	//检查socket列表
-	int sockedIndex = getpid()+socketFd;
-	if(IS_ARRAY == Z_TYPE_P(serverSocketList) && zend_hash_index_exists(Z_ARRVAL_P(serverSocketList),sockedIndex) ){
-		zend_hash_index_del(Z_ARRVAL_P(serverSocketList),sockedIndex);
-		php_printf("socket has close [%d] == now socket [%d] \n",sockedIndex,zend_hash_num_elements(Z_ARRVAL_P(serverSocketList)));
+	char socketIndex[100];
+	sprintf(socketIndex,"%d_%d",getpid(),socketFd);
 
+	if(IS_ARRAY == Z_TYPE_P(serverSocketList) && zend_hash_exists(Z_ARRVAL_P(serverSocketList),socketIndex,strlen(socketIndex)+1) ){
 		//触发关闭事件
 		//WzIsImRpc2Nvbm5lY3QiLCIiXQ==  [2,"disconnect",""]
 		processMessage(socketFd,"WzIsImRpc2Nvbm5lY3QiLCIiXQ==",object TSRMLS_CC);
 
+		zend_hash_del(Z_ARRVAL_P(serverSocketList),socketIndex,strlen(socketIndex)+1);
 	}
+
+	//删除所有此socket未成功发送的记录
+	if(serverSendList != NULL && IS_ARRAY == Z_TYPE_P(serverSendList) && zend_hash_index_exists(Z_ARRVAL_P(serverSendList),socketFd) ){
+		zend_hash_index_del(Z_ARRVAL_P(serverSendList),socketFd);
+	}
+
 
 	//关闭socket
 	close(socketFd);
@@ -355,6 +564,9 @@ int handlerTCPEvents(int epfd,struct epoll_event revs[],int num,int listen_sock,
 				continue;
 			}
 
+			//socket设为非阻塞
+			fcntl(new_sock, F_SETFL, fcntl(new_sock, F_GETFL, NULL) | O_NONBLOCK);
+
 			//获取对端信息
 			zval	*remoteInfo,
 					*connectTime;
@@ -366,8 +578,9 @@ int handlerTCPEvents(int epfd,struct epoll_event revs[],int num,int listen_sock,
 			add_assoc_string(remoteInfo,"remoteIp",remoteIp,0);
 			add_assoc_double(remoteInfo,"connectTime",Z_DVAL_P(connectTime));
 			zval_ptr_dtor(&connectTime);
-			int socketIndex = getpid()+new_sock;
-			add_index_zval(serverSocketList,socketIndex,remoteInfo);
+			char socketIndex[100];
+			sprintf(socketIndex,"%d_%d",getpid(),new_sock);
+			add_assoc_zval(serverSocketList,socketIndex,remoteInfo);
 
 			//检测系统默认事件触发
 			//WzIsImNvbm5lY3QiLCIiXQ==  [2,"connect",""]
@@ -387,8 +600,7 @@ int handlerTCPEvents(int epfd,struct epoll_event revs[],int num,int listen_sock,
 
 			char		buf[2],
 						*thisMessage;
-			int			readLen = 0,k,
-						findMessage = 0;
+			int			readLen = 0,k;
 
 			smart_str	tempBuffer[10240] = {0};
 
@@ -399,35 +611,28 @@ int handlerTCPEvents(int epfd,struct epoll_event revs[],int num,int listen_sock,
 			}
 
 			while(1){
+				errno = 0;
 				readLen = read(fd,buf,sizeof(buf)-1);
 
 				if(readLen <= 0){
-					serverCloseClientSocket(fd,object);
-					break;
-				}
-
-				for(k = 0 ; k < readLen;k++){
-
-					//依次检查字符
-					if(buf[k] != '\n'){
-						smart_str_appendc(&tempBuffer[fd],buf[k]);
-					}else if(buf[k] == '\n'){
-						smart_str_0(&tempBuffer[fd]);
-						thisMessage = estrdup(tempBuffer[fd].c);
-
-						//处理消息
-						processMessage(fd,thisMessage,object TSRMLS_CC);
-						findMessage = 1;
-						efree(thisMessage);
-						smart_str_free(&tempBuffer[fd]);
-						break;
+					if(readLen == 0){
+						serverCloseClientSocket(fd,object);
 					}
-				}
-				if(findMessage){
-					findMessage = 0;
 					break;
 				}
-				
+
+				if(buf[0] != '\n'){
+					smart_str_appendc(&tempBuffer[fd],buf[0]);
+				}else{
+					smart_str_0(&tempBuffer[fd]);
+					thisMessage = estrdup(tempBuffer[fd].c);
+					smart_str_free(&tempBuffer[fd]);
+
+					//处理消息
+					processMessage(fd,thisMessage,object TSRMLS_CC);
+					efree(thisMessage);
+					break;
+				}	
 			}
 		}
 
@@ -435,12 +640,143 @@ int handlerTCPEvents(int epfd,struct epoll_event revs[],int num,int listen_sock,
 	return nowIsGetLock;
 }
 
+//服务器写消息
+void doServerSendMessage(zval *object TSRMLS_DC){
+
+	int		i,h,j,k;
+	zval	**thisMessage,
+			**toSocket,
+			**messageContent,
+			**socketMessage;
+	char	*key;
+	ulong	uKey;
+
+	if(serverSendList == NULL || IS_ARRAY != Z_TYPE_P(serverSendList)){
+		return;
+	}
+
+	h = zend_hash_num_elements(Z_ARRVAL_P(serverSendList));
+
+	if(h == 0){
+		return;
+	}
+	zend_hash_internal_pointer_reset(Z_ARRVAL_P(serverSendList));
+	for(i = 0 ; i < h;i++){
+		zend_hash_get_current_data(Z_ARRVAL_P(serverSendList),(void**)&socketMessage);
+
+		if(IS_ARRAY == Z_TYPE_PP(socketMessage)){
+			k = zend_hash_num_elements(Z_ARRVAL_PP(socketMessage));
+			for(j = 0 ; j < k ;j++){
+
+				zend_hash_get_current_key(Z_ARRVAL_PP(socketMessage),&key,&uKey,0);
+				if(SUCCESS == zend_hash_get_current_data(Z_ARRVAL_PP(socketMessage),(void**)&thisMessage) && IS_ARRAY == Z_TYPE_PP(thisMessage)){
+				}else{
+					zend_hash_index_del(Z_ARRVAL_PP(socketMessage),uKey);
+					zend_hash_move_forward(Z_ARRVAL_PP(socketMessage));
+					continue;
+				}
+
+
+				if(SUCCESS == zend_hash_index_find(Z_ARRVAL_PP(thisMessage),0,(void**)&toSocket) && IS_LONG == Z_TYPE_PP(toSocket) &&
+				   SUCCESS == zend_hash_index_find(Z_ARRVAL_PP(thisMessage),1,(void**)&messageContent) && IS_STRING == Z_TYPE_PP(messageContent)){
+				}else{
+					zend_hash_index_del(Z_ARRVAL_PP(socketMessage),uKey);
+					zend_hash_move_forward(Z_ARRVAL_PP(socketMessage));
+					continue;
+				}
+
+				errno = 0;
+				int status = write(Z_LVAL_PP(toSocket),Z_STRVAL_PP(messageContent),Z_STRLEN_PP(messageContent));
+
+				//写入失败
+				if(status <= 0){	
+					if(errno == EINTR || errno == EWOULDBLOCK || errno == EAGAIN){
+						break;
+					}else{
+						//客户端已关闭
+						serverCloseClientSocket(Z_LVAL_PP(toSocket),object);
+						break;
+					}
+				}
+				
+				//移除消息
+				zend_hash_index_del(Z_ARRVAL_PP(socketMessage),uKey);
+				zend_hash_move_forward(Z_ARRVAL_PP(socketMessage));
+			}
+		}
+
+		zend_hash_move_forward(Z_ARRVAL_P(serverSendList));
+	}
+
+}
+
+void doClientSendMessage(){
+
+	int		i,h;
+	zval	**thisMessage,
+			**toSocket,
+			**messageContent;
+	char	*key;
+	ulong	uKey;
+
+
+	if(clientSendList == NULL || IS_ARRAY != Z_TYPE_P(clientSendList)){
+		return;
+	}
+
+	h = zend_hash_num_elements(Z_ARRVAL_P(clientSendList));
+	if(h == 0){
+		return;
+	}
+
+	zend_hash_internal_pointer_reset(Z_ARRVAL_P(clientSendList));
+	for(i = 0 ; i < h;i++){
+
+		zend_hash_get_current_data(Z_ARRVAL_P(clientSendList),(void**)&thisMessage);
+		zend_hash_get_current_key(Z_ARRVAL_P(clientSendList),&key,&uKey,0);
+
+		zend_hash_index_find(Z_ARRVAL_PP(thisMessage),0,(void**)&toSocket);
+		zend_hash_index_find(Z_ARRVAL_PP(thisMessage),1,(void**)&messageContent);
+
+
+		errno = 0;
+		int status = write(clientSocketId,Z_STRVAL_PP(messageContent),Z_STRLEN_PP(messageContent));
+
+		//写入失败 让出进程
+		if(status <= 0){
+			if(errno == EINTR || errno == EWOULDBLOCK || errno == EAGAIN){
+				break;
+			}else{
+
+				//服务器有异常
+				ClientCloseSocket(0,0);
+				break;
+			}
+		}
+
+		//仅写入一部分的消息
+		if(status < Z_STRLEN_PP(messageContent)){
+			char *notSendMessage;
+			substr(Z_STRVAL_PP(messageContent),status,Z_STRLEN_PP(messageContent)-status,&notSendMessage);
+			add_index_string(*thisMessage,1,notSendMessage,0);
+			break;
+		}
+
+		
+		//移除消息
+		zend_hash_move_forward(Z_ARRVAL_P(clientSendList));
+		zend_hash_index_del(Z_ARRVAL_P(clientSendList),uKey);
+	}
+
+}
+
+
 //初始化子进程
 //设置进程标识
 //每个子进程绑定epoll
 int workProcessInit(int listenfd,sem_t *lock,zval *object TSRMLS_DC){
 
-	ini_set("memory_limit","4096M");
+	ini_set("memory_limit","196M");
 
 	//添加epoll事件
 	int epfd = epoll_create(1024);
@@ -453,6 +789,17 @@ int workProcessInit(int listenfd,sem_t *lock,zval *object TSRMLS_DC){
 	struct epoll_event  ev;
     ev.events = EPOLLIN; 
     ev.data.fd = listenfd;
+
+	if(serverSendList == NULL){
+		MAKE_STD_ZVAL(serverSendList);
+		array_init(serverSendList);
+	}
+
+	//设置信号 阻止进程退出
+	struct sigaction sa;
+	memset(&sa, 0, sizeof(sa));
+	sa.sa_handler = SIG_IGN;
+	sigaction(SIGPIPE, &sa, 0);
 
 	
 	struct epoll_event revs[128];
@@ -471,28 +818,37 @@ int workProcessInit(int listenfd,sem_t *lock,zval *object TSRMLS_DC){
 	while(1) {
 
 		//检查信号量
+		errno = 0;
 		int tryNum = sem_trywait(lock);
 		if (tryNum == 0) {
 			if (isGotLock == 0) {
 				isGotLock = 1;
 				//注册事件
 				epoll_ctl(epfd,EPOLL_CTL_ADD,listenfd,&ev);
+
+				php_printf("register\n");
 			}
 		}else{
 			if (isGotLock) {
 				//删除事件
 				epoll_ctl(epfd, EPOLL_CTL_DEL, listenfd, NULL);
 				isGotLock = 0;
+
+				php_printf("unregister\n");
 			}
 		}
 
 
        //开始epoll事件等待
-       num = epoll_wait(epfd,revs,n,timeout);
+       num = epoll_wait(epfd,revs,n,500);
+
+	   php_printf("epoll:%d\n",num);
 
 	   if(num > 0){
 			isGotLock = handlerTCPEvents(epfd,revs,num,listenfd,lock,isGotLock,object TSRMLS_CC);
 	   }
+
+		doServerSendMessage(object TSRMLS_CC);
 
 	   if (isGotLock) {
 			sem_post(lock);
@@ -506,44 +862,10 @@ int workProcessInit(int listenfd,sem_t *lock,zval *object TSRMLS_DC){
 }
 
 
-//创建多个子进程
-void createWorkProcess(int forkNum,int listenfd,sem_t *lock,zval *object TSRMLS_DC){
-
-	int		i = 0;
-
-	for(i = 0 ; i < forkNum ;i++){
-
-		int forkPid = -1;
-		forkPid=fork();
-		if(forkPid==-1){
-			continue;
-		}else if(forkPid == 0){
-
-			//初始化子进程
-			workProcessInit(listenfd,lock,object TSRMLS_CC);
-
-		}else{
-
-			signal(SIGCHLD, catchTcpChildSig);
-
-			if(i == forkNum - 1){
-
-				while(1){
-					sleep(10);
-				}
-
-			}
-
-		}
-	}
-
-}
-
-
 PHP_METHOD(CTcpServer,__construct){
 	zval	*eventTable;
 
-	ini_set("memory_limit","4096M");
+	ini_set("memory_limit","196M");
 
 	eventTable = zend_read_property(CTcpServerCe,getThis(),ZEND_STRL("eventTable"), 0 TSRMLS_CC);
 	if(IS_ARRAY != Z_TYPE_P(eventTable)){
@@ -558,6 +880,10 @@ PHP_METHOD(CTcpServer,__construct){
 }
 
 PHP_METHOD(CTcpServer,__destruct){
+
+	if(serverErrorHandler != NULL){
+		zval_ptr_dtor(&serverErrorHandler);
+	}
 }
 
 PHP_METHOD(CTcpServer,getInstance){
@@ -615,6 +941,20 @@ PHP_METHOD(CTcpServer,getInstance){
 
 		RETURN_ZVAL(object,1,0);
 	}
+}
+
+int getCreateWorkerNums(zval *object TSRMLS_DC){
+	
+	zval	*workerNum;
+	workerNum = zend_read_property(CTcpServerCe,object,ZEND_STRL("worker"), 0 TSRMLS_CC);
+
+	if(IS_LONG == Z_TYPE_P(workerNum) && Z_LVAL_P(workerNum) > 0){
+		return Z_LVAL_P(workerNum);
+	}
+
+	//返回CPU核心数
+	int cpuNum =  get_nprocs();
+	return cpuNum*2;
 }
 
 PHP_METHOD(CTcpServer,listen){
@@ -699,9 +1039,34 @@ PHP_METHOD(CTcpServer,listen){
 		return;
     }
 
+	//使用systemV信号量
+	int semid = semget((key_t)getpid(),1,IPC_CREAT|IPC_EXCL|0664);
+	if(semid < 0){
+		php_error_docref(NULL TSRMLS_CC, E_ERROR ,"[FatalException] can not create systemV semget ");
+		close(listenSocket);
+		return;
+	}
+	//初始化
+	int initStatus = semctl(semid , 0 , SETVAL , val);
+
+
+	//设置全局变量 用于状态检查
+	serverAccpetLock = lock;
+	serverListenSocket = listenSocket;
+	serverMainObject = getThis();
+
 	//fork多子进程
-	int workerNum = 6;
+	int workerNum = getCreateWorkerNums(getThis() TSRMLS_CC);
 	createWorkProcess(workerNum,listenSocket,lock,getThis() TSRMLS_CC);
+}
+
+PHP_METHOD(CTcpServer,setWorker){
+	long	num = 0;
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"l",&num) == FAILURE){
+		RETURN_FALSE;
+	}
+	zend_update_property_long(CTcpServerCe,getThis(),ZEND_STRL("worker"),num TSRMLS_CC);
+	RETVAL_ZVAL(getThis(),1,0);
 }
 
 PHP_METHOD(CTcpServer,bind){
@@ -714,7 +1079,7 @@ PHP_METHOD(CTcpServer,bind){
 	}
 
 	if(port == 0){
-		zend_throw_exception(CIOExceptionCe, "[CTCPServerException] call [CTCPServer->bind] the port must available port", 7001 TSRMLS_CC);
+		php_error_docref(NULL TSRMLS_CC, E_ERROR ,"[CTCPServerException] call [CTCPServer->bind] the port must available port");
 		return;
 	}
 
@@ -738,7 +1103,7 @@ PHP_METHOD(CTcpServer,on){
 
 	if (!zend_is_callable(callback, 0, &callback_name TSRMLS_CC)) {
         efree(callback_name);
-		zend_throw_exception(CMicroServerExceptionCe, "[CTcpServerException] call [CTcpServer->onData] the params is not a callback function", 7001 TSRMLS_CC);
+		throwServerException("[CTcpServerException] call [CTcpServer->on] the params is not a callback function");
         RETVAL_ZVAL(getThis(),1,0);
         return;
     }
@@ -768,7 +1133,7 @@ PHP_METHOD(CTcpServer,onData){
 
 	if (!zend_is_callable(callback, 0, &callback_name TSRMLS_CC)) {
         efree(callback_name);
-		zend_throw_exception(CMicroServerExceptionCe, "[CTcpServerException] call [CTcpServer->onData] the params is not a callback function", 7001 TSRMLS_CC);
+		throwServerException("[CTcpServerException] call [CTcpServer->onData] the params is not a callback function");
         RETVAL_ZVAL(getThis(),1,0);
         return;
     }
@@ -788,21 +1153,21 @@ PHP_METHOD(CTcpServer,Action_worker){
 
 PHP_METHOD(CTcpClient,__construct){
 
-	zval *sendList;
+	zval *eventTable;
 
-	ini_set("memory_limit","4096M");
+	ini_set("memory_limit","196M");
 
-	sendList = zend_read_property(CTcpClientCe,getThis(),ZEND_STRL("sendList"), 0 TSRMLS_CC);
-	if(IS_ARRAY != Z_TYPE_P(sendList)){
+	eventTable = zend_read_property(CTcpClientCe,getThis(),ZEND_STRL("eventTable"), 0 TSRMLS_CC);
+	if(IS_ARRAY != Z_TYPE_P(eventTable)){
 		zval *saveArray;
 		MAKE_STD_ZVAL(saveArray);
 		array_init(saveArray);
-		zend_update_property(CTcpClientCe,getThis(),ZEND_STRL("sendList"),saveArray TSRMLS_CC);
+		zend_update_property(CTcpClientCe,getThis(),ZEND_STRL("eventTable"),saveArray TSRMLS_CC);
 		zval_ptr_dtor(&saveArray);
-		sendList = zend_read_property(CTcpClientCe,getThis(),ZEND_STRL("sendList"),1 TSRMLS_CC);
+		eventTable = zend_read_property(CTcpClientCe,getThis(),ZEND_STRL("eventTable"),1 TSRMLS_CC);
 	}
-
 }
+
 
 PHP_METHOD(CTcpClient,__destruct){
 
@@ -817,6 +1182,11 @@ PHP_METHOD(CTcpClient,__destruct){
 	//删除
 	if(clientHost != NULL){
 		efree(clientHost);
+		clientHost = NULL;
+	}
+
+	if(clientErrorHandler != NULL){
+		zval_ptr_dtor(&clientErrorHandler);
 	}
 }
 
@@ -905,10 +1275,14 @@ int connectServerPort(char *host,int port TSRMLS_DC){
 int ClientCloseSocket(int epfd,int listen_sock){
 
 	//移除epoll事件
-	epoll_ctl(epfd, EPOLL_CTL_DEL, listen_sock, NULL);
+	if(epfd > 0){
+		epoll_ctl(epfd, EPOLL_CTL_DEL, listen_sock, NULL);
+	}
 
 	//关闭当前socket
-	close(listen_sock);
+	if(listen_sock > 0){
+		close(listen_sock);
+	}
 
 	//退出 当前子进程
 	zend_bailout();
@@ -923,6 +1297,18 @@ int checkServerStatus(int epfd,int listen_sock){
 	ClientCloseSocket(epfd,listen_sock);
 
 
+}
+
+int processMasterSendMessage(int fd,char *thisMessage TSRMLS_DC){
+	char *saveMessage;
+	zval *sendMessage;
+	MAKE_STD_ZVAL(sendMessage);
+	array_init(sendMessage);
+	add_index_long(sendMessage,0,fd);
+	spprintf(&saveMessage,0,"%s%c",thisMessage,'\n');
+	add_index_string(sendMessage,1,saveMessage,0);
+	add_next_index_zval(clientSendList,sendMessage);
+	return 1;
 }
 
 int processClientMessage(int fd,char *thisMessage TSRMLS_DC){
@@ -943,12 +1329,66 @@ int processClientMessage(int fd,char *thisMessage TSRMLS_DC){
 		zval_ptr_dtor(&jsonDecoder);
 		char *errorMessage;
 		spprintf(&errorMessage,0,"some message parse error : %s",thisMessage);
-		writeSystemLog("TCPServer.log",errorMessage TSRMLS_CC);
+		throwClientException(errorMessage);
 		efree(errorMessage);
 		return -1;
 	}
 
-	php_printf("clientRec:%s\n",base64Decoder);
+	
+	//当前的事件名称
+	zend_hash_index_find(Z_ARRVAL_P(jsonDecoder),1,(void**)&messageEvent);
+	zend_hash_index_find(Z_ARRVAL_P(jsonDecoder),2,(void**)&stringMessage);
+
+	//检查是否存在指定的event
+	eventTable = zend_read_property(CTcpClientCe,clientPHPObject,ZEND_STRL("eventTable"), 0 TSRMLS_CC);
+
+	if(SUCCESS == zend_hash_find(Z_ARRVAL_P(eventTable),Z_STRVAL_PP(messageEvent),strlen(Z_STRVAL_PP(messageEvent))+1,(void**)&eventCallback) && IS_OBJECT == Z_TYPE_PP(eventCallback) ){
+
+		//向PHP层回调
+		zval	*callParams,
+				*connectTimeZval;
+
+		MAKE_STD_ZVAL(callParams);
+		object_init_ex(callParams,CSocketCe);
+		zend_update_property_string(CSocketCe,callParams,ZEND_STRL("message"),Z_STRVAL_PP(stringMessage) TSRMLS_CC);
+		zend_update_property_long(CSocketCe,callParams,ZEND_STRL("socketId"),fd TSRMLS_CC);
+		zend_update_property_long(CSocketCe,callParams,ZEND_STRL("socketType"),2 TSRMLS_CC);
+		zend_update_property_long(CSocketCe,callParams,ZEND_STRL("processId"),getpid() TSRMLS_CC);
+
+		//生成客户端信息
+		zend_update_property_string(CSocketCe,callParams,ZEND_STRL("remoteIp"),clientHost TSRMLS_CC);
+
+		connectTimeZval = zend_read_property(CTcpClientCe,clientPHPObject,ZEND_STRL("connectTime"), 0 TSRMLS_CC);
+		zend_update_property_double(CSocketCe,callParams,ZEND_STRL("connectTime"),Z_DVAL_P(connectTimeZval) TSRMLS_CC);
+
+
+		char	*callback_name = NULL;
+		zval	*callback;
+		callback = *eventCallback;
+		if (!zend_is_callable(callback, 0, &callback_name TSRMLS_CC)) {
+			efree(callback_name);
+			efree(base64Decoder);
+			zval_ptr_dtor(&callParams);
+			zval_ptr_dtor(&jsonDecoder);
+			return 0;
+		}
+
+		zval	constructVal,
+				contruReturn,
+				*paramsList[1];
+
+		INIT_ZVAL(constructVal);
+		ZVAL_STRING(&constructVal,callback_name,0);
+		MAKE_STD_ZVAL(paramsList[0]);
+		ZVAL_ZVAL(paramsList[0],callParams,1,0);
+		int callStatus = call_user_function(NULL, &callback, &constructVal, &contruReturn,1, paramsList TSRMLS_CC);
+
+		zval_dtor(&contruReturn);
+		zval_ptr_dtor(&paramsList[0]);
+		zval_ptr_dtor(&callParams);
+		efree(callback_name);
+	}
+
 
 	efree(base64Decoder);
 	zval_ptr_dtor(&jsonDecoder);
@@ -962,20 +1402,22 @@ int handerTcpClientMessage(int epfd,struct epoll_event revs[],int num,int listen
 
 		int fd = revs[i].data.fd;
 
-		if(revs[i].events & EPOLLIN)	{
+		if(fd == listen_sock && revs[i].events & EPOLLIN)	{
 
 			char		buf[2],
 						*thisMessage;
 			int			readLen = 0,
 						k,
 						findMessage = 0;
-		
+			
 			while(1){
+				errno = 0;
 				readLen = read(fd,buf,sizeof(buf)-1);
 
 				if(readLen <= 0){
-					//关闭客户端触发重连
-					ClientCloseSocket(fd,epfd);
+					if(readLen == 0){
+						ClientCloseSocket(fd,epfd);
+					}
 					break;
 				}
 				for(k = 0 ; k < readLen;k++){
@@ -1002,6 +1444,56 @@ int handerTcpClientMessage(int epfd,struct epoll_event revs[],int num,int listen
 				}
 			}
 		}
+
+
+		if(fd == clientRecProcessReadPipeFd && revs[i].events & EPOLLIN)	{
+
+			char		buf[2],
+						*thisMessage;
+			int			readLen = 0,
+						k,
+						findMessage = 0;
+			smart_str	masterMessage = {0};
+			
+			//检查服务器发送队列长度
+			int sendLen = zend_hash_num_elements(Z_ARRVAL_P(clientSendList));
+			if(sendLen >= MAX_SENDLIST_LEN){
+				//不读取master的消息  让master阻塞
+				return 1;
+			}
+
+			while(1){
+				readLen = read(fd,buf,sizeof(buf)-1);
+
+				if(readLen <= 0){
+					smart_str_0(&masterMessage);
+					smart_str_free(&masterMessage);
+					break;
+				}
+				for(k = 0 ; k < readLen;k++){
+
+					//依次检查字符
+					if(buf[k] != '\n'){
+						smart_str_appendc(&masterMessage,buf[k]);
+					}else if(buf[k] == '\n' || readLen < sizeof(buf)-1){
+						smart_str_0(&masterMessage);
+						thisMessage = estrdup(masterMessage.c);
+						
+						//处理消息 
+						processMasterSendMessage(clientSocketId,thisMessage TSRMLS_CC);
+
+						findMessage = 1;
+						efree(thisMessage);
+						smart_str_free(&masterMessage);
+						break;
+					}
+				}
+				if(findMessage){
+					findMessage = 0;
+					break;
+				}
+			}
+		}
     }
 }
 
@@ -1012,44 +1504,78 @@ void tcpClienthandleMaster_signal(int signo){
 	}
 }
 
-int initRecProcess(int socket,int epfd){
+int initRecProcess(int socket,int epfd,int readFd){
 	//初始化子进程
 	signal(SIGHUP, tcpClienthandleMaster_signal);	//收到父进程退出信号 自身退出
 	prctl(PR_SET_PDEATHSIG, SIGHUP);		//要求父进程退出时发出信号
 	prctl(PR_SET_NAME, "CTcpClientRevProcess"); 
 
+	//管道 读事件设为非阻塞
+	clientRecProcessReadPipeFd = readFd;
+	fcntl(clientRecProcessReadPipeFd, F_SETFL, fcntl(clientRecProcessReadPipeFd, F_GETFL, 0) | O_NONBLOCK);
+
+
+	//初始化发送队列
+	if(clientSendList == NULL){
+		MAKE_STD_ZVAL(clientSendList);
+		array_init(clientSendList);
+	}
+
+	//设置信号 阻止进程退出
+	struct sigaction sa;
+	memset(&sa, 0, sizeof(sa));
+	sa.sa_handler = SIG_IGN;
+	sigaction(SIGPIPE, &sa, 0);
+
+
+	//socket非阻塞
+	fcntl(socket, F_SETFL, fcntl(socket, F_GETFD, 0)|O_NONBLOCK);
+
+	//加入socket事件
 	struct epoll_event  ev;
 	ev.events = EPOLLIN; 
 	ev.data.fd = socket;
-
 	struct epoll_event revs[128];
 	int n = sizeof(revs)/sizeof(revs[0]);
 	int timeout = 3000;
 	int num = 0;
+	epoll_ctl(epfd,EPOLL_CTL_ADD,socket,&ev);
 
-	//加入事件
-	int status = epoll_ctl(epfd,EPOLL_CTL_ADD,socket,&ev);
+	//将管道加入epoll
+	struct epoll_event  ev2;
+	ev2.events = EPOLLIN; 
+	ev2.data.fd = clientRecProcessReadPipeFd;
+	epoll_ctl(epfd,EPOLL_CTL_ADD,clientRecProcessReadPipeFd,&ev2);
+
 
 	//阻塞进程
 	while(1) {
 
 	   //开始epoll事件等待
-	   num = epoll_wait(epfd,revs,n,timeout);
+	   num = epoll_wait(epfd,revs,n,1000);
 
 	   if(num > 0){
-			handerTcpClientMessage(epfd,revs,num,socket TSRMLS_CC);
+			
+		   handerTcpClientMessage(epfd,revs,num,socket TSRMLS_CC);
+
 	   }
+
+	   doClientSendMessage();
 	}
 }
 
 
 //发送消息
 //type 1为自定义消息
-int Client_sendMessage(int socket,char *message TSRMLS_DC){
+int Client_sendMessage(int socket,char *message,int tryNums TSRMLS_DC){
+
+	if(tryNums >= 10){
+		return -1;
+	}
 
 	errno = 0;
+	tryNums++;
 	int writeTime = write(socket,message,strlen(message));
-
 
 	//记录最后一次正常socket io操作的时间
 	if(writeTime > 0){
@@ -1060,6 +1586,9 @@ int Client_sendMessage(int socket,char *message TSRMLS_DC){
 	if(writeTime < 0){
 
 		if(errno == 1 || errno == 4){
+		}else if(errno == 11){
+			usleep(500);
+			return Client_sendMessage(socket,message,tryNums TSRMLS_CC);
 		}else{
 			kill(clientRecProcessId,SIGKILL);
 		}
@@ -1071,6 +1600,7 @@ int Client_sendMessage(int socket,char *message TSRMLS_DC){
 void timerChecker(void(*prompt_info)())
 {
 	struct sigaction tact;
+	memset(&tact, 0, sizeof(tact));
 	tact.sa_handler = prompt_info;
 	tact.sa_flags = 0;
 	sigemptyset(&tact.sa_mask);
@@ -1086,6 +1616,7 @@ void initTimer(){
 	value.it_interval = value.it_value;
 	setitimer(ITIMER_REAL, &value, NULL);
 }
+
 
 //重连socket
 int resetSocketConnect(){
@@ -1106,6 +1637,13 @@ int resetSocketConnect(){
 	clientStatus = 1;
 	clientSocketId = socket;
 
+	//创建管道
+	int masterWriteFd[2];
+	if(pipe(masterWriteFd) < 0){
+		php_error_docref(NULL TSRMLS_CC, E_ERROR ,"[CTCPServerException] can not create pipe..");
+		return;
+	}
+
 	//fork 子进程 用于循环读消息
 	int i = 0;
 	for(i = 0 ; i < 1 ;i++){
@@ -1116,9 +1654,13 @@ int resetSocketConnect(){
 
 		}else if(forkPid == 0){
 
-			initRecProcess(socket,clientMainEpollFd);
+			close(masterWriteFd[1]);
+			initRecProcess(socket,clientMainEpollFd,masterWriteFd[0]);
 
 		}else{
+
+			clientRecProcessWritePipeFd = masterWriteFd[1];
+			close(masterWriteFd[0]);
 
 			clientRecProcessId = forkPid;
 
@@ -1169,12 +1711,17 @@ void timerCallback(){
 		clientHeartbeat();
 	}
 
+	if(clientSleepFlag > 0){
+		clientSleepFlag--;
+	}
+
 
 	//计时器累加
 	clientTimer++;
 	if(clientTimer >= 1000000000){
 		clientTimer = 0;
 	}
+
 }
 
 void clientProcessExit(void){
@@ -1212,6 +1759,16 @@ PHP_METHOD(CTcpClient,connect){
 	clientStatus = 1;
 	clientSocketId = socket;
 
+	//记录连接时间
+	zval *connectTimeZval;
+	microtime(&connectTimeZval);
+	zend_update_property_double(CTcpClientCe,getThis(),ZEND_STRL("connectTime"),Z_DVAL_P(connectTimeZval) TSRMLS_CC);
+	zval_ptr_dtor(&connectTimeZval);
+
+	if(clientPHPObject == NULL){
+		clientPHPObject = getThis();
+	}
+
 	//开始循环等待
 	clientMainEpollFd = epoll_create(1024);
 	if(clientMainEpollFd <= 0){
@@ -1219,6 +1776,12 @@ PHP_METHOD(CTcpClient,connect){
 		return;
 	}
 
+	//创建管道
+	int masterWriteFd[2];
+	if(pipe(masterWriteFd) < 0){
+		php_error_docref(NULL TSRMLS_CC, E_ERROR ,"[CTCPServerException] can not create pipe..");
+		return;
+	}
 
 	//fork 子进程 用于循环读消息
 	int i = 0;
@@ -1231,9 +1794,14 @@ PHP_METHOD(CTcpClient,connect){
 
 		}else if(forkPid == 0){
 
-			initRecProcess(socket,clientMainEpollFd);
+			close(masterWriteFd[1]);
+			initRecProcess(socket,clientMainEpollFd,masterWriteFd[0]);
 
 		}else{
+
+			//设置管道
+			clientRecProcessWritePipeFd = masterWriteFd[1];
+			close(masterWriteFd[0]);
 
 			//记录读线程ID
 			clientRecProcessId = forkPid;
@@ -1249,11 +1817,40 @@ PHP_METHOD(CTcpClient,connect){
 	}
 }
 
-PHP_METHOD(CTcpClient,onConnect){
+PHP_METHOD(CTcpClient,on){
+	zval	*callback,
+			*saveCallback;
+	char	*callback_name,
+			*eventName;
+	int		eventNameLen = 0;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"sz",&eventName,&eventNameLen,&callback) == FAILURE){
+		RETURN_FALSE;
+	}
+
+	if (!zend_is_callable(callback, 0, &callback_name TSRMLS_CC)) {
+        efree(callback_name);
+		throwClientException("[CTcpClientException] call [CTcpClient->on] the params is not a callback function");
+        RETVAL_ZVAL(getThis(),1,0);
+        return;
+    }
+
+	zval	*eventTable;
+
+
+	//save to callbackObject
+	eventTable = zend_read_property(CTcpClientCe,getThis(),ZEND_STRL("eventTable"), 0 TSRMLS_CC);
+	MAKE_STD_ZVAL(saveCallback);
+	ZVAL_ZVAL(saveCallback,callback,1,0);
+	add_assoc_zval(eventTable,eventName,saveCallback);
+	zend_update_property(CTcpClientCe,getThis(),ZEND_STRL("eventTable"),eventTable TSRMLS_CC);
+
+	clientPHPObject = getThis();
+
+    efree(callback_name);
+	RETVAL_ZVAL(getThis(),1,0);
 }
 
-PHP_METHOD(CTcpClient,on){}
-PHP_METHOD(CTcpClient,onDisconnect){}
 
 void createMessage(char *event,char *message,int type,char **stringMessage TSRMLS_DC){
 
@@ -1297,28 +1894,29 @@ PHP_METHOD(CTcpClient,emit){
 		RETURN_FALSE;
 	}
 
-	if(clientStatus != 1){
-		while(1){
-			//检查连接状态 并阻塞函数
-			if(clientStatus == 1){
-				break;
-			}
-			usleep(500);
-		}
-	}
-
+	
 	//记录一条发送消息 
 	char *stringMessage;
 	createMessage(event,message,MSG_USER,&stringMessage TSRMLS_CC);
-	int writeStatus = Client_sendMessage(clientSocketId,stringMessage TSRMLS_CC);
 
-	if(writeStatus > 0){
-		RETVAL_TRUE;
-	}else{
-		RETVAL_FALSE;
+	//发送至管道
+	int status = -1;
+	while(1){
+		status = write(clientRecProcessWritePipeFd,stringMessage,strlen(stringMessage));
+		if(status == strlen(stringMessage)){
+			break;
+		}
+		//发送失败则阻塞进程
+		usleep(500);
 	}
 
 	efree(stringMessage);
+
+	if(status <= 0){
+		RETVAL_FALSE;
+	}
+
+	RETVAL_TRUE;
 }
 
 
@@ -1347,6 +1945,7 @@ PHP_METHOD(CSocket,emit)
 			*sendList;
 	
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"ss",&event,&eventLen,&message,&messageLen) == FAILURE){
+		throwServerException("[CTcpServerException] call [CTcpServer->emit] params error ,need 2 string");
 		RETURN_FALSE;
 	}
 
@@ -1355,26 +1954,60 @@ PHP_METHOD(CSocket,emit)
 	createMessage(event,message,MSG_USER,&stringMessage TSRMLS_CC);
 
 	zval *socketId = zend_read_property(CSocketCe,getThis(),ZEND_STRL("socketId"), 0 TSRMLS_CC);
+	zval *socketType = zend_read_property(CSocketCe,getThis(),ZEND_STRL("socketType"), 0 TSRMLS_CC);
+
+	zval *sendMessage;
+	MAKE_STD_ZVAL(sendMessage);
+	array_init(sendMessage);
+	add_index_long(sendMessage,0,Z_LVAL_P(socketId));
+	add_index_string(sendMessage,1,stringMessage,0);
 
 	//同步消息发送
-	errno = 0;
-	int status = write(Z_LVAL_P(socketId),stringMessage,strlen(stringMessage));
-
-	if(status > 0){
-		//发送成功
-		RETVAL_TRUE;
-	}else if(status == 0){
-
-		//客户端已断开连接
-		serverCloseClientSocket(Z_LVAL_P(socketId),getThis());
-		
-	}else{
-		//出错
-		RETVAL_LONG(errno);
+	if(2 == Z_LVAL_P(socketType)){
+		int len = zend_hash_num_elements(Z_ARRVAL_P(clientSendList));
+		if(len >= MAX_SENDLIST_LEN){
+			zval_ptr_dtor(&sendMessage);
+			RETURN_FALSE;
+		}
+		add_next_index_zval(clientSendList,sendMessage);
+		RETVAL_LONG(len+1);
 	}
 
-	//destory
-	efree(stringMessage);
+	if(1 == Z_LVAL_P(socketType)){
+		
+		//判断客户端是否还在现在
+		char socketIndex[100];
+		sprintf(socketIndex,"%d_%d",getpid(),Z_LVAL_P(socketId));
+		if(IS_ARRAY == Z_TYPE_P(serverSocketList) && zend_hash_exists(Z_ARRVAL_P(serverSocketList),socketIndex,strlen(socketIndex)+1) ){
+		}else{
+			zval_ptr_dtor(&sendMessage);
+			RETURN_FALSE;
+		}
+
+		//获取此socket的列表
+		zval **thisSocketList;
+		if(SUCCESS == zend_hash_index_find(Z_ARRVAL_P(serverSendList),Z_LVAL_P(socketId),(void**)&thisSocketList) && IS_ARRAY == Z_TYPE_PP(thisSocketList) ){
+			if(zend_hash_num_elements(Z_ARRVAL_PP(thisSocketList)) >= MAX_SENDLIST_LEN ){
+				RETURN_FALSE;
+			}
+		}else{
+			//键不存在则创建一条
+			zval *saveArray;
+			MAKE_STD_ZVAL(saveArray);
+			array_init(saveArray);
+			add_index_zval(serverSendList,Z_LVAL_P(socketId),saveArray);
+			zend_hash_index_find(Z_ARRVAL_P(serverSendList),Z_LVAL_P(socketId),(void**)&thisSocketList);
+		}
+
+		if(IS_ARRAY != Z_TYPE_PP(thisSocketList)){
+			RETURN_FALSE;
+		}
+
+		//重新读取
+		int n =zend_hash_num_elements(Z_ARRVAL_PP(thisSocketList));
+		add_next_index_zval(*thisSocketList,sendMessage);
+		RETURN_LONG(n+1);
+	}
 }
 
 
@@ -1395,16 +2028,14 @@ PHP_METHOD(CSocket,getConnectTime)
 	zval *data = zend_read_property(CSocketCe,getThis(),ZEND_STRL("connectTime"), 0 TSRMLS_CC);
 	RETVAL_ZVAL(data,1,0);
 }
-}
 
 PHP_METHOD(CSocket,getSessionId)
 {
 	char	*sessionId,
 			sess[100];
 	zval *socketId = zend_read_property(CSocketCe,getThis(),ZEND_STRL("socketId"), 0 TSRMLS_CC);
-	sprintf(sess,"%d",getpid()+Z_LVAL_P(socketId));
-	md5(sess,&sessionId);
-	RETVAL_STRING(sessionId,0);
+	sprintf(sess,"%d_%d",getpid(),Z_LVAL_P(socketId));
+	RETVAL_STRING(sess,1);
 }
 
 PHP_METHOD(CSocket,getProcessId)
@@ -1419,9 +2050,116 @@ PHP_METHOD(CSocket,getLastActiveTime)
 	RETVAL_ZVAL(data,1,0);
 }
 
+PHP_METHOD(CSocket,getSocket)
+{
+	zval	*object,
+			**socketInfo,
+			**targetSocketId;
+	char	*sessionId;
+	int		sessionIdLen = 0;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"s",&sessionId,&sessionIdLen) == FAILURE){
+		RETURN_FALSE;
+	}
+
+	if(SUCCESS == zend_hash_find(Z_ARRVAL_P(serverSocketList),sessionId,strlen(sessionId)+1,(void**)&socketInfo) && IS_ARRAY == Z_TYPE_PP(socketInfo) &&
+		SUCCESS == zend_hash_find(Z_ARRVAL_PP(socketInfo),"socketId",strlen("socketId")+1,(void**)&targetSocketId) && IS_LONG == Z_TYPE_PP(targetSocketId)
+	){
+	}else{
+		char errMessage[512];
+		sprintf(errMessage,"[CTcpServerException] call [CTcpServer->getSocket] can not find the socket object by sessionId:%s",sessionId);
+		throwServerException(errMessage);
+		return;
+	}
+
+	//复制一份自己
+	MAKE_STD_ZVAL(object);
+	ZVAL_ZVAL(object,getThis(),1,0);
+	zend_update_property_long(CSocketCe,object,ZEND_STRL("socketId"),Z_LVAL_PP(targetSocketId) TSRMLS_CC);
+	RETVAL_ZVAL(object,1,1);
+}
+
+PHP_METHOD(CSocket,getAllConnection)
+{
+	if(serverSocketList == NULL){
+		array_init(return_value);
+		return;
+	}
+
+	RETVAL_ZVAL(serverSocketList,1,0);
+}
+
 PHP_METHOD(CTcpClient,close)
 {
+	//clientMainEpollFd clientSocketId
+	ClientCloseSocket(clientMainEpollFd,clientSocketId);
 
+	clientStatus = 4;
+
+	kill(clientRecProcessId,SIGKILL);
+}
+
+PHP_METHOD(CTcpServer,onError)
+{
+	zval	*callback,
+			*saveHandler;
+	char	*callback_name;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"z",&callback) == FAILURE){
+		RETURN_FALSE;
+	}
+
+	if (!zend_is_callable(callback, 0, &callback_name TSRMLS_CC)) {
+        efree(callback_name);
+        RETVAL_ZVAL(getThis(),1,0);
+        return;
+    }
+	efree(callback_name);
+
+	MAKE_STD_ZVAL(serverErrorHandler);
+	ZVAL_ZVAL(serverErrorHandler,callback,1,0);
+
+	RETVAL_ZVAL(getThis(),1,0);
+}
+
+PHP_METHOD(CTcpClient,onError){
+	zval	*callback,
+			*saveHandler;
+	char	*callback_name;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"z",&callback) == FAILURE){
+		RETURN_FALSE;
+	}
+
+	if (!zend_is_callable(callback, 0, &callback_name TSRMLS_CC)) {
+        efree(callback_name);
+        RETVAL_ZVAL(getThis(),1,0);
+        return;
+    }
+	efree(callback_name);
+
+	MAKE_STD_ZVAL(clientErrorHandler);
+	ZVAL_ZVAL(clientErrorHandler,callback,1,0);
+
+	RETVAL_ZVAL(getThis(),1,0);
+}
+
+PHP_METHOD(CTcpClient,sleep){
+
+	ulong	time = 0;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC,"l",&time) == FAILURE){
+		RETURN_FALSE;
+	}
+
+	clientSleepFlag = time;
+
+	while(1){
+		if(clientSleepFlag == 0){
+			sleep(1);
+			break;
+		}
+	}
 }
 
 #endif
