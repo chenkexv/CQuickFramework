@@ -84,6 +84,7 @@ if test "$PHP_CQUICKFRAMEWORK" != "no"; then
 		CHttpPool.c \
 		CPool.c \ 
 		CMathModel.c \
+		CTcpServer.c \
 	    CHttpServer.c "
 
     dnl 检查qrcode所需要的外部libqrencode依赖
