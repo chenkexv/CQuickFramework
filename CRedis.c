@@ -228,7 +228,7 @@ void CRedis_callFunction(char *config,char *val,zval *args,zval **returnData TSR
 
 		if(EG(exception)){
 			char errMessage[1024];
-			sprintf(errMessage,"%s%s%s","[CRedisException] Unable to connect to the redis server to CallFunction: ",val,"()");
+			sprintf(errMessage,"%s%s%s%s","[CRedisException] Unable to connect to the redis server to CallFunction: ",val,"()",config);
 			Z_OBJ_HANDLE_P(EG(exception)) = 0;
 			zend_clear_exception(TSRMLS_C);
 			ZVAL_NULL(*returnData);
@@ -600,7 +600,10 @@ PHP_METHOD(CRedis,__call)
 
 		if(EG(exception)){
 			char errMessage[1024];
-			sprintf(errMessage,"%s%s%s","[CRedisException] Unable to connect to the redis server to CallFunction: ",val,"()");
+			char *sendPrams;
+			json_encode(args,&sendPrams);
+			sprintf(errMessage,"%s%s%s%s","[CRedisException] Unable to connect to the redis server to CallFunction: ",val,"()",sendPrams);
+			efree(sendPrams);
 			Z_OBJ_HANDLE_P(EG(exception)) = 0;
 			zend_clear_exception(TSRMLS_C);
 			zend_throw_exception(CRedisExceptionCe, errMessage, 1001 TSRMLS_CC);

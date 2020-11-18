@@ -420,7 +420,7 @@ void CDebug_getErrorLevelSay(int code,char **say TSRMLS_DC){
 
 PHP_METHOD(CDebug,getErrorsData)
 {
-	int		errorCode,
+	long		errorCode,
 			messageLen = 0,
 			fileLen = 0,
 			lineLen = 0,

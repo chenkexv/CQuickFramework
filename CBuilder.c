@@ -782,7 +782,13 @@ PHP_METHOD(CBuilder,where)
 			//ÅÐ¶ÏVALÀàÐÍ
 			if(IS_STRING == Z_TYPE_PP(thisVal) || IS_LONG == Z_TYPE_PP(thisVal) || IS_DOUBLE == Z_TYPE_PP(thisVal) ){}
 			else{
-				zend_throw_exception(CDbExceptionCe, "[QueryException] Call [CBuilder->where] Parameter error , the array's value must be string,long,double ", 5005 TSRMLS_CC);
+				char *errorMessage;
+				char *moreInfo;
+				json_encode(paramArr,&moreInfo);
+				spprintf(&errorMessage,0,"%s%s","[QueryException] Call [CBuilder->where] Parameter error , the array's value must be string,long,double => %s ",moreInfo);
+				zend_throw_exception(CDbExceptionCe, errorMessage, 5005 TSRMLS_CC);
+				efree(errorMessage);
+				efree(moreInfo);
 				return;
 			}
 
