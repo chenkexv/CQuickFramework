@@ -195,8 +195,9 @@ PHP_METHOD(CSession,del)
 		return;
 	}
 
-	if( zend_hash_find(&EG(symbol_table),"_SESSION",sizeof("_SESSION"),(void**)&array) != SUCCESS && IS_ARRAY != Z_TYPE_PP(array) ){
-		array_init(*array);
+	if( zend_hash_find(&EG(symbol_table),"_SESSION",sizeof("_SESSION"),(void**)&array) != SUCCESS ){
+		RETVAL_FALSE;
+		return;
 	}
 
 	if(zend_hash_exists(Z_ARRVAL_PP(array),key,strlen(key)+1)){	

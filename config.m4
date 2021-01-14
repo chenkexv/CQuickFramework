@@ -18,6 +18,18 @@ else
 fi
 
 
+PHP_ARG_ENABLE(kafka, wheter to enable kafka support,
+[  --enable-kafka           CQuickFramework配置|添加此项目将依赖libkafka并可使用kafka队列], no, no)
+
+AC_MSG_CHECKING([Include kafka])
+if test "$PHP_KAFKA" = "yes"; then
+	AC_DEFINE([CQUICKFRAMEWORK_KAFKA], [1], [Whether kafka are available])
+	AC_MSG_RESULT([yes, kafka])
+else
+	AC_MSG_RESULT([no])
+fi
+
+
 dnl 设置扩展所使用的源文件
 if test "$PHP_CQUICKFRAMEWORK" != "no"; then
 
@@ -71,7 +83,7 @@ if test "$PHP_CQUICKFRAMEWORK" != "no"; then
 	    CSecurityCode.c \
 	    CDebug.c \
 	    CCrontabController.c \
-		CServiceController.c \
+	    CServiceController.c \
 	    CFtp.c \
 	    CDate.c \
 	    CWord.c \
@@ -81,10 +93,10 @@ if test "$PHP_CQUICKFRAMEWORK" != "no"; then
 	    CString.c \
 	    CFile.c \
 	    CHttp.c \
-		CHttpPool.c \
-		CPool.c \ 
-		CMathModel.c \
-		CTcpServer.c \
+	    CHttpPool.c \
+	    CPool.c \ 
+	    CMathModel.c \
+	    CTcpServer.c \
 	    CHttpServer.c "
 
     dnl 检查qrcode所需要的外部libqrencode依赖
@@ -110,11 +122,35 @@ if test "$PHP_CQUICKFRAMEWORK" != "no"; then
 		    fi
 	    done
     fi
+	
+	if test "$PHP_KAFKA" = "yes"; then
+	    AC_MSG_CHECKING([checking librdkafka support])
+		if test -r /usr/include/librdkafka/rdkafka.h; then
+			PHP_ADD_INCLUDE(/usr/include/librdkafka)
+			PHP_CHECK_LIBRARY(rdkafka, rd_kafka_new,
+			[
+			    LDFLAGS="$LDFLAGS -lrdkafka"
+				PHP_ADD_LIBRARY("librdkafka")
+				AC_DEFINE(CQUICKFRAMEWORK_USE_KAFKA, 1, [Have rdkafka support])
+				frameworkSrouceFile="$frameworkSrouceFile kafka.c CKafka.c"
+			],[
+				AC_MSG_ERROR([Wrong rdkafka version or library not found])
+			],[
+				-L$i/$PHP_LIBDIR -lm
+			])
+			break
+		else
+			AC_MSG_RESULT([no, found in $i])
+			AC_MSG_ERROR([use the --enable-kafka , but can not find rdkafka.h . Install the rdkafka library or cancel the --enable-kafka option])
+		fi
+    fi
     
 	PHP_ADD_INCLUDE(./include)
-	PHP_ADD_LIBRARY_WITH_PATH(hiredis, ./lib, CQUICKFRAMEWORK_SHARED_LIBADD)
+	dnl PHP_ADD_LIBRARY_WITH_PATH(hiredis, ./lib, CQUICKFRAMEWORK_SHARED_LIBADD)
     PHP_NEW_EXTENSION(CQuickFramework,$frameworkSrouceFile,$ext_shared)
 	PHP_SUBST(CQUICKFRAMEWORK_SHARED_LIBADD)
+	
+	
 fi
 
 
