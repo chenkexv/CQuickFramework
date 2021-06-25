@@ -1823,6 +1823,10 @@ void QuickTemplate__parse_include_tags(zval *object,char *source_contents,char *
 						source_content = estrdup(replaceEndContent);
 						efree(replaceEndContent);
 						efree(newFileContent);
+
+						zval_ptr_dtor(&replaceFileName);
+						zval_ptr_dtor(&findFileName);
+
 					}else{
 						char errorMessage[1024];
 						sprintf(errorMessage,"%s%s","[CViewException] Compiler Error : Template not exists :",fileTempName1);
@@ -1844,19 +1848,47 @@ void QuickTemplate__parse_include_tags(zval *object,char *source_contents,char *
 					efree(truePath);
 
 				}else{
-					char errorMessage[1024];
-					sprintf(errorMessage,"%s%s","[CViewException] Compiler Error : Template not exists :",fileTempName1);
-					zval_ptr_dtor(&replaceFileName);
-					zval_ptr_dtor(&findFileName);
-					efree(fileTempName1);
-					zval_ptr_dtor(&matchModer);
-					zval_ptr_dtor(&attr);
-					zval_ptr_dtor(&match);
-					efree(source_content);
-					efree(matchReg);
-					efree(modReg);
-					php_error_docref(NULL TSRMLS_CC, E_ERROR ,errorMessage);
-					return;
+				
+					char	*truePath,
+							*thisFilePath;
+					php_trim(fileTempName1,"\"",&thisFilePath);
+					CQuickTemplate_getTemplateTruePath(object,thisFilePath,&truePath TSRMLS_CC);
+					if(SUCCESS != fileExist(truePath)){
+						char errorMessage[1024];
+						sprintf(errorMessage,"%s%s","[CViewException] Compiler Error : Template not exists :",truePath);
+						efree(thisFilePath);
+						efree(truePath);
+						zval_ptr_dtor(&replaceFileName);
+						zval_ptr_dtor(&findFileName);
+						efree(fileTempName1);
+						zval_ptr_dtor(&matchModer);
+						zval_ptr_dtor(&attr);
+						zval_ptr_dtor(&match);
+						efree(source_content);
+						efree(matchReg);
+						efree(modReg);
+						php_error_docref(NULL TSRMLS_CC, E_ERROR ,errorMessage);
+						return;
+					}else{
+
+						char	*newFileContent,
+								*replaceEndContent;
+
+						file_get_contents(truePath,&newFileContent);
+						str_replace(Z_STRVAL_PP(orgTags),newFileContent,source_content,&replaceEndContent);
+
+						efree(source_content);
+						source_content = estrdup(replaceEndContent);
+						efree(replaceEndContent);
+						efree(newFileContent);
+
+						zval_ptr_dtor(&replaceFileName);
+						zval_ptr_dtor(&findFileName);
+					}
+
+
+					efree(thisFilePath);
+					efree(truePath);
 				}
 
 				efree(fileTempName1);
