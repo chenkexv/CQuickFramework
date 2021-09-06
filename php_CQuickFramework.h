@@ -16,8 +16,6 @@
   +----------------------------------------------------------------------+
 */
 
-/* $Id: header 297205 2010-03-30 21:09:07Z johannes $ */
-
 #ifndef PHP_CQuickFramework_H
 #define PHP_CQuickFramework_H
 

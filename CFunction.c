@@ -1001,6 +1001,44 @@ void php_trim(char *reg,char * replaceOffset,char **returnStr)
 	return;
 }
 
+void php_rtrim(char *reg,char * replaceOffset,char **returnStr)
+{
+	zval	returnZval,
+			*params[2],
+			param1,
+			param2,
+			param3,
+			function;
+
+	int status = FAILURE;
+
+	TSRMLS_FETCH();
+	params[0] = &param1;
+	params[1] = &param2;
+	MAKE_STD_ZVAL(params[0]);
+	MAKE_STD_ZVAL(params[1]);
+
+	ZVAL_STRING(params[0],reg,1);
+	ZVAL_STRING(params[1],replaceOffset,1);
+
+	INIT_ZVAL(function);
+	ZVAL_STRING(&function,"rtrim",0);
+	status = call_user_function(EG(function_table), NULL, &function, &returnZval,2, params TSRMLS_CC);
+
+	zval_ptr_dtor(&params[0]);
+	zval_ptr_dtor(&params[1]);
+
+	if(IS_STRING == Z_TYPE(returnZval)){
+		*returnStr = estrdup(Z_STRVAL(returnZval));
+		zval_dtor(&returnZval);
+		return;
+	}
+
+	zval_dtor(&returnZval);
+	*returnStr = estrdup(reg);
+	return;
+}
+
 //通过SPL注册自动载入
 void spl_autoload_register(zval *classMethod TSRMLS_DC)
 {
@@ -1041,6 +1079,28 @@ int extension_loaded(char *reg)
 	
 	INIT_ZVAL(function);
 	ZVAL_STRING(&function,"extension_loaded",0);
+	status = call_user_function(EG(function_table), NULL, &function, &returnZval,1, params TSRMLS_CC);
+	zval_ptr_dtor(&params[0]);
+
+	status = Z_LVAL(returnZval);
+	zval_dtor(&returnZval);
+	return status;
+}
+
+int php_filesize(char *reg)
+{
+	zval	returnZval,
+			*params[1],
+			param1,
+			function;
+
+	int status = FAILURE;
+	TSRMLS_FETCH();
+	MAKE_STD_ZVAL(params[0]);
+	ZVAL_STRING(params[0],reg,1);
+
+	INIT_ZVAL(function);
+	ZVAL_STRING(&function,"filesize",0);
 	status = call_user_function(EG(function_table), NULL, &function, &returnZval,1, params TSRMLS_CC);
 	zval_ptr_dtor(&params[0]);
 
@@ -1633,6 +1693,28 @@ void php_fclose(zval *fp)
 
 	zval_ptr_dtor(&params[0]);
 	zval_dtor(&returnZval);
+}
+
+int php_is_dir(char *path){
+	
+	zval	returnZval,
+			*params[1],
+			function;
+
+	int		returnCode = 0;
+
+	TSRMLS_FETCH();
+	MAKE_STD_ZVAL(params[0]);
+	ZVAL_STRING(params[0],path,1);
+
+	INIT_ZVAL(function);
+	ZVAL_STRING(&function,"is_dir",0);
+	call_user_function(EG(function_table), NULL, &function, &returnZval,1, params TSRMLS_CC);
+	zval_ptr_dtor(&params[0]);
+
+	returnCode = IS_BOOL == Z_TYPE(returnZval) && Z_BVAL(returnZval) == 1 ? 1 : 0;
+	zval_dtor(&returnZval);
+	return returnCode;
 }
 
 void register_shutdown_function(char *param1Str)
