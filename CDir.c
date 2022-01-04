@@ -39,7 +39,7 @@ zend_function_entry CDir_functions[] = {
 	PHP_ME(CDir,delete,NULL,ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
 	PHP_ME(CDir,deleteAllFiles,NULL,ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
 	PHP_ME(CDir,rename,NULL,ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
-	{NULL, NULL, NULL}
+	{NULL, NULL, NULL}	
 };
 
 //模块被加载时

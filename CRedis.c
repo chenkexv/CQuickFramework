@@ -411,7 +411,7 @@ void CRedis_getRedisConnection(zval *object,char *groupName TSRMLS_DC)
 			}
 
 			if(zend_hash_find(Z_ARRVAL_PP(thisGroupZval),"password",strlen("password")+1,(void**)&groupPassword) == SUCCESS && IS_STRING == Z_TYPE_PP(groupPassword) ){
-				password = Z_STRVAL_PP(groupTimeout);
+				password = Z_STRVAL_PP(groupPassword);
 			}
 
 		}
